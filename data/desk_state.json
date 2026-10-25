@@ -18,17 +18,17 @@
     "deployedUsd": 60,
     "totalCapitalEverDeployedUsd": 60,
     "realizedPnlUsd": 0,
-    "unrealizedPnlUsd": -7.4,
-    "totalEquityUsd": 992.6,
+    "unrealizedPnlUsd": -4.93,
+    "totalEquityUsd": 995.07,
     "lastNotifiedPnlPct": 0
   },
   "stats": {
-    "totalScans": 14,
-    "todayCandidatesCount": 140,
-    "todayRejectedCount": 139,
+    "totalScans": 15,
+    "todayCandidatesCount": 150,
+    "todayRejectedCount": 149,
     "todayPassedCount": 1,
     "rejectionReasons": {
-      "규칙 1": 138,
+      "규칙 1": 148,
       "규칙 6": 1
     },
     "closedByRuleCount": 0
@@ -42,7 +42,7 @@
       "name": "Remus",
       "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
       "entryPriceUsd": 0.001035,
-      "currentPriceUsd": 0.0009219,
+      "currentPriceUsd": 0.0009652,
       "dollars": 60,
       "feeUsd": 0.95,
       "effectiveFeePct": 1.58,
@@ -107,34 +107,34 @@
   ],
   "lastScanCandidates": [
     {
-      "symbol": "BTC",
-      "name": "Big Testicle Coin",
-      "contract": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
-      "pairAddress": "9nkE3B5zF3yCDh8YrQrhch4dGNyLYcNBqEB7feo3V9Av",
-      "priceUsd": 0.0001237,
-      "liquidityUsd": 30577,
-      "volumeH24": 553017,
-      "volumeH6": 553017,
-      "priceChangeM5": 13.12,
-      "priceChangeH1": -59.42,
+      "symbol": "SOL",
+      "name": "Sexy Oily Lady",
+      "contract": "29tW5jxiroGdGhPm8iTm1C1LWXXKco5mEcH6TE9Cpump",
+      "pairAddress": "9kfepEKBuUNb8mseTB2zoiPiAAsFqqZyqRsDjkPjFoJE",
+      "priceUsd": 0.0001296,
+      "liquidityUsd": 29717,
+      "volumeH24": 770555,
+      "volumeH6": 770555,
+      "priceChangeM5": -33.94,
+      "priceChangeH1": 134,
       "txnsM5": {
-        "buys": 123,
-        "sells": 55
+        "buys": 1180,
+        "sells": 148
       },
       "txnsH1": {
-        "buys": 2964,
-        "sells": 1962
+        "buys": 6170,
+        "sells": 1160
       },
-      "pairCreatedAt": 1792920780000,
-      "holders": 3593,
+      "pairCreatedAt": 1792927573000,
+      "holders": 1520,
       "holdersSource": "solana-rpc+rugcheck-index",
       "warning": null,
-      "velocityScore": 7.8,
+      "velocityScore": 26.61,
       "onChain": {
         "responded": true,
-        "supplyUi": 960688323.430747,
-        "largestAccountPct": 13.25,
-        "totalHolders": 3593,
+        "supplyUi": 994762485.705979,
+        "largestAccountPct": 11.68,
+        "totalHolders": 1520,
         "source": "solana-rpc+rugcheck-index"
       }
     },
@@ -143,62 +143,126 @@
       "name": "Always Sunny in Space",
       "contract": "AqPaRQQnWktrz6KxpQTamRmkSuApiiJZxSHPEw4Spump",
       "pairAddress": "6oSzfiBt2CxpR5d4pCHfhUGuYK4bbEC719zmWHtvydsM",
-      "priceUsd": 0.00001945,
-      "liquidityUsd": 10341,
-      "volumeH24": 42145,
-      "volumeH6": 42145,
-      "priceChangeM5": 57.41,
-      "priceChangeH1": -55.4,
+      "priceUsd": 0.00002099,
+      "liquidityUsd": 10954,
+      "volumeH24": 46256,
+      "volumeH6": 46256,
+      "priceChangeM5": 9.59,
+      "priceChangeH1": -51.86,
       "txnsM5": {
-        "buys": 18,
-        "sells": 9
+        "buys": 12,
+        "sells": 2
       },
       "txnsH1": {
-        "buys": 537,
-        "sells": 611
+        "buys": 593,
+        "sells": 652
       },
       "pairCreatedAt": 1792926905000,
-      "holders": 649,
+      "holders": 641,
       "holdersSource": "solana-rpc+rugcheck-index",
       "warning": null,
-      "velocityScore": 6.11,
+      "velocityScore": 9.04,
       "onChain": {
         "responded": true,
         "supplyUi": 963835610.617808,
         "largestAccountPct": 36.31,
-        "totalHolders": 649,
+        "totalHolders": 641,
         "source": "solana-rpc+rugcheck-index"
       }
     },
     {
-      "symbol": "SPCX",
-      "name": "Sexy Peachy Cheeks Xposed",
-      "contract": "5kPuDh6YVwCxY1xVTe4gz6cFPkvov2GD7i83kbyjpump",
-      "pairAddress": "7wsoF5D5n7pP2YQE3MR1t9Lz6be98aSsrrnPyf35zzVq",
-      "priceUsd": 0.0001169,
-      "liquidityUsd": 29410,
-      "volumeH24": 651471,
-      "volumeH6": 651471,
-      "priceChangeM5": 3.91,
-      "priceChangeH1": 56.02,
+      "symbol": "LAUNCH",
+      "name": "Launch",
+      "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
+      "pairAddress": "GezArkyjgqsjid7m9zg3jkxxFmnHuh8dDzmqUpbL7K59",
+      "priceUsd": 0.0000465,
+      "liquidityUsd": 18622,
+      "volumeH24": 85394,
+      "volumeH6": 85394,
+      "priceChangeM5": 42.36,
+      "priceChangeH1": 12.03,
       "txnsM5": {
-        "buys": 142,
-        "sells": 144
+        "buys": 191,
+        "sells": 92
       },
       "txnsH1": {
-        "buys": 4051,
-        "sells": 2860
+        "buys": 1479,
+        "sells": 864
       },
-      "pairCreatedAt": 1792924079000,
-      "holders": 1215,
+      "pairCreatedAt": 1792928329000,
+      "holders": 908,
       "holdersSource": "solana-rpc+rugcheck-index",
       "warning": null,
-      "velocityScore": 4.51,
+      "velocityScore": 8.2,
       "onChain": {
         "responded": true,
-        "supplyUi": 967749412.405991,
-        "largestAccountPct": 12.78,
-        "totalHolders": 1215,
+        "supplyUi": 989900935.060813,
+        "largestAccountPct": 19.62,
+        "totalHolders": 908,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "BTC",
+      "name": "Big Testicle Coin",
+      "contract": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
+      "pairAddress": "9nkE3B5zF3yCDh8YrQrhch4dGNyLYcNBqEB7feo3V9Av",
+      "priceUsd": 0.00009131,
+      "liquidityUsd": 26052,
+      "volumeH24": 586057,
+      "volumeH6": 586057,
+      "priceChangeM5": -8.69,
+      "priceChangeH1": -58.87,
+      "txnsM5": {
+        "buys": 99,
+        "sells": 63
+      },
+      "txnsH1": {
+        "buys": 2137,
+        "sells": 1520
+      },
+      "pairCreatedAt": 1792920780000,
+      "holders": 3679,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 5.03,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 960686589.766436,
+        "largestAccountPct": 16.24,
+        "totalHolders": 3679,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "GTA",
+      "name": "Gigantic Tits Agency",
+      "contract": "7iXNTHrz6BfgXcGzB74WSPkvXCCeUkyYnqyJNPtXpump",
+      "pairAddress": "DhfTK1Nxz9bTUWsjPuBGCNhmx7Nmed5w6BbEzDYq5bt9",
+      "priceUsd": 0.0001101,
+      "liquidityUsd": 28221,
+      "volumeH24": 368506,
+      "volumeH6": 368506,
+      "priceChangeM5": -48.02,
+      "priceChangeH1": 159,
+      "txnsM5": {
+        "buys": 205,
+        "sells": 178
+      },
+      "txnsH1": {
+        "buys": 2651,
+        "sells": 1488
+      },
+      "pairCreatedAt": 1792928078000,
+      "holders": 1184,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 4.85,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 979905325.455555,
+        "largestAccountPct": 12,
+        "totalHolders": 1184,
         "source": "solana-rpc+rugcheck-index"
       }
     },
@@ -207,234 +271,170 @@
       "name": "Sexy Oily Lady",
       "contract": "EVGstwCAWo1tNqEJCUecjjwTYkK1jytP8WYVgxBHpump",
       "pairAddress": "4JnLktLXEgUqgoJo9MM6sy3f7pxURKoQVzCKJrr9Ex5u",
-      "priceUsd": 0.00008535,
-      "liquidityUsd": 23539,
-      "volumeH24": 128857,
-      "volumeH6": 128857,
-      "priceChangeM5": -22.19,
-      "priceChangeH1": 0.79,
+      "priceUsd": 0.00004809,
+      "liquidityUsd": 17544,
+      "volumeH24": 139591,
+      "volumeH6": 139591,
+      "priceChangeM5": -19.89,
+      "priceChangeH1": -63.53,
       "txnsM5": {
-        "buys": 44,
-        "sells": 36
+        "buys": 17,
+        "sells": 9
       },
       "txnsH1": {
-        "buys": 1204,
-        "sells": 840
+        "buys": 663,
+        "sells": 449
       },
       "pairCreatedAt": 1792924282000,
-      "holders": 1237,
+      "holders": 1258,
       "holdersSource": "solana-rpc+rugcheck-index",
       "warning": null,
-      "velocityScore": 4.04,
+      "velocityScore": 4.74,
       "onChain": {
         "responded": true,
         "supplyUi": 953318352.633883,
         "largestAccountPct": 52.45,
-        "totalHolders": 1237,
+        "totalHolders": 1258,
         "source": "solana-rpc+rugcheck-index"
       }
-    },
-    {
-      "symbol": "HQ",
-      "name": "HQ Solana ",
-      "contract": "EDTmJjr4VoV9S8ftCQFt4ZBvmDy9s1tBoiWVrmDApump",
-      "pairAddress": "CzKnEVjhVkmDzbUQhz4xbLfaAY4YMnPHZ1J5rCVxvjQ2",
-      "priceUsd": 0.0000225,
-      "liquidityUsd": 10875,
-      "volumeH24": 123,
-      "volumeH6": 31,
-      "priceChangeM5": -1.43,
-      "priceChangeH1": -1.92,
-      "txnsM5": {
-        "buys": 1,
-        "sells": 1
-      },
-      "txnsH1": {
-        "buys": 12,
-        "sells": 5
-      },
-      "pairCreatedAt": 1787355713000,
-      "holders": 1644,
-      "holdersSource": "solana-rpc+rugcheck-index",
-      "warning": null,
-      "velocityScore": 2,
-      "onChain": {
-        "responded": true,
-        "supplyUi": 959642108.00194,
-        "largestAccountPct": 29.09,
-        "totalHolders": 1644,
-        "source": "solana-rpc+rugcheck-index"
-      }
-    },
-    {
-      "symbol": "SHADOW",
-      "name": "ShadowPrivacy",
-      "contract": "F9Yz51QZpvS5fWdqgmt8wgEWHjg2E5YdwLvSjsrGpump",
-      "pairAddress": "6isACdSSLWMvhspMGYFfriWv5REYAkdqXxxPSRiDTkHU",
-      "priceUsd": 0.0001609,
-      "liquidityUsd": 34824,
-      "volumeH24": 279024,
-      "volumeH6": 9908,
-      "priceChangeM5": 0,
-      "priceChangeH1": -2.1,
-      "txnsM5": {
-        "buys": 0,
-        "sells": 0
-      },
-      "txnsH1": {
-        "buys": 27,
-        "sells": 18
-      },
-      "pairCreatedAt": 1792602825000,
-      "holders": 2772,
-      "holdersSource": "solana-rpc+rugcheck-index",
-      "warning": null,
-      "velocityScore": 1.87,
-      "onChain": {
-        "responded": true,
-        "supplyUi": 932626372.762436,
-        "largestAccountPct": 12.13,
-        "totalHolders": 2772,
-        "source": "solana-rpc+rugcheck-index"
-      }
-    },
-    {
-      "symbol": "BTC",
-      "name": "Big Testicle Coin",
-      "contract": "EcuMNoYi79hmX7fr48zk33fDnCcazKPrgJiZ9Gp1pump",
-      "pairAddress": "9ogiPY6zc7EwMPuLdUfD6SBG1vzecByDhMgoWhUc8LLJ",
-      "priceUsd": 0.00004809,
-      "liquidityUsd": 18325,
-      "volumeH24": 36788,
-      "volumeH6": 36788,
-      "priceChangeM5": -25.71,
-      "priceChangeH1": 96.18,
-      "txnsM5": {
-        "buys": 3,
-        "sells": 14
-      },
-      "txnsH1": {
-        "buys": 160,
-        "sells": 123
-      },
-      "pairCreatedAt": 1792923622000,
-      "holders": null,
-      "holdersSource": "dexscreener (holders: null - 정직 표기)",
-      "warning": null,
-      "velocityScore": 1.52
     },
     {
       "symbol": "BOMBERS",
       "name": "Solana Bombers",
       "contract": "CZiwA6eLUthZFLvTVEWG9v1K9Pc7p3eiBKRba2G7pump",
       "pairAddress": "7uQNr3qvET7GcVbA4bbpwevfaP4L3sttrJhxDugYgq41",
-      "priceUsd": 0.00008442,
-      "liquidityUsd": 23651,
-      "volumeH24": 8301,
-      "volumeH6": 2144,
-      "priceChangeM5": 0,
-      "priceChangeH1": -2.15,
+      "priceUsd": 0.00008717,
+      "liquidityUsd": 24113,
+      "volumeH24": 8250,
+      "volumeH6": 1970,
+      "priceChangeM5": 0.2,
+      "priceChangeH1": 0.57,
       "txnsM5": {
-        "buys": 0,
+        "buys": 2,
         "sells": 0
       },
       "txnsH1": {
-        "buys": 17,
-        "sells": 16
+        "buys": 15,
+        "sells": 12
       },
       "pairCreatedAt": 1791403127000,
       "holders": null,
       "holdersSource": "dexscreener (holders: null - 정직 표기)",
       "warning": null,
-      "velocityScore": 1.47
+      "velocityScore": 3.3
     },
     {
-      "symbol": "SSE",
-      "name": "Solana Social Explorer",
-      "contract": "H4phNbsqjV5rqk8u6FUACTLB6rNZRTAPGnBb8KXJpump",
-      "pairAddress": "HDt4asuvNjWn1Y5mV2R3sPXf54hC911ANYihU8HtmK7z",
-      "priceUsd": 0.00008059,
-      "liquidityUsd": 80168,
-      "volumeH24": 37,
-      "volumeH6": 10,
-      "priceChangeM5": 0,
-      "priceChangeH1": -0.87,
+      "symbol": "SOL",
+      "name": "Silicone on Leverage",
+      "contract": "GTDcC1ZJKDAZhhPw74EDaDQAJ2A3sRVBmG1GJSdbpump",
+      "pairAddress": "HaAsX2AVg3DhxDeqwMBRitFtka1eHczHreMaxKufK6TB",
+      "priceUsd": 0.00002029,
+      "liquidityUsd": 10264,
+      "volumeH24": 14707,
+      "volumeH6": 14707,
+      "priceChangeM5": -44.7,
+      "priceChangeH1": -52,
       "txnsM5": {
-        "buys": 0,
-        "sells": 0
+        "buys": 80,
+        "sells": 87
       },
       "txnsH1": {
+        "buys": 581,
+        "sells": 560
+      },
+      "pairCreatedAt": 1792928383000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 2.73
+    },
+    {
+      "symbol": "SATH",
+      "name": "SatoshiHarvest",
+      "contract": "AjopaDD9cxEptNR8s1vgVrcjmXWboA6n9qkewSH5pump",
+      "pairAddress": "9yZTPsVkKH8SSBqT6JMBEwHA91MMuPLXCiDctL5MALpv",
+      "priceUsd": 0.00005401,
+      "liquidityUsd": 18543,
+      "volumeH24": 8592,
+      "volumeH6": 8592,
+      "priceChangeM5": -3.43,
+      "priceChangeH1": 12.49,
+      "txnsM5": {
+        "buys": 3,
+        "sells": 3
+      },
+      "txnsH1": {
+        "buys": 95,
+        "sells": 61
+      },
+      "pairCreatedAt": 1792929116000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 2.48
+    },
+    {
+      "symbol": "MINERS",
+      "name": "SOLANA MINERS",
+      "contract": "3v83h8quvZFVF3pKGGDdFc2NsNArxnPqvP2fJ2z7pump",
+      "pairAddress": "Gs43M1UavqJN9rJ36rEqaPpUBezjmZ2tc2PGdg1cE1Mk",
+      "priceUsd": 0.00002563,
+      "liquidityUsd": 11784,
+      "volumeH24": 3540,
+      "volumeH6": 323,
+      "priceChangeM5": 1.68,
+      "priceChangeH1": 3.61,
+      "txnsM5": {
         "buys": 1,
-        "sells": 1
-      },
-      "pairCreatedAt": 1738734380000,
-      "holders": null,
-      "holdersSource": "dexscreener (holders: null - 정직 표기)",
-      "warning": null,
-      "velocityScore": 1.04
-    },
-    {
-      "symbol": "Staccana",
-      "name": "Solana Fork Staccana ",
-      "contract": "73edX6xoGY4v5y2hzuKdrUbJXLntqgmo74au1Ki1pump",
-      "pairAddress": "2higKRf25Q9WMcYfgyK96AAuFVv5zucfDAFHHDuVETcq",
-      "priceUsd": 0.000398,
-      "liquidityUsd": 84001,
-      "volumeH24": 0,
-      "volumeH6": 0,
-      "priceChangeM5": 0,
-      "priceChangeH1": 0,
-      "txnsM5": {
-        "buys": 0,
         "sells": 0
       },
       "txnsH1": {
-        "buys": 0,
-        "sells": 0
+        "buys": 8,
+        "sells": 7
       },
-      "pairCreatedAt": 1782220507000,
+      "pairCreatedAt": 1792551105000,
       "holders": null,
       "holdersSource": "dexscreener (holders: null - 정직 표기)",
       "warning": null,
-      "velocityScore": 1
+      "velocityScore": 2.24
     }
   ],
   "lastVetResults": [
     {
-      "symbol": "BTC",
-      "contract": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
+      "symbol": "SOL",
+      "contract": "29tW5jxiroGdGhPm8iTm1C1LWXXKco5mEcH6TE9Cpump",
       "decision": "REJECT",
       "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 13.25% > 기준 5% (solana-rpc+rugcheck-index)",
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 11.68% > 기준 5% (solana-rpc+rugcheck-index)",
       "candidate": {
-        "symbol": "BTC",
-        "name": "Big Testicle Coin",
-        "contract": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
-        "pairAddress": "9nkE3B5zF3yCDh8YrQrhch4dGNyLYcNBqEB7feo3V9Av",
-        "priceUsd": 0.0001237,
-        "liquidityUsd": 30577,
-        "volumeH24": 553017,
-        "volumeH6": 553017,
-        "priceChangeM5": 13.12,
-        "priceChangeH1": -59.42,
+        "symbol": "SOL",
+        "name": "Sexy Oily Lady",
+        "contract": "29tW5jxiroGdGhPm8iTm1C1LWXXKco5mEcH6TE9Cpump",
+        "pairAddress": "9kfepEKBuUNb8mseTB2zoiPiAAsFqqZyqRsDjkPjFoJE",
+        "priceUsd": 0.0001296,
+        "liquidityUsd": 29717,
+        "volumeH24": 770555,
+        "volumeH6": 770555,
+        "priceChangeM5": -33.94,
+        "priceChangeH1": 134,
         "txnsM5": {
-          "buys": 123,
-          "sells": 55
+          "buys": 1180,
+          "sells": 148
         },
         "txnsH1": {
-          "buys": 2964,
-          "sells": 1962
+          "buys": 6170,
+          "sells": 1160
         },
-        "pairCreatedAt": 1792920780000,
-        "holders": 3593,
+        "pairCreatedAt": 1792927573000,
+        "holders": 1520,
         "holdersSource": "solana-rpc+rugcheck-index",
         "warning": null,
-        "velocityScore": 7.8,
+        "velocityScore": 26.61,
         "onChain": {
           "responded": true,
-          "supplyUi": 960688323.430747,
-          "largestAccountPct": 13.25,
-          "totalHolders": 3593,
+          "supplyUi": 994762485.705979,
+          "largestAccountPct": 11.68,
+          "totalHolders": 1520,
           "source": "solana-rpc+rugcheck-index"
         }
       }
@@ -450,69 +450,147 @@
         "name": "Always Sunny in Space",
         "contract": "AqPaRQQnWktrz6KxpQTamRmkSuApiiJZxSHPEw4Spump",
         "pairAddress": "6oSzfiBt2CxpR5d4pCHfhUGuYK4bbEC719zmWHtvydsM",
-        "priceUsd": 0.00001945,
-        "liquidityUsd": 10341,
-        "volumeH24": 42145,
-        "volumeH6": 42145,
-        "priceChangeM5": 57.41,
-        "priceChangeH1": -55.4,
+        "priceUsd": 0.00002099,
+        "liquidityUsd": 10954,
+        "volumeH24": 46256,
+        "volumeH6": 46256,
+        "priceChangeM5": 9.59,
+        "priceChangeH1": -51.86,
         "txnsM5": {
-          "buys": 18,
-          "sells": 9
+          "buys": 12,
+          "sells": 2
         },
         "txnsH1": {
-          "buys": 537,
-          "sells": 611
+          "buys": 593,
+          "sells": 652
         },
         "pairCreatedAt": 1792926905000,
-        "holders": 649,
+        "holders": 641,
         "holdersSource": "solana-rpc+rugcheck-index",
         "warning": null,
-        "velocityScore": 6.11,
+        "velocityScore": 9.04,
         "onChain": {
           "responded": true,
           "supplyUi": 963835610.617808,
           "largestAccountPct": 36.31,
-          "totalHolders": 649,
+          "totalHolders": 641,
           "source": "solana-rpc+rugcheck-index"
         }
       }
     },
     {
-      "symbol": "SPCX",
-      "contract": "5kPuDh6YVwCxY1xVTe4gz6cFPkvov2GD7i83kbyjpump",
+      "symbol": "LAUNCH",
+      "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
       "decision": "REJECT",
       "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 12.78% > 기준 5% (solana-rpc+rugcheck-index)",
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 19.62% > 기준 5% (solana-rpc+rugcheck-index)",
       "candidate": {
-        "symbol": "SPCX",
-        "name": "Sexy Peachy Cheeks Xposed",
-        "contract": "5kPuDh6YVwCxY1xVTe4gz6cFPkvov2GD7i83kbyjpump",
-        "pairAddress": "7wsoF5D5n7pP2YQE3MR1t9Lz6be98aSsrrnPyf35zzVq",
-        "priceUsd": 0.0001169,
-        "liquidityUsd": 29410,
-        "volumeH24": 651471,
-        "volumeH6": 651471,
-        "priceChangeM5": 3.91,
-        "priceChangeH1": 56.02,
+        "symbol": "LAUNCH",
+        "name": "Launch",
+        "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
+        "pairAddress": "GezArkyjgqsjid7m9zg3jkxxFmnHuh8dDzmqUpbL7K59",
+        "priceUsd": 0.0000465,
+        "liquidityUsd": 18622,
+        "volumeH24": 85394,
+        "volumeH6": 85394,
+        "priceChangeM5": 42.36,
+        "priceChangeH1": 12.03,
         "txnsM5": {
-          "buys": 142,
-          "sells": 144
+          "buys": 191,
+          "sells": 92
         },
         "txnsH1": {
-          "buys": 4051,
-          "sells": 2860
+          "buys": 1479,
+          "sells": 864
         },
-        "pairCreatedAt": 1792924079000,
-        "holders": 1215,
+        "pairCreatedAt": 1792928329000,
+        "holders": 908,
         "holdersSource": "solana-rpc+rugcheck-index",
         "warning": null,
-        "velocityScore": 4.51,
+        "velocityScore": 8.2,
         "onChain": {
           "responded": true,
-          "supplyUi": 967749412.405991,
-          "largestAccountPct": 12.78,
-          "totalHolders": 1215,
+          "supplyUi": 989900935.060813,
+          "largestAccountPct": 19.62,
+          "totalHolders": 908,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "BTC",
+      "contract": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 16.24% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "BTC",
+        "name": "Big Testicle Coin",
+        "contract": "BTCk1ZAAGrbSq7e4L7mg8oiRKRqafkUbeLQpXeGq9BTC",
+        "pairAddress": "9nkE3B5zF3yCDh8YrQrhch4dGNyLYcNBqEB7feo3V9Av",
+        "priceUsd": 0.00009131,
+        "liquidityUsd": 26052,
+        "volumeH24": 586057,
+        "volumeH6": 586057,
+        "priceChangeM5": -8.69,
+        "priceChangeH1": -58.87,
+        "txnsM5": {
+          "buys": 99,
+          "sells": 63
+        },
+        "txnsH1": {
+          "buys": 2137,
+          "sells": 1520
+        },
+        "pairCreatedAt": 1792920780000,
+        "holders": 3679,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 5.03,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 960686589.766436,
+          "largestAccountPct": 16.24,
+          "totalHolders": 3679,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "GTA",
+      "contract": "7iXNTHrz6BfgXcGzB74WSPkvXCCeUkyYnqyJNPtXpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 12% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "GTA",
+        "name": "Gigantic Tits Agency",
+        "contract": "7iXNTHrz6BfgXcGzB74WSPkvXCCeUkyYnqyJNPtXpump",
+        "pairAddress": "DhfTK1Nxz9bTUWsjPuBGCNhmx7Nmed5w6BbEzDYq5bt9",
+        "priceUsd": 0.0001101,
+        "liquidityUsd": 28221,
+        "volumeH24": 368506,
+        "volumeH6": 368506,
+        "priceChangeM5": -48.02,
+        "priceChangeH1": 159,
+        "txnsM5": {
+          "buys": 205,
+          "sells": 178
+        },
+        "txnsH1": {
+          "buys": 2651,
+          "sells": 1488
+        },
+        "pairCreatedAt": 1792928078000,
+        "holders": 1184,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 4.85,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 979905325.455555,
+          "largestAccountPct": 12,
+          "totalHolders": 1184,
           "source": "solana-rpc+rugcheck-index"
         }
       }
@@ -528,142 +606,32 @@
         "name": "Sexy Oily Lady",
         "contract": "EVGstwCAWo1tNqEJCUecjjwTYkK1jytP8WYVgxBHpump",
         "pairAddress": "4JnLktLXEgUqgoJo9MM6sy3f7pxURKoQVzCKJrr9Ex5u",
-        "priceUsd": 0.00008535,
-        "liquidityUsd": 23539,
-        "volumeH24": 128857,
-        "volumeH6": 128857,
-        "priceChangeM5": -22.19,
-        "priceChangeH1": 0.79,
+        "priceUsd": 0.00004809,
+        "liquidityUsd": 17544,
+        "volumeH24": 139591,
+        "volumeH6": 139591,
+        "priceChangeM5": -19.89,
+        "priceChangeH1": -63.53,
         "txnsM5": {
-          "buys": 44,
-          "sells": 36
+          "buys": 17,
+          "sells": 9
         },
         "txnsH1": {
-          "buys": 1204,
-          "sells": 840
+          "buys": 663,
+          "sells": 449
         },
         "pairCreatedAt": 1792924282000,
-        "holders": 1237,
+        "holders": 1258,
         "holdersSource": "solana-rpc+rugcheck-index",
         "warning": null,
-        "velocityScore": 4.04,
+        "velocityScore": 4.74,
         "onChain": {
           "responded": true,
           "supplyUi": 953318352.633883,
           "largestAccountPct": 52.45,
-          "totalHolders": 1237,
+          "totalHolders": 1258,
           "source": "solana-rpc+rugcheck-index"
         }
-      }
-    },
-    {
-      "symbol": "HQ",
-      "contract": "EDTmJjr4VoV9S8ftCQFt4ZBvmDy9s1tBoiWVrmDApump",
-      "decision": "REJECT",
-      "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 29.09% > 기준 5% (solana-rpc+rugcheck-index)",
-      "candidate": {
-        "symbol": "HQ",
-        "name": "HQ Solana ",
-        "contract": "EDTmJjr4VoV9S8ftCQFt4ZBvmDy9s1tBoiWVrmDApump",
-        "pairAddress": "CzKnEVjhVkmDzbUQhz4xbLfaAY4YMnPHZ1J5rCVxvjQ2",
-        "priceUsd": 0.0000225,
-        "liquidityUsd": 10875,
-        "volumeH24": 123,
-        "volumeH6": 31,
-        "priceChangeM5": -1.43,
-        "priceChangeH1": -1.92,
-        "txnsM5": {
-          "buys": 1,
-          "sells": 1
-        },
-        "txnsH1": {
-          "buys": 12,
-          "sells": 5
-        },
-        "pairCreatedAt": 1787355713000,
-        "holders": 1644,
-        "holdersSource": "solana-rpc+rugcheck-index",
-        "warning": null,
-        "velocityScore": 2,
-        "onChain": {
-          "responded": true,
-          "supplyUi": 959642108.00194,
-          "largestAccountPct": 29.09,
-          "totalHolders": 1644,
-          "source": "solana-rpc+rugcheck-index"
-        }
-      }
-    },
-    {
-      "symbol": "SHADOW",
-      "contract": "F9Yz51QZpvS5fWdqgmt8wgEWHjg2E5YdwLvSjsrGpump",
-      "decision": "REJECT",
-      "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 12.13% > 기준 5% (solana-rpc+rugcheck-index)",
-      "candidate": {
-        "symbol": "SHADOW",
-        "name": "ShadowPrivacy",
-        "contract": "F9Yz51QZpvS5fWdqgmt8wgEWHjg2E5YdwLvSjsrGpump",
-        "pairAddress": "6isACdSSLWMvhspMGYFfriWv5REYAkdqXxxPSRiDTkHU",
-        "priceUsd": 0.0001609,
-        "liquidityUsd": 34824,
-        "volumeH24": 279024,
-        "volumeH6": 9908,
-        "priceChangeM5": 0,
-        "priceChangeH1": -2.1,
-        "txnsM5": {
-          "buys": 0,
-          "sells": 0
-        },
-        "txnsH1": {
-          "buys": 27,
-          "sells": 18
-        },
-        "pairCreatedAt": 1792602825000,
-        "holders": 2772,
-        "holdersSource": "solana-rpc+rugcheck-index",
-        "warning": null,
-        "velocityScore": 1.87,
-        "onChain": {
-          "responded": true,
-          "supplyUi": 932626372.762436,
-          "largestAccountPct": 12.13,
-          "totalHolders": 2772,
-          "source": "solana-rpc+rugcheck-index"
-        }
-      }
-    },
-    {
-      "symbol": "BTC",
-      "contract": "EcuMNoYi79hmX7fr48zk33fDnCcazKPrgJiZ9Gp1pump",
-      "decision": "REJECT",
-      "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 55.04% > 기준 5% (solana-rpc+rugcheck-index)",
-      "candidate": {
-        "symbol": "BTC",
-        "name": "Big Testicle Coin",
-        "contract": "EcuMNoYi79hmX7fr48zk33fDnCcazKPrgJiZ9Gp1pump",
-        "pairAddress": "9ogiPY6zc7EwMPuLdUfD6SBG1vzecByDhMgoWhUc8LLJ",
-        "priceUsd": 0.00004809,
-        "liquidityUsd": 18325,
-        "volumeH24": 36788,
-        "volumeH6": 36788,
-        "priceChangeM5": -25.71,
-        "priceChangeH1": 96.18,
-        "txnsM5": {
-          "buys": 3,
-          "sells": 14
-        },
-        "txnsH1": {
-          "buys": 160,
-          "sells": 123
-        },
-        "pairCreatedAt": 1792923622000,
-        "holders": null,
-        "holdersSource": "dexscreener (holders: null - 정직 표기)",
-        "warning": null,
-        "velocityScore": 1.52
       }
     },
     {
@@ -671,95 +639,127 @@
       "contract": "CZiwA6eLUthZFLvTVEWG9v1K9Pc7p3eiBKRba2G7pump",
       "decision": "REJECT",
       "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 80.06% > 기준 5% (solana-rpc+rugcheck-index)",
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 80.16% > 기준 5% (solana-rpc+rugcheck-index)",
       "candidate": {
         "symbol": "BOMBERS",
         "name": "Solana Bombers",
         "contract": "CZiwA6eLUthZFLvTVEWG9v1K9Pc7p3eiBKRba2G7pump",
         "pairAddress": "7uQNr3qvET7GcVbA4bbpwevfaP4L3sttrJhxDugYgq41",
-        "priceUsd": 0.00008442,
-        "liquidityUsd": 23651,
-        "volumeH24": 8301,
-        "volumeH6": 2144,
-        "priceChangeM5": 0,
-        "priceChangeH1": -2.15,
+        "priceUsd": 0.00008717,
+        "liquidityUsd": 24113,
+        "volumeH24": 8250,
+        "volumeH6": 1970,
+        "priceChangeM5": 0.2,
+        "priceChangeH1": 0.57,
         "txnsM5": {
-          "buys": 0,
+          "buys": 2,
           "sells": 0
         },
         "txnsH1": {
-          "buys": 17,
-          "sells": 16
+          "buys": 15,
+          "sells": 12
         },
         "pairCreatedAt": 1791403127000,
         "holders": null,
         "holdersSource": "dexscreener (holders: null - 정직 표기)",
         "warning": null,
-        "velocityScore": 1.47
+        "velocityScore": 3.3
       }
     },
     {
-      "symbol": "SSE",
-      "contract": "H4phNbsqjV5rqk8u6FUACTLB6rNZRTAPGnBb8KXJpump",
+      "symbol": "SOL",
+      "contract": "GTDcC1ZJKDAZhhPw74EDaDQAJ2A3sRVBmG1GJSdbpump",
       "decision": "REJECT",
       "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 49.8% > 기준 5% (solana-rpc+rugcheck-index)",
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 29.79% > 기준 5% (solana-rpc+rugcheck-index)",
       "candidate": {
-        "symbol": "SSE",
-        "name": "Solana Social Explorer",
-        "contract": "H4phNbsqjV5rqk8u6FUACTLB6rNZRTAPGnBb8KXJpump",
-        "pairAddress": "HDt4asuvNjWn1Y5mV2R3sPXf54hC911ANYihU8HtmK7z",
-        "priceUsd": 0.00008059,
-        "liquidityUsd": 80168,
-        "volumeH24": 37,
-        "volumeH6": 10,
-        "priceChangeM5": 0,
-        "priceChangeH1": -0.87,
+        "symbol": "SOL",
+        "name": "Silicone on Leverage",
+        "contract": "GTDcC1ZJKDAZhhPw74EDaDQAJ2A3sRVBmG1GJSdbpump",
+        "pairAddress": "HaAsX2AVg3DhxDeqwMBRitFtka1eHczHreMaxKufK6TB",
+        "priceUsd": 0.00002029,
+        "liquidityUsd": 10264,
+        "volumeH24": 14707,
+        "volumeH6": 14707,
+        "priceChangeM5": -44.7,
+        "priceChangeH1": -52,
         "txnsM5": {
-          "buys": 0,
-          "sells": 0
+          "buys": 80,
+          "sells": 87
         },
         "txnsH1": {
+          "buys": 581,
+          "sells": 560
+        },
+        "pairCreatedAt": 1792928383000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 2.73
+      }
+    },
+    {
+      "symbol": "SATH",
+      "contract": "AjopaDD9cxEptNR8s1vgVrcjmXWboA6n9qkewSH5pump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 49.59% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "SATH",
+        "name": "SatoshiHarvest",
+        "contract": "AjopaDD9cxEptNR8s1vgVrcjmXWboA6n9qkewSH5pump",
+        "pairAddress": "9yZTPsVkKH8SSBqT6JMBEwHA91MMuPLXCiDctL5MALpv",
+        "priceUsd": 0.00005401,
+        "liquidityUsd": 18543,
+        "volumeH24": 8592,
+        "volumeH6": 8592,
+        "priceChangeM5": -3.43,
+        "priceChangeH1": 12.49,
+        "txnsM5": {
+          "buys": 3,
+          "sells": 3
+        },
+        "txnsH1": {
+          "buys": 95,
+          "sells": 61
+        },
+        "pairCreatedAt": 1792929116000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 2.48
+      }
+    },
+    {
+      "symbol": "MINERS",
+      "contract": "3v83h8quvZFVF3pKGGDdFc2NsNArxnPqvP2fJ2z7pump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 63.98% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "MINERS",
+        "name": "SOLANA MINERS",
+        "contract": "3v83h8quvZFVF3pKGGDdFc2NsNArxnPqvP2fJ2z7pump",
+        "pairAddress": "Gs43M1UavqJN9rJ36rEqaPpUBezjmZ2tc2PGdg1cE1Mk",
+        "priceUsd": 0.00002563,
+        "liquidityUsd": 11784,
+        "volumeH24": 3540,
+        "volumeH6": 323,
+        "priceChangeM5": 1.68,
+        "priceChangeH1": 3.61,
+        "txnsM5": {
           "buys": 1,
-          "sells": 1
-        },
-        "pairCreatedAt": 1738734380000,
-        "holders": null,
-        "holdersSource": "dexscreener (holders: null - 정직 표기)",
-        "warning": null,
-        "velocityScore": 1.04
-      }
-    },
-    {
-      "symbol": "Staccana",
-      "contract": "73edX6xoGY4v5y2hzuKdrUbJXLntqgmo74au1Ki1pump",
-      "decision": "REJECT",
-      "failedRule": 1,
-      "reason": "규칙 1 탈락: 최대 지갑 보유율 27% > 기준 5% (solana-rpc+rugcheck-index)",
-      "candidate": {
-        "symbol": "Staccana",
-        "name": "Solana Fork Staccana ",
-        "contract": "73edX6xoGY4v5y2hzuKdrUbJXLntqgmo74au1Ki1pump",
-        "pairAddress": "2higKRf25Q9WMcYfgyK96AAuFVv5zucfDAFHHDuVETcq",
-        "priceUsd": 0.000398,
-        "liquidityUsd": 84001,
-        "volumeH24": 0,
-        "volumeH6": 0,
-        "priceChangeM5": 0,
-        "priceChangeH1": 0,
-        "txnsM5": {
-          "buys": 0,
           "sells": 0
         },
         "txnsH1": {
-          "buys": 0,
-          "sells": 0
+          "buys": 8,
+          "sells": 7
         },
-        "pairCreatedAt": 1782220507000,
+        "pairCreatedAt": 1792551105000,
         "holders": null,
         "holdersSource": "dexscreener (holders: null - 정직 표기)",
         "warning": null,
-        "velocityScore": 1
+        "velocityScore": 2.24
       }
     }
   ],
