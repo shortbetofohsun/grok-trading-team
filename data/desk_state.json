@@ -1,0 +1,775 @@
+{
+  "createdAt": "2026-10-25T04:06:31.952Z",
+  "wmMode": "READY",
+  "wmPort": 3000,
+  "integrations": {
+    "geminiModel": "gemini-3.5-flash",
+    "geminiStatus": "ACTIVE (Gemini 3.5 Flash 연결됨)",
+    "telegramBotUsername": "@dytradingdemo_bot",
+    "telegramEnabled": true,
+    "lastTelegramSentAt": null
+  },
+  "config": {
+    "startingBalanceUsd": 1000,
+    "minLiquidityUsd": 10000,
+    "minPairAgeMinutes": 30,
+    "slippageBudgetPct": 0.02,
+    "minOrderUsd": 50,
+    "maxKellyCapPct": 0.06,
+    "maxTopWalletPct": 5
+  },
+  "portfolio": {
+    "startingBalanceUsd": 1000,
+    "cashUsd": 1000,
+    "deployedUsd": 0,
+    "totalCapitalEverDeployedUsd": 0,
+    "realizedPnlUsd": 0,
+    "unrealizedPnlUsd": 0,
+    "totalEquityUsd": 1000,
+    "lastNotifiedPnlPct": 0
+  },
+  "routines": {
+    "scan15mEnabled": true,
+    "risk5mEnabled": true,
+    "dailyReport23hEnabled": true,
+    "lastScanAt": null,
+    "lastRiskAt": "2026-10-25T04:24:45.615Z",
+    "lastDailyReportAt": null
+  },
+  "supervision": {
+    "CHIEF": {
+      "status": "ONLINE (AI)",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    },
+    "SCAN": {
+      "status": "ONLINE",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    },
+    "VET": {
+      "status": "ONLINE",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    },
+    "BOOK": {
+      "status": "ONLINE (AI)",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    },
+    "SIZE": {
+      "status": "ONLINE",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    },
+    "FILLS": {
+      "status": "ONLINE",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    },
+    "RISK": {
+      "status": "ONLINE (5m Timer)",
+      "failures": 0,
+      "restartsThisHour": 0,
+      "lastSeen": "2026-10-25T04:14:45.612Z"
+    }
+  },
+  "stats": {
+    "totalScans": 1,
+    "todayCandidatesCount": 10,
+    "todayRejectedCount": 10,
+    "todayPassedCount": 0,
+    "rejectionReasons": {
+      "규칙 1": 10
+    },
+    "closedByRuleCount": 0
+  },
+  "openPositions": [],
+  "closedPositions": [],
+  "predictionBets": [],
+  "lastScanCandidates": [
+    {
+      "symbol": "Chunkee",
+      "name": "Chunkee the Manatee",
+      "contract": "GkrpmRvhNdyubgHfqW5f58kfvkBtF6TbmwQEtHGnpump",
+      "pairAddress": "38Wo8aavzczzrGvgd7HkFwbLXMYmRKctgVGzQHyhAgXv",
+      "priceUsd": 0.0004689,
+      "liquidityUsd": 58376,
+      "volumeH24": 731105,
+      "volumeH6": 731105,
+      "priceChangeM5": 4.41,
+      "priceChangeH1": 5.32,
+      "txnsM5": {
+        "buys": 268,
+        "sells": 54
+      },
+      "txnsH1": {
+        "buys": 6834,
+        "sells": 1441
+      },
+      "pairCreatedAt": 1792887574000,
+      "holders": 5015,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 18.96,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 988381054.789684,
+        "largestAccountPct": 6.59,
+        "totalHolders": 5015,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "HQ",
+      "name": "HQ Solana ",
+      "contract": "EDTmJjr4VoV9S8ftCQFt4ZBvmDy9s1tBoiWVrmDApump",
+      "pairAddress": "CzKnEVjhVkmDzbUQhz4xbLfaAY4YMnPHZ1J5rCVxvjQ2",
+      "priceUsd": 0.00002313,
+      "liquidityUsd": 11127,
+      "volumeH24": 193,
+      "volumeH6": 68,
+      "priceChangeM5": 0,
+      "priceChangeH1": 2.04,
+      "txnsM5": {
+        "buys": 0,
+        "sells": 0
+      },
+      "txnsH1": {
+        "buys": 21,
+        "sells": 0
+      },
+      "pairCreatedAt": 1787355713000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 14.02,
+      "onChain": {
+        "responded": false,
+        "supplyUi": 959642108.00194,
+        "largestAccountPct": null,
+        "totalHolders": null,
+        "source": "unreachable"
+      }
+    },
+    {
+      "symbol": "TRUMP",
+      "name": "GTA Final Boss",
+      "contract": "FDsVJ9b5FHnDqEbC1u7ZQifhBi8MjNzkd1fE3j1Kpump",
+      "pairAddress": "HFEKEX86XgARYyqsJyREvbsTX6MsZdL98zDFpBeqBWGr",
+      "priceUsd": 0.0001458,
+      "liquidityUsd": 31319,
+      "volumeH24": 382595,
+      "volumeH6": 382595,
+      "priceChangeM5": -28.75,
+      "priceChangeH1": 83.15,
+      "txnsM5": {
+        "buys": 458,
+        "sells": 143
+      },
+      "txnsH1": {
+        "buys": 7886,
+        "sells": 2411
+      },
+      "pairCreatedAt": 1792897639000,
+      "holders": 2714,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 12.63,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 985962601.815451,
+        "largestAccountPct": 11.25,
+        "totalHolders": 2714,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "NETWORK",
+      "name": "Network Coin",
+      "contract": "8THZ69JP2ErZuHVj4G5rcwkFfsQafp5mQsaoQReApump",
+      "pairAddress": "88Jxy6WUYurL7WhZSNYwJvjQwvtDoxT3RUrac1PRgLwu",
+      "priceUsd": 0.0001398,
+      "liquidityUsd": 30484,
+      "volumeH24": 271922,
+      "volumeH6": 88763,
+      "priceChangeM5": -16.76,
+      "priceChangeH1": 0.88,
+      "txnsM5": {
+        "buys": 48,
+        "sells": 11
+      },
+      "txnsH1": {
+        "buys": 144,
+        "sells": 68
+      },
+      "pairCreatedAt": 1792878524000,
+      "holders": 681,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 7.59,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 950331842.452858,
+        "largestAccountPct": 12.11,
+        "totalHolders": 681,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "Marvin",
+      "name": "Marvin the Martian",
+      "contract": "FmuciqKXRRnKqhi7BNin5mYH6fm3oTrfVB5A5Fyrpump",
+      "pairAddress": "FYLA8ej1X6n4nBiEKCZ3zmvACeH5MhdPRkkgPqtWsm1n",
+      "priceUsd": 0.0001562,
+      "liquidityUsd": 37176,
+      "volumeH24": 3143610,
+      "volumeH6": 3143610,
+      "priceChangeM5": -10.26,
+      "priceChangeH1": -73.1,
+      "txnsM5": {
+        "buys": 283,
+        "sells": 196
+      },
+      "txnsH1": {
+        "buys": 11354,
+        "sells": 7742
+      },
+      "pairCreatedAt": 1792893952000,
+      "holders": 7925,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 5.9,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 954383248.894139,
+        "largestAccountPct": 12.93,
+        "totalHolders": 7925,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "Marvin",
+      "name": "Marvin the Martian",
+      "contract": "2Qm9Pgq23GNAdxZRpzb5WHCNxRNLMjeWSr6uULvwpump",
+      "pairAddress": "7bBSeYUZBEFxmkB9YoAwZQpqs5EtgJU2yv2CPr1BH4cr",
+      "priceUsd": 0.0002642,
+      "liquidityUsd": 44765,
+      "volumeH24": 727954,
+      "volumeH6": 727954,
+      "priceChangeM5": -40.43,
+      "priceChangeH1": 512,
+      "txnsM5": {
+        "buys": 270,
+        "sells": 198
+      },
+      "txnsH1": {
+        "buys": 5318,
+        "sells": 2934
+      },
+      "pairCreatedAt": 1792898916000,
+      "holders": 1365,
+      "holdersSource": "solana-rpc+rugcheck-index",
+      "warning": null,
+      "velocityScore": 5.78,
+      "onChain": {
+        "responded": true,
+        "supplyUi": 986717910.178175,
+        "largestAccountPct": 8.38,
+        "totalHolders": 1365,
+        "source": "solana-rpc+rugcheck-index"
+      }
+    },
+    {
+      "symbol": "WingSlop",
+      "name": "Wingstop Sour Patch Kids Wings",
+      "contract": "29qFbbCuNi84iojLL9D5xgrotrmDKnGZmCqKbofDpump",
+      "pairAddress": "AZVWLtXa6Z75WFf1SMacxHFAyUGjR9Yeckb5ec6zbi78",
+      "priceUsd": 0.00004194,
+      "liquidityUsd": 16977,
+      "volumeH24": 239231,
+      "volumeH6": 239231,
+      "priceChangeM5": -48.77,
+      "priceChangeH1": -1.39,
+      "txnsM5": {
+        "buys": 916,
+        "sells": 825
+      },
+      "txnsH1": {
+        "buys": 3631,
+        "sells": 3176
+      },
+      "pairCreatedAt": 1792900260000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 4.11
+    },
+    {
+      "symbol": "METACAT",
+      "name": "METACAT",
+      "contract": "6uEpcGrKa9S3AupEeDPiGPGvpzgFYxqeLVbXMsJCpump",
+      "pairAddress": "B98UesP2tViRp2784dcvYxfrFua64FUhpohjMzm1kF5n",
+      "priceUsd": 0.0003232,
+      "liquidityUsd": 128614,
+      "volumeH24": 3368745,
+      "volumeH6": 3368745,
+      "priceChangeM5": -6.34,
+      "priceChangeH1": 59.64,
+      "txnsM5": {
+        "buys": 271,
+        "sells": 253
+      },
+      "txnsH1": {
+        "buys": 5097,
+        "sells": 4571
+      },
+      "pairCreatedAt": 1792896804000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 4.06
+    },
+    {
+      "symbol": "GOOSE",
+      "name": "Goose",
+      "contract": "HAY2mJVjiBsApXcxewqU3bXiFrmRbisJrPvdnKQnpump",
+      "pairAddress": "GDC3orPjUouKJS9ttpEdjmMHfaVavL9qDc7g8V6yozBf",
+      "priceUsd": 0.00002784,
+      "liquidityUsd": 12496,
+      "volumeH24": 95321,
+      "volumeH6": 95321,
+      "priceChangeM5": -8.59,
+      "priceChangeH1": -34.48,
+      "txnsM5": {
+        "buys": 41,
+        "sells": 51
+      },
+      "txnsH1": {
+        "buys": 1326,
+        "sells": 1028
+      },
+      "pairCreatedAt": 1792899490000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 3.14
+    },
+    {
+      "symbol": "BOMBERS",
+      "name": "Solana Bombers",
+      "contract": "CZiwA6eLUthZFLvTVEWG9v1K9Pc7p3eiBKRba2G7pump",
+      "pairAddress": "7uQNr3qvET7GcVbA4bbpwevfaP4L3sttrJhxDugYgq41",
+      "priceUsd": 0.00007095,
+      "liquidityUsd": 21677,
+      "volumeH24": 7203,
+      "volumeH6": 2264,
+      "priceChangeM5": 0.26,
+      "priceChangeH1": 2.76,
+      "txnsM5": {
+        "buys": 1,
+        "sells": 0
+      },
+      "txnsH1": {
+        "buys": 12,
+        "sells": 10
+      },
+      "pairCreatedAt": 1791403127000,
+      "holders": null,
+      "holdersSource": "dexscreener (holders: null - 정직 표기)",
+      "warning": null,
+      "velocityScore": 2.3
+    }
+  ],
+  "lastVetResults": [
+    {
+      "symbol": "Chunkee",
+      "contract": "GkrpmRvhNdyubgHfqW5f58kfvkBtF6TbmwQEtHGnpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 6.59% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "Chunkee",
+        "name": "Chunkee the Manatee",
+        "contract": "GkrpmRvhNdyubgHfqW5f58kfvkBtF6TbmwQEtHGnpump",
+        "pairAddress": "38Wo8aavzczzrGvgd7HkFwbLXMYmRKctgVGzQHyhAgXv",
+        "priceUsd": 0.0004689,
+        "liquidityUsd": 58376,
+        "volumeH24": 731105,
+        "volumeH6": 731105,
+        "priceChangeM5": 4.41,
+        "priceChangeH1": 5.32,
+        "txnsM5": {
+          "buys": 268,
+          "sells": 54
+        },
+        "txnsH1": {
+          "buys": 6834,
+          "sells": 1441
+        },
+        "pairCreatedAt": 1792887574000,
+        "holders": 5015,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 18.96,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 988381054.789684,
+          "largestAccountPct": 6.59,
+          "totalHolders": 5015,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "HQ",
+      "contract": "EDTmJjr4VoV9S8ftCQFt4ZBvmDy9s1tBoiWVrmDApump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: Solana RPC / 온체인 지갑 집중도 응답 없음 (불확실성 즉시 배제)",
+      "candidate": {
+        "symbol": "HQ",
+        "name": "HQ Solana ",
+        "contract": "EDTmJjr4VoV9S8ftCQFt4ZBvmDy9s1tBoiWVrmDApump",
+        "pairAddress": "CzKnEVjhVkmDzbUQhz4xbLfaAY4YMnPHZ1J5rCVxvjQ2",
+        "priceUsd": 0.00002313,
+        "liquidityUsd": 11127,
+        "volumeH24": 193,
+        "volumeH6": 68,
+        "priceChangeM5": 0,
+        "priceChangeH1": 2.04,
+        "txnsM5": {
+          "buys": 0,
+          "sells": 0
+        },
+        "txnsH1": {
+          "buys": 21,
+          "sells": 0
+        },
+        "pairCreatedAt": 1787355713000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 14.02,
+        "onChain": {
+          "responded": false,
+          "supplyUi": 959642108.00194,
+          "largestAccountPct": null,
+          "totalHolders": null,
+          "source": "unreachable"
+        }
+      }
+    },
+    {
+      "symbol": "TRUMP",
+      "contract": "FDsVJ9b5FHnDqEbC1u7ZQifhBi8MjNzkd1fE3j1Kpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 11.25% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "TRUMP",
+        "name": "GTA Final Boss",
+        "contract": "FDsVJ9b5FHnDqEbC1u7ZQifhBi8MjNzkd1fE3j1Kpump",
+        "pairAddress": "HFEKEX86XgARYyqsJyREvbsTX6MsZdL98zDFpBeqBWGr",
+        "priceUsd": 0.0001458,
+        "liquidityUsd": 31319,
+        "volumeH24": 382595,
+        "volumeH6": 382595,
+        "priceChangeM5": -28.75,
+        "priceChangeH1": 83.15,
+        "txnsM5": {
+          "buys": 458,
+          "sells": 143
+        },
+        "txnsH1": {
+          "buys": 7886,
+          "sells": 2411
+        },
+        "pairCreatedAt": 1792897639000,
+        "holders": 2714,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 12.63,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 985962601.815451,
+          "largestAccountPct": 11.25,
+          "totalHolders": 2714,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "NETWORK",
+      "contract": "8THZ69JP2ErZuHVj4G5rcwkFfsQafp5mQsaoQReApump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 12.11% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "NETWORK",
+        "name": "Network Coin",
+        "contract": "8THZ69JP2ErZuHVj4G5rcwkFfsQafp5mQsaoQReApump",
+        "pairAddress": "88Jxy6WUYurL7WhZSNYwJvjQwvtDoxT3RUrac1PRgLwu",
+        "priceUsd": 0.0001398,
+        "liquidityUsd": 30484,
+        "volumeH24": 271922,
+        "volumeH6": 88763,
+        "priceChangeM5": -16.76,
+        "priceChangeH1": 0.88,
+        "txnsM5": {
+          "buys": 48,
+          "sells": 11
+        },
+        "txnsH1": {
+          "buys": 144,
+          "sells": 68
+        },
+        "pairCreatedAt": 1792878524000,
+        "holders": 681,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 7.59,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 950331842.452858,
+          "largestAccountPct": 12.11,
+          "totalHolders": 681,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "Marvin",
+      "contract": "FmuciqKXRRnKqhi7BNin5mYH6fm3oTrfVB5A5Fyrpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 12.93% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "Marvin",
+        "name": "Marvin the Martian",
+        "contract": "FmuciqKXRRnKqhi7BNin5mYH6fm3oTrfVB5A5Fyrpump",
+        "pairAddress": "FYLA8ej1X6n4nBiEKCZ3zmvACeH5MhdPRkkgPqtWsm1n",
+        "priceUsd": 0.0001562,
+        "liquidityUsd": 37176,
+        "volumeH24": 3143610,
+        "volumeH6": 3143610,
+        "priceChangeM5": -10.26,
+        "priceChangeH1": -73.1,
+        "txnsM5": {
+          "buys": 283,
+          "sells": 196
+        },
+        "txnsH1": {
+          "buys": 11354,
+          "sells": 7742
+        },
+        "pairCreatedAt": 1792893952000,
+        "holders": 7925,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 5.9,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 954383248.894139,
+          "largestAccountPct": 12.93,
+          "totalHolders": 7925,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "Marvin",
+      "contract": "2Qm9Pgq23GNAdxZRpzb5WHCNxRNLMjeWSr6uULvwpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 8.38% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "Marvin",
+        "name": "Marvin the Martian",
+        "contract": "2Qm9Pgq23GNAdxZRpzb5WHCNxRNLMjeWSr6uULvwpump",
+        "pairAddress": "7bBSeYUZBEFxmkB9YoAwZQpqs5EtgJU2yv2CPr1BH4cr",
+        "priceUsd": 0.0002642,
+        "liquidityUsd": 44765,
+        "volumeH24": 727954,
+        "volumeH6": 727954,
+        "priceChangeM5": -40.43,
+        "priceChangeH1": 512,
+        "txnsM5": {
+          "buys": 270,
+          "sells": 198
+        },
+        "txnsH1": {
+          "buys": 5318,
+          "sells": 2934
+        },
+        "pairCreatedAt": 1792898916000,
+        "holders": 1365,
+        "holdersSource": "solana-rpc+rugcheck-index",
+        "warning": null,
+        "velocityScore": 5.78,
+        "onChain": {
+          "responded": true,
+          "supplyUi": 986717910.178175,
+          "largestAccountPct": 8.38,
+          "totalHolders": 1365,
+          "source": "solana-rpc+rugcheck-index"
+        }
+      }
+    },
+    {
+      "symbol": "WingSlop",
+      "contract": "29qFbbCuNi84iojLL9D5xgrotrmDKnGZmCqKbofDpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 22.1% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "WingSlop",
+        "name": "Wingstop Sour Patch Kids Wings",
+        "contract": "29qFbbCuNi84iojLL9D5xgrotrmDKnGZmCqKbofDpump",
+        "pairAddress": "AZVWLtXa6Z75WFf1SMacxHFAyUGjR9Yeckb5ec6zbi78",
+        "priceUsd": 0.00004194,
+        "liquidityUsd": 16977,
+        "volumeH24": 239231,
+        "volumeH6": 239231,
+        "priceChangeM5": -48.77,
+        "priceChangeH1": -1.39,
+        "txnsM5": {
+          "buys": 916,
+          "sells": 825
+        },
+        "txnsH1": {
+          "buys": 3631,
+          "sells": 3176
+        },
+        "pairCreatedAt": 1792900260000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 4.11
+      }
+    },
+    {
+      "symbol": "METACAT",
+      "contract": "6uEpcGrKa9S3AupEeDPiGPGvpzgFYxqeLVbXMsJCpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 21.72% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "METACAT",
+        "name": "METACAT",
+        "contract": "6uEpcGrKa9S3AupEeDPiGPGvpzgFYxqeLVbXMsJCpump",
+        "pairAddress": "B98UesP2tViRp2784dcvYxfrFua64FUhpohjMzm1kF5n",
+        "priceUsd": 0.0003232,
+        "liquidityUsd": 128614,
+        "volumeH24": 3368745,
+        "volumeH6": 3368745,
+        "priceChangeM5": -6.34,
+        "priceChangeH1": 59.64,
+        "txnsM5": {
+          "buys": 271,
+          "sells": 253
+        },
+        "txnsH1": {
+          "buys": 5097,
+          "sells": 4571
+        },
+        "pairCreatedAt": 1792896804000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 4.06
+      }
+    },
+    {
+      "symbol": "GOOSE",
+      "contract": "HAY2mJVjiBsApXcxewqU3bXiFrmRbisJrPvdnKQnpump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 28.06% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "GOOSE",
+        "name": "Goose",
+        "contract": "HAY2mJVjiBsApXcxewqU3bXiFrmRbisJrPvdnKQnpump",
+        "pairAddress": "GDC3orPjUouKJS9ttpEdjmMHfaVavL9qDc7g8V6yozBf",
+        "priceUsd": 0.00002784,
+        "liquidityUsd": 12496,
+        "volumeH24": 95321,
+        "volumeH6": 95321,
+        "priceChangeM5": -8.59,
+        "priceChangeH1": -34.48,
+        "txnsM5": {
+          "buys": 41,
+          "sells": 51
+        },
+        "txnsH1": {
+          "buys": 1326,
+          "sells": 1028
+        },
+        "pairCreatedAt": 1792899490000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 3.14
+      }
+    },
+    {
+      "symbol": "BOMBERS",
+      "contract": "CZiwA6eLUthZFLvTVEWG9v1K9Pc7p3eiBKRba2G7pump",
+      "decision": "REJECT",
+      "failedRule": 1,
+      "reason": "규칙 1 탈락: 최대 지갑 보유율 78.63% > 기준 5% (solana-rpc+rugcheck-index)",
+      "candidate": {
+        "symbol": "BOMBERS",
+        "name": "Solana Bombers",
+        "contract": "CZiwA6eLUthZFLvTVEWG9v1K9Pc7p3eiBKRba2G7pump",
+        "pairAddress": "7uQNr3qvET7GcVbA4bbpwevfaP4L3sttrJhxDugYgq41",
+        "priceUsd": 0.00007095,
+        "liquidityUsd": 21677,
+        "volumeH24": 7203,
+        "volumeH6": 2264,
+        "priceChangeM5": 0.26,
+        "priceChangeH1": 2.76,
+        "txnsM5": {
+          "buys": 1,
+          "sells": 0
+        },
+        "txnsH1": {
+          "buys": 12,
+          "sells": 10
+        },
+        "pairCreatedAt": 1791403127000,
+        "holders": null,
+        "holdersSource": "dexscreener (holders: null - 정직 표기)",
+        "warning": null,
+        "velocityScore": 2.3
+      }
+    }
+  ],
+  "lastVerification": null,
+  "messages": [
+    {
+      "id": "msg_init_1",
+      "desk": "memecoin",
+      "sender": "CHIEF",
+      "badge": "👑 총괄",
+      "timestamp": "2026-10-25T04:14:45.612Z",
+      "text": "[모의 매매 트레이딩 데스크 v2.0 가동 준비 완료]\n- 💰 시작 모의 잔고: $1,000.00 (깨끗한 초기 상태)\n- 🧠 AI 두뇌: Gemini 3.5 Flash 연결 완료 (예측시장 독립 확률 추론 & 총괄 브리핑)\n- 📱 텔레그램 알림: @dytradingdemo_bot 연결 완료 (매수 체결·강제 청산·밤 11시 마감 보고 실시간 발송)\n- 🌐 월드모니터 상태: READY (공포탐욕지수 & 예측시장 실시간 활성화)"
+    },
+    {
+      "id": "msg_init_2",
+      "desk": "prediction",
+      "sender": "CHIEF",
+      "badge": "👑 총괄",
+      "timestamp": "2026-10-25T04:14:45.612Z",
+      "text": "[예측 시장 데스크 (CHIEF, BOOK, SIZE) — READY 가동 중]\n- BOOK 봇이 Gemini AI 두뇌를 사용하여 시장 가격을 보기 전에 독립적으로 확률(내 확률)을 먼저 추론하고, Kalshi·Polymarket 시장 가격과 8% 초과 괴리 발견 시 베팅을 요청합니다."
+    }
+  ],
+  "lastDailyReportDateKst": "",
+  "lastTelegramUpdateId": 0
+}
