@@ -23,8 +23,8 @@
         "deployedUsd": 60,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -11.52,
-        "totalEquityUsd": 988.48,
+        "unrealizedPnlUsd": -22.17,
+        "totalEquityUsd": 977.83,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Launch",
           "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
           "entryPriceUsd": 0.002123,
-          "currentPriceUsd": 0.001743,
+          "currentPriceUsd": 0.00136,
           "dollars": 60,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.58,
@@ -8791,8 +8791,8 @@
     "cashUsd": 1946.89,
     "deployedUsd": 1142.48,
     "realizedPnlUsd": 89.37,
-    "unrealizedPnlUsd": -16.69,
-    "totalEquityUsd": 3072.68
+    "unrealizedPnlUsd": -27.34,
+    "totalEquityUsd": 3062.03
   },
   "wmPort": 3000,
   "integrations": {
