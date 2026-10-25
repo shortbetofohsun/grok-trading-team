@@ -1,0 +1,15 @@
+{
+  "name": "grok-trading-team-free",
+  "version": "1.0.0",
+  "description": "그록 에이전트 7개 모의 매매 트레이딩 팀 (무료 로컬 완벽 구현판 - CHIEF, SCAN, VET, BOOK, SIZE, FILLS, RISK)",
+  "main": "server.js",
+  "scripts": {
+    "dev": "node server.js",
+    "start": "node server.js",
+    "verify": "node cli-verify.js"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "license": "MIT"
+}
