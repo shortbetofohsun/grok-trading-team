@@ -2,14 +2,8 @@
   "version": "3.0.0",
   "createdAt": "2026-10-25T14:09:05.346Z",
   "wmMode": "READY",
-  "wmPort": 3000,
-  "integrations": {
-    "geminiModel": "gemini-3.5-flash",
-    "geminiStatus": "ACTIVE (Gemini 3.5 Flash 연결됨)",
-    "telegramBotUsername": "@dytradingdemo_bot",
-    "telegramEnabled": true,
-    "lastTelegramSentAt": "2026-10-25T14:55:24.692Z"
-  },
+  "lastDailyReportDateKst": "",
+  "lastTelegramUpdateId": 0,
   "config": {
     "startingBalanceUsd": 1000,
     "minLiquidityUsd": 10000,
@@ -709,12 +703,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 739.21,
-        "deployedUsd": 260.79,
+        "cashUsd": 579.53,
+        "deployedUsd": 420.47,
         "totalCapitalEverDeployedUsd": 260.79,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -2,
-        "totalEquityUsd": 998,
+        "unrealizedPnlUsd": -3,
+        "totalEquityUsd": 997,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -805,6 +799,50 @@
           "quantity": 661.5,
           "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
           "openedAt": "2026-10-25T14:54:51.061Z"
+        },
+        {
+          "bot": "FILLS",
+          "desk": "prediction",
+          "status": "FILLED_PAPER",
+          "id": "pos_pred_1792941087852_upqm",
+          "source": "Kalshi",
+          "marketId": "KXNEXTISRAELPM-45JAN01-NBEN",
+          "question": "Who will succeed Netanyahu as Prime Minister of Israel?",
+          "side": "YES",
+          "myProb": 0.45,
+          "entryPriceUsd": 0.1,
+          "currentPriceUsd": 0.1,
+          "targetPriceUsd": 0.362,
+          "stopPriceUsd": 0.082,
+          "edgePct": 35,
+          "currentEdgePct": 35,
+          "dollars": 79.84,
+          "feeUsd": 0.5,
+          "quantity": 793.4,
+          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
+          "openedAt": "2026-10-25T15:11:27.852Z"
+        },
+        {
+          "bot": "FILLS",
+          "desk": "prediction",
+          "status": "FILLED_PAPER",
+          "id": "pos_pred_1792941088326_ke24",
+          "source": "Kalshi",
+          "marketId": "KXPERSONPRESFUENTES-45",
+          "question": "Will Nick Fuentes become President of the United States before 2045?",
+          "side": "YES",
+          "myProb": 0.45,
+          "entryPriceUsd": 0.16,
+          "currentPriceUsd": 0.16,
+          "targetPriceUsd": 0.378,
+          "stopPriceUsd": 0.131,
+          "edgePct": 29,
+          "currentEdgePct": 29,
+          "dollars": 79.84,
+          "feeUsd": 0.5,
+          "quantity": 495.88,
+          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
+          "openedAt": "2026-10-25T15:11:28.326Z"
         }
       ],
       "closedPositions": [],
@@ -978,8 +1016,8 @@
         "deployedUsd": 639.37,
         "totalCapitalEverDeployedUsd": 639.37,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -2.72,
-        "totalEquityUsd": 997.28,
+        "unrealizedPnlUsd": -1.67,
+        "totalEquityUsd": 998.33,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -8707,11 +8745,18 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 2099.84,
-    "deployedUsd": 900.16,
+    "cashUsd": 1940.16,
+    "deployedUsd": 1059.84,
     "realizedPnlUsd": 0,
-    "unrealizedPnlUsd": -4.72,
-    "totalEquityUsd": 2995.28
+    "unrealizedPnlUsd": -4.67,
+    "totalEquityUsd": 2995.33
+  },
+  "wmPort": 3000,
+  "integrations": {
+    "geminiModel": "gemini-3.5-flash",
+    "telegramBotUsername": "@dytradingdemo_bot",
+    "telegramEnabled": true,
+    "lastTelegramSentAt": "2026-10-25T14:55:24.692Z"
   },
   "portfolio": {
     "startingBalanceUsd": 1000,
