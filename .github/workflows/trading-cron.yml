@@ -1,0 +1,38 @@
+name: Grok 7-Agent Trading Team (15m Cloud Auto-Run)
+
+on:
+  schedule:
+    # 15분마다 자동 실행 (24시간 365일 무인 가동)
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # GitHub 웹/앱에서 [Run workflow] 버튼으로 즉시 수동 실행 가능
+
+permissions:
+  contents: write
+
+jobs:
+  run-trading-desk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: 📥 1. 저장소 및 최신 장부(desk_state.json) 불러오기
+        uses: actions/checkout@v4
+
+      - name: ⚙️ 2. Node.js v24 설치
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: 🚀 3. 7개 에이전트 트레이딩 팀 실행 (RISK 감시 + SCAN/VET/BOOK/SIZE/FILLS + 텔레그램 알림)
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: node cloud-runner.js
+
+      - name: 💾 4. 업데이트된 모의매매 장부(data/desk_state.json) 자동 저장 (Git Commit & Push)
+        run: |
+          git config user.name "grok-trading-bot"
+          git config user.email "grok-trading-bot@users.noreply.github.com"
+          git add data/desk_state.json
+          git diff --staged --quiet || (git commit -m "chore: update trading desk state [skip ci]" && git push)
