@@ -19,12 +19,12 @@
       "name": "🪙 크립토 밈코인 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 881.07,
-        "deployedUsd": 118.93,
+        "cashUsd": 825.54,
+        "deployedUsd": 174.46,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -67.5,
-        "totalEquityUsd": 932.5,
+        "unrealizedPnlUsd": -75.47,
+        "totalEquityUsd": 924.53,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Launch",
           "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
           "entryPriceUsd": 0.002123,
-          "currentPriceUsd": 0.001162,
+          "currentPriceUsd": 0.001036,
           "dollars": 60,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.58,
@@ -57,7 +57,7 @@
           "name": "Trust in Trump",
           "contract": "C4BdpK4bQAcCsg5vvpzXimdR48GPaQyffQ5iyMsRpump",
           "entryPriceUsd": 0.0009971,
-          "currentPriceUsd": 0.0003286,
+          "currentPriceUsd": 0.0002682,
           "dollars": 58.93,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.61,
@@ -65,6 +65,26 @@
           "slippageWarning": null,
           "quantity": 58148.631029986966,
           "openedAt": "2026-10-26T02:18:32.330Z",
+          "highWaterPct": 0,
+          "trail60Marked": false
+        },
+        {
+          "bot": "FILLS",
+          "desk": "memecoin",
+          "status": "FILLED_PAPER",
+          "id": "pos_meme_1792988376515_kuou",
+          "symbol": "CATTLEAXE",
+          "name": "Cattleaxe",
+          "contract": "H7VZNCBynDK5ikBS9krDJ2Tx8CUr1wxedV19ZgkWpump",
+          "entryPriceUsd": 0.001518,
+          "currentPriceUsd": 0.001518,
+          "dollars": 55.53,
+          "feeUsd": 0.95,
+          "effectiveFeePct": 1.71,
+          "estimatedSlippagePct": 0.071,
+          "slippageWarning": null,
+          "quantity": 35955.20421607378,
+          "openedAt": "2026-10-26T04:19:36.515Z",
           "highWaterPct": 0,
           "trail60Marked": false
         }
@@ -8830,11 +8850,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1891.94,
-    "deployedUsd": 1240.11,
+    "cashUsd": 1836.41,
+    "deployedUsd": 1295.64,
     "realizedPnlUsd": 132.05,
-    "unrealizedPnlUsd": -86.4,
-    "totalEquityUsd": 3045.65
+    "unrealizedPnlUsd": -94.37,
+    "totalEquityUsd": 3037.68
   },
   "wmPort": 3000,
   "integrations": {
