@@ -23,8 +23,8 @@
         "deployedUsd": 118.93,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -18.84,
-        "totalEquityUsd": 981.16,
+        "unrealizedPnlUsd": -62.83,
+        "totalEquityUsd": 937.17,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Launch",
           "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
           "entryPriceUsd": 0.002123,
-          "currentPriceUsd": 0.001514,
+          "currentPriceUsd": 0.001258,
           "dollars": 60,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.58,
@@ -57,7 +57,7 @@
           "name": "Trust in Trump",
           "contract": "C4BdpK4bQAcCsg5vvpzXimdR48GPaQyffQ5iyMsRpump",
           "entryPriceUsd": 0.0009971,
-          "currentPriceUsd": 0.0009971,
+          "currentPriceUsd": 0.000363,
           "dollars": 58.93,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.61,
@@ -744,12 +744,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 647.6,
-        "deployedUsd": 472.45,
+        "cashUsd": 756.15,
+        "deployedUsd": 392.61,
         "totalCapitalEverDeployedUsd": 260.79,
-        "realizedPnlUsd": 120.05,
-        "unrealizedPnlUsd": -4,
-        "totalEquityUsd": 1116.05,
+        "realizedPnlUsd": 148.76,
+        "unrealizedPnlUsd": -16.73,
+        "totalEquityUsd": 1132.03,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -808,7 +808,7 @@
           "side": "YES",
           "myProb": 0.45,
           "entryPriceUsd": 0.12,
-          "currentPriceUsd": 0.12,
+          "currentPriceUsd": 0.1,
           "targetPriceUsd": 0.367,
           "stopPriceUsd": 0.098,
           "edgePct": 33,
@@ -818,28 +818,6 @@
           "quantity": 661.5,
           "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
           "openedAt": "2026-10-25T14:54:51.061Z"
-        },
-        {
-          "bot": "FILLS",
-          "desk": "prediction",
-          "status": "FILLED_PAPER",
-          "id": "pos_pred_1792941088326_ke24",
-          "source": "Kalshi",
-          "marketId": "KXPERSONPRESFUENTES-45",
-          "question": "Will Nick Fuentes become President of the United States before 2045?",
-          "side": "YES",
-          "myProb": 0.45,
-          "entryPriceUsd": 0.16,
-          "currentPriceUsd": 0.16,
-          "targetPriceUsd": 0.378,
-          "stopPriceUsd": 0.131,
-          "edgePct": 29,
-          "currentEdgePct": 29,
-          "dollars": 79.84,
-          "feeUsd": 0.5,
-          "quantity": 495.88,
-          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
-          "openedAt": "2026-10-25T15:11:28.326Z"
         },
         {
           "bot": "FILLS",
@@ -8830,11 +8808,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1889.3,
-    "deployedUsd": 1230.75,
-    "realizedPnlUsd": 120.05,
-    "unrealizedPnlUsd": -24.51,
-    "totalEquityUsd": 3095.54
+    "cashUsd": 1997.85,
+    "deployedUsd": 1150.91,
+    "realizedPnlUsd": 148.76,
+    "unrealizedPnlUsd": -81.23,
+    "totalEquityUsd": 3067.53
   },
   "wmPort": 3000,
   "integrations": {
