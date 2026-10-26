@@ -19,12 +19,12 @@
       "name": "🪙 크립토 밈코인 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 940,
-        "deployedUsd": 60,
+        "cashUsd": 881.07,
+        "deployedUsd": 118.93,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -17.3,
-        "totalEquityUsd": 982.7,
+        "unrealizedPnlUsd": -18.84,
+        "totalEquityUsd": 981.16,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Launch",
           "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
           "entryPriceUsd": 0.002123,
-          "currentPriceUsd": 0.001535,
+          "currentPriceUsd": 0.001514,
           "dollars": 60,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.58,
@@ -45,6 +45,26 @@
           "slippageWarning": null,
           "quantity": 27814.413565708903,
           "openedAt": "2026-10-25T20:13:21.138Z",
+          "highWaterPct": 0,
+          "trail60Marked": false
+        },
+        {
+          "bot": "FILLS",
+          "desk": "memecoin",
+          "status": "FILLED_PAPER",
+          "id": "pos_meme_1792981112330_dysm",
+          "symbol": "TIT",
+          "name": "Trust in Trump",
+          "contract": "C4BdpK4bQAcCsg5vvpzXimdR48GPaQyffQ5iyMsRpump",
+          "entryPriceUsd": 0.0009971,
+          "currentPriceUsd": 0.0009971,
+          "dollars": 58.93,
+          "feeUsd": 0.95,
+          "effectiveFeePct": 1.61,
+          "estimatedSlippagePct": 0.101,
+          "slippageWarning": null,
+          "quantity": 58148.631029986966,
+          "openedAt": "2026-10-26T02:18:32.330Z",
           "highWaterPct": 0,
           "trail60Marked": false
         }
@@ -8810,11 +8830,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1948.23,
-    "deployedUsd": 1171.82,
+    "cashUsd": 1889.3,
+    "deployedUsd": 1230.75,
     "realizedPnlUsd": 120.05,
-    "unrealizedPnlUsd": -22.97,
-    "totalEquityUsd": 3097.08
+    "unrealizedPnlUsd": -24.51,
+    "totalEquityUsd": 3095.54
   },
   "wmPort": 3000,
   "integrations": {
