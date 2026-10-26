@@ -23,8 +23,8 @@
         "deployedUsd": 174.46,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": 0,
-        "unrealizedPnlUsd": -69.15,
-        "totalEquityUsd": 930.85,
+        "unrealizedPnlUsd": -77.55,
+        "totalEquityUsd": 922.45,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Launch",
           "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
           "entryPriceUsd": 0.002123,
-          "currentPriceUsd": 0.001021,
+          "currentPriceUsd": 0.001036,
           "dollars": 60,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.58,
@@ -57,7 +57,7 @@
           "name": "Trust in Trump",
           "contract": "C4BdpK4bQAcCsg5vvpzXimdR48GPaQyffQ5iyMsRpump",
           "entryPriceUsd": 0.0009971,
-          "currentPriceUsd": 0.0003506,
+          "currentPriceUsd": 0.000309,
           "dollars": 58.93,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.61,
@@ -77,7 +77,7 @@
           "name": "Cattleaxe",
           "contract": "H7VZNCBynDK5ikBS9krDJ2Tx8CUr1wxedV19ZgkWpump",
           "entryPriceUsd": 0.001518,
-          "currentPriceUsd": 0.001572,
+          "currentPriceUsd": 0.001394,
           "dollars": 55.53,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.71,
@@ -8853,8 +8853,8 @@
     "cashUsd": 1836.41,
     "deployedUsd": 1295.64,
     "realizedPnlUsd": 132.05,
-    "unrealizedPnlUsd": -61.59,
-    "totalEquityUsd": 3070.46
+    "unrealizedPnlUsd": -69.99,
+    "totalEquityUsd": 3062.06
   },
   "wmPort": 3000,
   "integrations": {
