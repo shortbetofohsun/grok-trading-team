@@ -23,8 +23,8 @@
         "deployedUsd": 228.54,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -169.43,
-        "unrealizedPnlUsd": 20.43,
-        "totalEquityUsd": 851,
+        "unrealizedPnlUsd": 19.88,
+        "totalEquityUsd": 850.45,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Launch",
           "contract": "AhBidGAgv6QbKSWfrSCegGrzFLcBx4E5FNYTKHNQQj6C",
           "entryPriceUsd": 0.002123,
-          "currentPriceUsd": 0.001823,
+          "currentPriceUsd": 0.001739,
           "dollars": 60,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.58,
@@ -57,7 +57,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.001888,
+          "currentPriceUsd": 0.001924,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -77,7 +77,7 @@
           "name": "SOLANA ACCELERATE",
           "contract": "7rTNgVdQ1Sa28usQ6CZdbWaYqaQpRNDnwcnEbpmpump",
           "entryPriceUsd": 0.00118,
-          "currentPriceUsd": 0.001043,
+          "currentPriceUsd": 0.001108,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -97,7 +97,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.002753,
+          "currentPriceUsd": 0.002579,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -788,8 +788,8 @@
         "deployedUsd": 401.93,
         "totalCapitalEverDeployedUsd": 260.79,
         "realizedPnlUsd": 157.48,
-        "unrealizedPnlUsd": 3.73,
-        "totalEquityUsd": 1161.21,
+        "unrealizedPnlUsd": 3,
+        "totalEquityUsd": 1160.48,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -892,7 +892,7 @@
           "side": "NO",
           "myProb": 0.92,
           "entryPriceUsd": 0.7,
-          "currentPriceUsd": 0.8,
+          "currentPriceUsd": 0.79,
           "targetPriceUsd": 0.865,
           "stopPriceUsd": 0.574,
           "edgePct": 22,
@@ -8851,8 +8851,8 @@
     "cashUsd": 1595.3,
     "deployedUsd": 1388.18,
     "realizedPnlUsd": -16.52,
-    "unrealizedPnlUsd": 25.51,
-    "totalEquityUsd": 3008.99
+    "unrealizedPnlUsd": 24.23,
+    "totalEquityUsd": 3007.71
   },
   "wmPort": 3000,
   "integrations": {
