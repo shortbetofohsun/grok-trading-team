@@ -20,11 +20,11 @@
       "portfolio": {
         "startingBalanceUsd": 1000,
         "cashUsd": 551.85,
-        "deployedUsd": 219.91,
+        "deployedUsd": 168.54,
         "totalCapitalEverDeployedUsd": 0,
-        "realizedPnlUsd": -228.24,
-        "unrealizedPnlUsd": -58.51,
-        "totalEquityUsd": 713.25,
+        "realizedPnlUsd": -279.61,
+        "unrealizedPnlUsd": 0.73,
+        "totalEquityUsd": 721.12,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0004274,
+          "currentPriceUsd": 0.0004653,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "SOLANA ACCELERATE",
           "contract": "7rTNgVdQ1Sa28usQ6CZdbWaYqaQpRNDnwcnEbpmpump",
           "entryPriceUsd": 0.00118,
-          "currentPriceUsd": 0.001934,
+          "currentPriceUsd": 0.001999,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -77,7 +77,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.002664,
+          "currentPriceUsd": 0.002821,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -85,26 +85,6 @@
           "slippageWarning": null,
           "quantity": 18143.88961892247,
           "openedAt": "2026-10-26T10:31:26.604Z",
-          "highWaterPct": 0,
-          "trail60Marked": false
-        },
-        {
-          "bot": "FILLS",
-          "desk": "memecoin",
-          "status": "FILLED_PAPER",
-          "id": "pos_meme_1793187610526_e6fj",
-          "symbol": "CHICO",
-          "name": "GTA6DOG",
-          "contract": "9v4airX4Vt45ADFg3QQG9pXX68LkX9Big4GiYEuJpump",
-          "entryPriceUsd": 0.007028,
-          "currentPriceUsd": 0.000002947,
-          "dollars": 51.37,
-          "feeUsd": 0.95,
-          "effectiveFeePct": 1.85,
-          "estimatedSlippagePct": 0.032,
-          "slippageWarning": null,
-          "quantity": 7174.160500853728,
-          "openedAt": "2026-10-28T11:40:10.526Z",
           "highWaterPct": 0,
           "trail60Marked": false
         }
@@ -8849,10 +8829,10 @@
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
     "cashUsd": 1484.81,
-    "deployedUsd": 1398.33,
-    "realizedPnlUsd": -116.86,
-    "unrealizedPnlUsd": -74.06,
-    "totalEquityUsd": 2809.08
+    "deployedUsd": 1346.96,
+    "realizedPnlUsd": -168.23,
+    "unrealizedPnlUsd": -14.82,
+    "totalEquityUsd": 2816.95
   },
   "wmPort": 3000,
   "integrations": {
