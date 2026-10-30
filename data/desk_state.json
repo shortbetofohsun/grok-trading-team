@@ -23,8 +23,8 @@
         "deployedUsd": 168.54,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -279.61,
-        "unrealizedPnlUsd": -3.3,
-        "totalEquityUsd": 717.09,
+        "unrealizedPnlUsd": -15.68,
+        "totalEquityUsd": 704.71,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0002241,
+          "currentPriceUsd": 0.0002285,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "SOLANA ACCELERATE",
           "contract": "7rTNgVdQ1Sa28usQ6CZdbWaYqaQpRNDnwcnEbpmpump",
           "entryPriceUsd": 0.00118,
-          "currentPriceUsd": 0.002421,
+          "currentPriceUsd": 0.002081,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -77,7 +77,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.002211,
+          "currentPriceUsd": 0.002393,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -764,12 +764,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 646.93,
-        "deployedUsd": 480.41,
+        "cashUsd": 681.62,
+        "deployedUsd": 421.84,
         "totalCapitalEverDeployedUsd": 260.79,
-        "realizedPnlUsd": 127.34,
-        "unrealizedPnlUsd": -2,
-        "totalEquityUsd": 1125.34,
+        "realizedPnlUsd": 103.46,
+        "unrealizedPnlUsd": -1.5,
+        "totalEquityUsd": 1101.96,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -904,28 +904,6 @@
           "quantity": 199.86,
           "reasoning": "🧠 Gemini(gemini-3.5-flash): 온실가스 감축 노력에도 불구하고 2050년 이전 일시적 또는 정기적 2도 초과 달성 가능성이 지속적으로 상승하고 있습니다.",
           "openedAt": "2026-10-28T10:59:48.690Z"
-        },
-        {
-          "bot": "FILLS",
-          "desk": "prediction",
-          "status": "FILLED_PAPER",
-          "id": "pos_pred_1793322348051_k91w",
-          "source": "Kalshi",
-          "marketId": "KXNEXTISRAELPM-45JAN01-NBEN",
-          "question": "Who will succeed Netanyahu as Prime Minister of Israel?",
-          "side": "YES",
-          "myProb": 0.39,
-          "entryPriceUsd": 0.099,
-          "currentPriceUsd": 0.099,
-          "targetPriceUsd": 0.317,
-          "stopPriceUsd": 0.081,
-          "edgePct": 29.1,
-          "currentEdgePct": 29.1,
-          "dollars": 58.57,
-          "feeUsd": 0.5,
-          "quantity": 586.57,
-          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 30 반영)",
-          "openedAt": "2026-10-30T01:05:48.052Z"
         },
         {
           "bot": "FILLS",
@@ -8850,11 +8828,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1391.2,
-    "deployedUsd": 1442.32,
-    "realizedPnlUsd": -166.48,
-    "unrealizedPnlUsd": -8.48,
-    "totalEquityUsd": 2825.04
+    "cashUsd": 1425.89,
+    "deployedUsd": 1383.75,
+    "realizedPnlUsd": -190.36,
+    "unrealizedPnlUsd": -20.36,
+    "totalEquityUsd": 2789.28
   },
   "wmPort": 3000,
   "integrations": {
