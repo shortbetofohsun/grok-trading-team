@@ -23,8 +23,8 @@
         "deployedUsd": 168.54,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -279.61,
-        "unrealizedPnlUsd": -81.48,
-        "totalEquityUsd": 638.91,
+        "unrealizedPnlUsd": -85.91,
+        "totalEquityUsd": 634.48,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0001544,
+          "currentPriceUsd": 0.0001565,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "SOLANA ACCELERATE",
           "contract": "7rTNgVdQ1Sa28usQ6CZdbWaYqaQpRNDnwcnEbpmpump",
           "entryPriceUsd": 0.00118,
-          "currentPriceUsd": 0.0004662,
+          "currentPriceUsd": 0.0004684,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -77,7 +77,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.003147,
+          "currentPriceUsd": 0.002891,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -8831,8 +8831,8 @@
     "cashUsd": 1459.39,
     "deployedUsd": 1324.41,
     "realizedPnlUsd": -216.2,
-    "unrealizedPnlUsd": -96.08,
-    "totalEquityUsd": 2687.72
+    "unrealizedPnlUsd": -100.51,
+    "totalEquityUsd": 2683.29
   },
   "wmPort": 3000,
   "integrations": {
