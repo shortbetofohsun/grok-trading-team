@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -40.46,
-        "totalEquityUsd": 628.72,
+        "unrealizedPnlUsd": -46.46,
+        "totalEquityUsd": 622.72,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0002682,
+          "currentPriceUsd": 0.0002779,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.003184,
+          "currentPriceUsd": 0.002825,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -744,12 +744,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 583.72,
-        "deployedUsd": 507.13,
+        "cashUsd": 608.2,
+        "deployedUsd": 456.68,
         "totalCapitalEverDeployedUsd": 260.79,
-        "realizedPnlUsd": 90.85,
-        "unrealizedPnlUsd": 5.02,
-        "totalEquityUsd": 1095.87,
+        "realizedPnlUsd": 64.88,
+        "unrealizedPnlUsd": 5.52,
+        "totalEquityUsd": 1070.4,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -774,28 +774,6 @@
           "quantity": 926.67,
           "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
           "openedAt": "2026-10-25T14:09:23.370Z"
-        },
-        {
-          "bot": "FILLS",
-          "desk": "prediction",
-          "status": "FILLED_PAPER",
-          "id": "pos_pred_1792937364278_i89l",
-          "source": "Kalshi",
-          "marketId": "KXNEXTNATOSECGEN-99-KIOH",
-          "question": "Who will be the next Secretary General of NATO?",
-          "side": "YES",
-          "myProb": 0.45,
-          "entryPriceUsd": 0.08,
-          "currentPriceUsd": 0.08,
-          "targetPriceUsd": 0.357,
-          "stopPriceUsd": 0.066,
-          "edgePct": 37,
-          "currentEdgePct": 37,
-          "dollars": 50.45,
-          "feeUsd": 0.5,
-          "quantity": 624.38,
-          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
-          "openedAt": "2026-10-25T14:09:24.278Z"
         },
         {
           "bot": "FILLS",
@@ -1101,8 +1079,8 @@
         "deployedUsd": 771.88,
         "totalCapitalEverDeployedUsd": 639.37,
         "realizedPnlUsd": -31.54,
-        "unrealizedPnlUsd": -2.48,
-        "totalEquityUsd": 965.98,
+        "unrealizedPnlUsd": -2.47,
+        "totalEquityUsd": 965.99,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -1304,7 +1282,7 @@
           "putWall": 89,
           "maxPain": 91,
           "entryPriceUsd": 94.86,
-          "currentPriceUsd": 95.02,
+          "currentPriceUsd": 95.01,
           "tp1PriceUsd": 94.29,
           "tp2PriceUsd": 91,
           "stopPriceUsd": 96.19,
@@ -8830,11 +8808,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1337.12,
-    "deployedUsd": 1391.37,
-    "realizedPnlUsd": -271.51,
-    "unrealizedPnlUsd": -37.92,
-    "totalEquityUsd": 2690.57
+    "cashUsd": 1361.6,
+    "deployedUsd": 1340.92,
+    "realizedPnlUsd": -297.48,
+    "unrealizedPnlUsd": -43.41,
+    "totalEquityUsd": 2659.11
   },
   "wmPort": 3000,
   "integrations": {
