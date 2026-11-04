@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -41.84,
-        "totalEquityUsd": 627.34,
+        "unrealizedPnlUsd": -40.89,
+        "totalEquityUsd": 628.29,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0002412,
+          "currentPriceUsd": 0.0002438,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.003186,
+          "currentPriceUsd": 0.003231,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -8833,8 +8833,8 @@
     "cashUsd": 1320.49,
     "deployedUsd": 1396.91,
     "realizedPnlUsd": -282.6,
-    "unrealizedPnlUsd": -51.28,
-    "totalEquityUsd": 2666.12
+    "unrealizedPnlUsd": -50.33,
+    "totalEquityUsd": 2667.07
   },
   "wmPort": 3000,
   "integrations": {
