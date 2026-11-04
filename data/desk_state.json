@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -43.92,
-        "totalEquityUsd": 625.26,
+        "unrealizedPnlUsd": -47.11,
+        "totalEquityUsd": 622.07,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0002427,
+          "currentPriceUsd": 0.0002439,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.003067,
+          "currentPriceUsd": 0.002888,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -744,12 +744,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 567.09,
-        "deployedUsd": 512.67,
+        "cashUsd": 655.45,
+        "deployedUsd": 441.08,
         "totalCapitalEverDeployedUsd": 260.79,
-        "realizedPnlUsd": 79.76,
-        "unrealizedPnlUsd": -6.97,
-        "totalEquityUsd": 1072.79,
+        "realizedPnlUsd": 96.53,
+        "unrealizedPnlUsd": -6.47,
+        "totalEquityUsd": 1090.06,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -906,28 +906,6 @@
           "quantity": 1001.27,
           "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 34 반영)",
           "openedAt": "2026-11-04T03:19:59.395Z"
-        },
-        {
-          "bot": "FILLS",
-          "desk": "prediction",
-          "status": "FILLED_PAPER",
-          "id": "pos_pred_1793762399858_k4lb",
-          "source": "Kalshi",
-          "marketId": "KXPERSONPRESMAM-45",
-          "question": "Will Zohran Mamdani become President of the United States before Jan 22, 2045?",
-          "side": "YES",
-          "myProb": 0.4,
-          "entryPriceUsd": 0.12,
-          "currentPriceUsd": 0.12,
-          "targetPriceUsd": 0.33,
-          "stopPriceUsd": 0.098,
-          "edgePct": 28,
-          "currentEdgePct": 28,
-          "dollars": 71.59,
-          "feeUsd": 0.5,
-          "quantity": 592.42,
-          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 34 반영)",
-          "openedAt": "2026-11-04T03:19:59.858Z"
         }
       ],
       "closedPositions": [],
@@ -8830,11 +8808,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1320.49,
-    "deployedUsd": 1396.91,
-    "realizedPnlUsd": -282.6,
-    "unrealizedPnlUsd": -53.36,
-    "totalEquityUsd": 2664.04
+    "cashUsd": 1408.85,
+    "deployedUsd": 1325.32,
+    "realizedPnlUsd": -265.83,
+    "unrealizedPnlUsd": -56.05,
+    "totalEquityUsd": 2678.12
   },
   "wmPort": 3000,
   "integrations": {
