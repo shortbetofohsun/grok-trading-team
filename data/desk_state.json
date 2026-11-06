@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -46.19,
-        "totalEquityUsd": 622.99,
+        "unrealizedPnlUsd": -49.62,
+        "totalEquityUsd": 619.56,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0002104,
+          "currentPriceUsd": 0.0002204,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.003036,
+          "currentPriceUsd": 0.002818,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -1101,8 +1101,8 @@
         "deployedUsd": 720.12,
         "totalCapitalEverDeployedUsd": 639.37,
         "realizedPnlUsd": -42.58,
-        "unrealizedPnlUsd": 1.44,
-        "totalEquityUsd": 958.86,
+        "unrealizedPnlUsd": 1.45,
+        "totalEquityUsd": 958.87,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -1154,7 +1154,7 @@
           "putWall": 376,
           "maxPain": 368,
           "entryPriceUsd": 376.49,
-          "currentPriceUsd": 372.58,
+          "currentPriceUsd": 372.52,
           "tp1PriceUsd": 364.82,
           "tp2PriceUsd": 353.45,
           "stopPriceUsd": 381.76,
@@ -1334,7 +1334,7 @@
           "putWall": 740,
           "maxPain": 745,
           "entryPriceUsd": 739.64,
-          "currentPriceUsd": 735.36,
+          "currentPriceUsd": 735.29,
           "tp1PriceUsd": 746.56,
           "tp2PriceUsd": 777.24,
           "stopPriceUsd": 723.76,
@@ -8833,8 +8833,8 @@
     "cashUsd": 1366.29,
     "deployedUsd": 1327.77,
     "realizedPnlUsd": -305.94,
-    "unrealizedPnlUsd": -53.85,
-    "totalEquityUsd": 2640.21
+    "unrealizedPnlUsd": -57.27,
+    "totalEquityUsd": 2636.79
   },
   "wmPort": 3000,
   "integrations": {
