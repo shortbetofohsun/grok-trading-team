@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -55.78,
-        "totalEquityUsd": 613.4,
+        "unrealizedPnlUsd": -49.53,
+        "totalEquityUsd": 619.65,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0001574,
+          "currentPriceUsd": 0.0001577,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.002661,
+          "currentPriceUsd": 0.003005,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -744,12 +744,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 556.78,
-        "deployedUsd": 520.12,
+        "cashUsd": 624.22,
+        "deployedUsd": 465.27,
         "totalCapitalEverDeployedUsd": 260.79,
-        "realizedPnlUsd": 76.9,
-        "unrealizedPnlUsd": -17.01,
-        "totalEquityUsd": 1059.89,
+        "realizedPnlUsd": 89.49,
+        "unrealizedPnlUsd": -16.51,
+        "totalEquityUsd": 1072.98,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -884,28 +884,6 @@
           "quantity": 101.62,
           "reasoning": "🧠 Gemini(gemini-3.5-flash): 해당 수치 달성 여부는 선수 부상 위험 및 기량 하락 곡선을 고려할 때 보수적으로 접근해야 하는 다중 구간 스칼라 시장입니다.",
           "openedAt": "2026-11-05T03:31:12.671Z"
-        },
-        {
-          "bot": "FILLS",
-          "desk": "prediction",
-          "status": "FILLED_PAPER",
-          "id": "pos_pred_1793947302212_s5yn",
-          "source": "Kalshi",
-          "marketId": "KXELONMARS-99",
-          "question": "Will Elon Musk visit Mars in his lifetime?",
-          "side": "YES",
-          "myProb": 0.38,
-          "entryPriceUsd": 0.08,
-          "currentPriceUsd": 0.08,
-          "targetPriceUsd": 0.305,
-          "stopPriceUsd": 0.066,
-          "edgePct": 30,
-          "currentEdgePct": 30,
-          "dollars": 54.85,
-          "feeUsd": 0.5,
-          "quantity": 679.38,
-          "reasoning": "🧠 Gemini(gemini-3.5-flash): 생물학적 수명과 스페이스X의 화성 유인 착륙 기술 개발 속도를 감안할 때 위험성이 커 가능성이 다소 낮습니다.",
-          "openedAt": "2026-11-06T06:41:42.212Z"
         },
         {
           "bot": "FILLS",
@@ -8830,11 +8808,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1337.41,
-    "deployedUsd": 1348.92,
-    "realizedPnlUsd": -313.67,
-    "unrealizedPnlUsd": -69.97,
-    "totalEquityUsd": 2616.36
+    "cashUsd": 1404.85,
+    "deployedUsd": 1294.07,
+    "realizedPnlUsd": -301.08,
+    "unrealizedPnlUsd": -63.22,
+    "totalEquityUsd": 2635.7
   },
   "wmPort": 3000,
   "integrations": {
