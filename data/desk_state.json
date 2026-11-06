@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -54.59,
-        "totalEquityUsd": 614.59,
+        "unrealizedPnlUsd": -55.79,
+        "totalEquityUsd": 613.39,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -37,7 +37,7 @@
           "name": "Remus",
           "contract": "CA8q2mkYWZnUNqYmf6pxyxAPZsmSe2EG9P7hHMW5pump",
           "entryPriceUsd": 0.001048,
-          "currentPriceUsd": 0.0001673,
+          "currentPriceUsd": 0.0001731,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.002698,
+          "currentPriceUsd": 0.002615,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -744,12 +744,12 @@
       "name": "🎯 예측시장 괴리율 데스크",
       "portfolio": {
         "startingBalanceUsd": 1000,
-        "cashUsd": 617.3,
-        "deployedUsd": 492.27,
+        "cashUsd": 648.42,
+        "deployedUsd": 440.69,
         "totalCapitalEverDeployedUsd": 260.79,
-        "realizedPnlUsd": 109.57,
-        "unrealizedPnlUsd": -28.61,
-        "totalEquityUsd": 1080.96,
+        "realizedPnlUsd": 89.11,
+        "unrealizedPnlUsd": -28.11,
+        "totalEquityUsd": 1061,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -796,28 +796,6 @@
           "quantity": 388.31,
           "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
           "openedAt": "2026-10-25T16:55:49.047Z"
-        },
-        {
-          "bot": "FILLS",
-          "desk": "prediction",
-          "status": "FILLED_PAPER",
-          "id": "pos_pred_1792947349594_9gak",
-          "source": "Kalshi",
-          "marketId": "KXWCCAREERGOALS-KMBAPPE-30",
-          "question": "Kylian Mbappe Total FIFA World Cup Career Goals",
-          "side": "NO",
-          "myProb": 0.55,
-          "entryPriceUsd": 0.21,
-          "currentPriceUsd": 0.21,
-          "targetPriceUsd": 0.465,
-          "stopPriceUsd": 0.172,
-          "edgePct": 34,
-          "currentEdgePct": 34,
-          "dollars": 51.58,
-          "feeUsd": 0.5,
-          "quantity": 243.24,
-          "reasoning": "정량 멀티팩터 추론 (공포탐욕지수 54 반영)",
-          "openedAt": "2026-10-25T16:55:49.594Z"
         },
         {
           "bot": "FILLS",
@@ -8830,11 +8808,11 @@
   },
   "totalCombinedPortfolio": {
     "startingBalanceUsd": 3000,
-    "cashUsd": 1397.93,
-    "deployedUsd": 1321.07,
-    "realizedPnlUsd": -281,
-    "unrealizedPnlUsd": -80.38,
-    "totalEquityUsd": 2638.62
+    "cashUsd": 1429.05,
+    "deployedUsd": 1269.49,
+    "realizedPnlUsd": -301.46,
+    "unrealizedPnlUsd": -81.08,
+    "totalEquityUsd": 2617.46
   },
   "wmPort": 3000,
   "integrations": {
