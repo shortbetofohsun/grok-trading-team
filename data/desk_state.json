@@ -23,8 +23,8 @@
         "deployedUsd": 112.36,
         "totalCapitalEverDeployedUsd": 0,
         "realizedPnlUsd": -330.82,
-        "unrealizedPnlUsd": -41.52,
-        "totalEquityUsd": 627.66,
+        "unrealizedPnlUsd": -41.11,
+        "totalEquityUsd": 628.07,
         "lastNotifiedPnlPct": 0
       },
       "openPositions": [
@@ -57,7 +57,7 @@
           "name": "Hellhound",
           "contract": "A75Xx6SeftAmWduv9KGwb2GCjXUAhxozcCUCys9jpump",
           "entryPriceUsd": 0.003044,
-          "currentPriceUsd": 0.003171,
+          "currentPriceUsd": 0.003194,
           "dollars": 56.18,
           "feeUsd": 0.95,
           "effectiveFeePct": 1.69,
@@ -8833,8 +8833,8 @@
     "cashUsd": 1366.29,
     "deployedUsd": 1327.77,
     "realizedPnlUsd": -305.94,
-    "unrealizedPnlUsd": -65.96,
-    "totalEquityUsd": 2628.1
+    "unrealizedPnlUsd": -65.55,
+    "totalEquityUsd": 2628.51
   },
   "wmPort": 3000,
   "integrations": {
