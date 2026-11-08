@@ -1,571 +1,481 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="dark">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Variational 10x 스탑헌팅 &amp; AI 옵션 지지·저항선 툴</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Variational 실시간 지정가 알리미 & 트레이딩 터미널</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            binanceYellow: '#F0B90B',
+            binanceDark: '#0B0E11',
+            binanceCard: '#181A20',
+            binanceBorder: '#2B313A',
+            binanceGreen: '#0ECB81',
+            binanceRed: '#F6465D'
+          }
+        }
+      }
+    }
+  </script>
   <style>
-    :root {
-      --bg: #0d1117;
-      --card: #151b23;
-      --card-sub: #1b222d;
-      --border: #262f3d;
-      --text: #e6edf3;
-      --muted: #8b949e;
-      --blue: #3b82f6;
-      --green: #10b981;
-      --red: #f43f5e;
-      --amber: #f59e0b;
-    }
-
-    * { box-sizing: border-box; }
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap');
     body {
-      margin: 0;
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      font-size: 13.5px;
-      line-height: 1.5;
-      font-variant-numeric: tabular-nums;
-      -webkit-font-smoothing: antialiased;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+      background-color: #0B0E11;
+      color: #EAECEF;
     }
-
-    .app-wrap {
-      max-width: 1580px;
-      margin: 0 auto;
-      padding: 16px 20px 36px;
+    .mono {
+      font-family: 'JetBrains Mono', monospace;
     }
-
-    /* Top Header */
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 14px;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 18px;
-      margin-bottom: 16px;
+    .price-glow-green {
+      text-shadow: 0 0 20px rgba(14, 203, 129, 0.4);
     }
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex-wrap: wrap;
+    .price-glow-red {
+      text-shadow: 0 0 20px rgba(246, 70, 93, 0.4);
     }
-    .app-title {
-      font-size: 16px;
-      font-weight: 800;
-      letter-spacing: -0.3px;
-      color: #fff;
+    .pulse-dot {
+      animation: pulse-animation 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
     }
-    .session-pill {
-      font-size: 11.5px;
-      font-weight: 600;
-      padding: 3px 10px;
-      border-radius: 99px;
-      background: var(--card-sub);
-      border: 1px solid var(--border);
-      color: var(--muted);
+    @keyframes pulse-animation {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.9); }
     }
-    .header-right {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      flex-wrap: wrap;
-    }
-    .vault-stats {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      background: var(--card-sub);
-      border: 1px solid var(--border);
-      padding: 6px 14px;
-      border-radius: 9px;
-      font-size: 12.5px;
-    }
-    .vault-stats span { color: var(--muted); }
-    .vault-stats b { color: var(--text); margin-left: 4px; }
-
-    .btn-group {
-      display: flex;
-      gap: 6px;
-    }
-    button {
-      cursor: pointer;
-      border: 1px solid var(--border);
-      background: var(--card-sub);
-      color: var(--text);
-      padding: 7px 12px;
-      border-radius: 8px;
-      font-weight: 600;
-      font-size: 12px;
-      transition: background 0.15s, border-color 0.15s;
-    }
-    button:hover {
-      background: #232c3b;
-      border-color: #3b4659;
-    }
-    button:disabled {
-      opacity: 0.5;
-      cursor: default;
-    }
-    .btn-primary {
-      background: var(--blue);
-      border-color: var(--blue);
-      color: #fff;
-    }
-    .btn-primary:hover {
-      background: #2563eb;
-      border-color: #2563eb;
-    }
-
-    /* 50:50 Split Grid */
-    .split-grid {
-      display: grid;
-      grid-template-columns: 1.08fr 0.92fr;
-      gap: 16px;
-      align-items: start;
-    }
-    @media (max-width: 1120px) {
-      .split-grid { grid-template-columns: 1fr; }
-    }
-
-    .card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-    .card-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-    .card-title {
-      font-size: 14.5px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .card-sub {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    /* Clean Tables */
-    .table-wrap { overflow-x: auto; }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12.5px;
-    }
-    th, td {
-      padding: 9px 10px;
-      text-align: left;
-      border-bottom: 1px solid #1e2633;
-    }
-    th {
-      color: var(--muted);
-      font-weight: 600;
-      font-size: 11.5px;
-      background: rgba(255, 255, 255, 0.02);
-      white-space: nowrap;
-    }
-    tr:last-child td { border-bottom: none; }
-
-    .badge {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .badge-long { background: rgba(16, 185, 129, 0.14); color: #34d399; }
-    .badge-short { background: rgba(244, 63, 94, 0.14); color: #fb7185; }
-    .badge-wait { background: rgba(139, 148, 158, 0.14); color: #9ca3af; }
-    .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
-
-    .text-green { color: var(--green); font-weight: 600; }
-    .text-red { color: var(--red); font-weight: 600; }
-    .text-muted { color: var(--muted); }
-
-    /* Sub-tabs for Positions / History / Logic */
-    .sub-tabs {
-      display: flex;
-      gap: 6px;
-      border-bottom: 1px solid var(--border);
-      padding-bottom: 10px;
-      margin-bottom: 12px;
-    }
-    .sub-tab {
-      background: transparent;
-      border: 1px solid transparent;
-      color: var(--muted);
-      padding: 5px 11px;
-      border-radius: 7px;
-      font-size: 12px;
-    }
-    .sub-tab.active {
-      background: var(--card-sub);
-      border-color: var(--border);
-      color: #fff;
-    }
-
-    /* Strategy Logic Box */
-    .logic-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    @media (max-width: 640px) { .logic-grid { grid-template-columns: 1fr; } }
-    .logic-item {
-      background: var(--card-sub);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 10px 12px;
-      font-size: 12px;
-    }
-    .logic-item b {
-      display: block;
-      color: #fff;
-      margin-bottom: 3px;
-      font-size: 12.5px;
-    }
-
-    /* Right Side: Option S/R Tool & Chat */
-    .chip-row {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .ticker-chip {
-      padding: 4px 10px;
-      border-radius: 7px;
-      font-size: 12px;
-      font-weight: 600;
-      background: var(--card-sub);
-      border: 1px solid var(--border);
-      color: var(--muted);
-    }
-    .ticker-chip.active, .ticker-chip:hover {
-      color: #fff;
-      border-color: var(--blue);
-      background: rgba(59, 130, 246, 0.14);
-    }
-
-    /* 5-Level Support & Resistance Ladder */
-    .sr-box {
-      background: var(--card-sub);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px 14px;
-      margin-bottom: 12px;
-    }
-    .sr-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 8px;
-      padding-bottom: 10px;
-      margin-bottom: 10px;
-      border-bottom: 1px solid var(--border);
-    }
-    .sr-ladder {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
-      text-align: center;
-    }
-    @media (max-width: 680px) {
-      .sr-ladder { grid-template-columns: 1fr; }
-    }
-    .sr-cell {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 8px 6px;
-    }
-    .sr-cell .lbl {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 3px;
-    }
-    .sr-cell .val {
-      font-size: 14.5px;
-      font-weight: 800;
-    }
-    .sr-cell .sub {
-      font-size: 10.5px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* AI Chat Feed */
-    .chat-feed {
-      height: 410px;
-      overflow-y: auto;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .chat-bubble {
-      padding: 11px 14px;
-      border-radius: 10px;
-      font-size: 13px;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      word-break: break-word;
-    }
-    .chat-bubble.user {
-      align-self: flex-end;
-      background: rgba(59, 130, 246, 0.18);
-      border: 1px solid rgba(59, 130, 246, 0.35);
-      color: #fff;
-      max-width: 82%;
-    }
-    .chat-bubble.assistant {
-      align-self: flex-start;
-      background: var(--card-sub);
-      border: 1px solid var(--border);
-      color: var(--text);
-      width: 100%;
-    }
-    .chat-meta {
-      font-size: 11px;
-      color: var(--muted);
-      margin-bottom: 5px;
-      display: flex;
-      justify-content: space-between;
-    }
-
-    .chat-form {
-      display: flex;
-      gap: 8px;
-      margin-top: 10px;
-    }
-    .chat-form input {
-      flex: 1;
-      background: var(--bg);
-      border: 1px solid var(--border);
-      color: var(--text);
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 13px;
-      outline: none;
-    }
-    .chat-form input:focus {
-      border-color: var(--blue);
-    }
-
-    /* Modal */
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.72);
-      display: none;
-      place-items: center;
-      z-index: 100;
-      padding: 16px;
-    }
-    .modal {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      max-width: 540px;
-      width: 100%;
-      padding: 20px;
-    }
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #0B0E11; }
+    ::-webkit-scrollbar-thumb { background: #2B313A; border-radius: 3px; }
   </style>
 </head>
-<body>
-  <div class="app-wrap">
-    <!-- 상단 바 -->
-    <header class="header">
-      <div class="header-left">
-        <div class="app-title">⚡ Variational 10x 스탑헌팅 &amp; 🎯 AI 옵션 지지·저항선</div>
-        <span class="session-pill" id="sessionBadge">세션 확인 중...</span>
-      </div>
+<body class="min-h-screen flex flex-col antialiased selection:bg-binanceYellow selection:text-black">
 
-      <div class="header-right">
-        <div class="vault-stats">
-          <div><span>10x 금고 총자산</span><b id="vEquity">$1,000.00</b></div>
-          <div><span>가용현금</span><b id="vCash">$1,000.00</b></div>
-          <div><span>증거금</span><b id="vDeployed">$0.00</b></div>
-          <div><span>10x 누적손익</span><b id="vPnl">$0.00</b></div>
+  <!-- Top Navigation Bar -->
+  <header class="border-b border-binanceBorder bg-binanceCard/90 backdrop-blur sticky top-0 z-50 px-4 lg:px-8 py-3">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-binanceYellow/15 border border-binanceYellow/30 flex items-center justify-center text-binanceYellow text-lg font-bold">
+          <i class="fa-solid fa-layer-group"></i>
         </div>
-        <div class="btn-group">
-          <button class="btn-primary" onclick="triggerScan()" id="btnScan">↻ 스탑헌팅 스캔</button>
-          <button onclick="openCloudModal()">☁️ GitHub 클라우드</button>
-          <button onclick="resetVault()">초기화</button>
-        </div>
-      </div>
-    </header>
-
-    <!-- 좌·우 50:50 메인 워크스페이스 -->
-    <div class="split-grid">
-      <!-- ==================== 좌측: Variational 10x 스탑헌팅 모의매매 및 로직 ==================== -->
-      <div>
-        <!-- 1. 실시간 7대 선물 스탑헌팅 모니터 -->
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <div class="card-title">1. Variational DEX 7대 선물 실시간 스탑헌팅 모니터 (10x 레버리지)</div>
-              <div class="card-sub">평일 미장 개장 1~1.5시간 전 급변동(골디락스 %) + 꼬리 확인 시 반대 포지션 자동 진입 · 주말 자동 중지</div>
-            </div>
-            <button onclick="testTelegram()" style="font-size:11.5px;padding:5px 10px;">📱 텔레그램 알림 테스트</button>
+        <div>
+          <div class="flex items-center gap-2">
+            <span class="font-extrabold text-base lg:text-lg tracking-tight text-white">VARIATIONAL 통합 알리미 &amp; 터미널</span>
+            <span class="text-[11px] px-2 py-0.5 rounded bg-binanceYellow/15 text-binanceYellow font-semibold border border-binanceYellow/30">Omni DEX 직통</span>
           </div>
-          <div class="table-wrap" id="stopHuntTableWrap"></div>
-        </div>
-
-        <!-- 2. 10x 모의매매 기록 및 매매 로직 -->
-        <div class="card">
-          <div class="sub-tabs">
-            <button class="sub-tab active" id="tabBtn_pos" onclick="switchLeftTab('pos')">📂 열린 10x 포지션 (<span id="openCountTxt">0</span>)</button>
-            <button class="sub-tab" id="tabBtn_hist" onclick="switchLeftTab('hist')">📜 청산 기록 (<span id="closedCountTxt">0</span>)</button>
-            <button class="sub-tab" id="tabBtn_logic" onclick="switchLeftTab('logic')">📐 스탑헌팅 10x 매매 로직 &amp; 백테스트 기준표</button>
-            <button class="sub-tab" id="tabBtn_log" onclick="switchLeftTab('log')">🕒 봇 실행 로그</button>
-          </div>
-
-          <!-- 탭 1: 열린 10x 포지션 -->
-          <div id="leftPanel_pos">
-            <div class="table-wrap" id="openPositionsWrap"></div>
-          </div>
-
-          <!-- 탭 2: 청산 기록 -->
-          <div id="leftPanel_hist" style="display:none;">
-            <div class="table-wrap" id="closedPositionsWrap"></div>
-          </div>
-
-          <!-- 탭 3: 스탑헌팅 매매 로직 및 60일 백테스트 기준표 -->
-          <div id="leftPanel_logic" style="display:none;">
-            <div class="logic-grid">
-              <div class="logic-item">
-                <b>① 진입 조건 (미장 개장 전 스탑헌팅 역추세)</b>
-                평일 직전 90분(1.5시간) 동안 기준가(Anchor) 대비 종목별 <b>적정 골디락스 %</b>만큼 급등/급락한 뒤, 볼린저 과열 및 <b>되돌림 꼬리(브레이크)</b>가 확인되면 반대 방향(급등 시 SHORT 10x / 급락 시 LONG 10x)으로 진입합니다.
-              </div>
-              <div class="logic-item">
-                <b>② 호가 체결 &amp; 10배 레버리지 고정</b>
-                Variational Omni DEX 실시간 마크가 및 매수/매도 호가(LONG=Ask, SHORT=Bid)로 체결되며, 금고($1,000)의 6~8% 증거금에 <b>10배 레버리지(10x)</b>를 적용합니다.
-              </div>
-              <div class="logic-item">
-                <b>③ 익절 / 칼손절 원칙 (손익비 ≥ 1 : 1.5)</b>
-                • <b>1차 익절(TP1)</b>: 스탑헌팅 변동폭의 55% 회귀 지점<br>
-                • <b>2차 익절(TP2)</b>: 스탑헌팅 출발 기준가(Anchor) 완전 회귀<br>
-                • <b>칼손절(SL)</b>: 스탑헌팅 고점/저점 재돌파 시 즉시 손절
-              </div>
-              <div class="logic-item">
-                <b>④ 원웨이 폭주 차단 &amp; 주말 휴장 가드</b>
-                변동폭이 위험 상한선(진짜 추세 폭발)을 넘으면 진입을 차단하며, 미국장이 쉬는 <b>주말(토·일)에는 자동으로 매매를 중지</b>합니다.
-              </div>
-            </div>
-
-            <div class="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>종목 (Variational)</th>
-                    <th>분류</th>
-                    <th>60일 백테스트 적정 %</th>
-                    <th>원웨이 위험선 (진입금지)</th>
-                    <th>최소 꼬리</th>
-                    <th>60일 승률</th>
-                    <th>60일 10x 누적수익</th>
-                  </tr>
-                </thead>
-                <tbody id="backtestRefBody"></tbody>
-              </table>
-            </div>
-          </div>
-
-          <!-- 탭 4: 실행 로그 -->
-          <div id="leftPanel_log" style="display:none;">
-            <div id="botLogWrap" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
+          <div class="flex items-center gap-2 text-xs text-gray-400 mt-0.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-binanceGreen pulse-dot"></span>
+            <span id="headerStatusText">Variational DEX 실시간 연동 중</span>
+            <span class="text-gray-600">|</span>
+            <span id="lastUpdatedTime" class="mono text-gray-400">--:--:--</span>
+            <span class="text-gray-600 hidden sm:inline">|</span>
+            <span id="sessionBadge" class="hidden sm:inline text-gray-300 font-medium">세션 확인 중</span>
           </div>
         </div>
       </div>
 
-      <!-- ==================== 우측: 내 전용 옵션 감마 & 지지·저항선 핵심 수치 채팅창 ==================== -->
-      <div>
-        <div class="card">
-          <div class="card-head">
-            <div>
-              <div class="card-title">2. 옵션 감마 &amp; 지지·저항 핵심 수치 조회</div>
-              <div class="card-sub">티커(예: MRNA, TSLA, NVDA)나 한글명(예: 모더나, 테슬라, 아이온큐)을 입력하면 <b>양/음감마 · 감마플립 · 맥스페인 · 만기일 · 지지·저항선</b>만 즉시 표시합니다</div>
+      <!-- View Filter Tabs -->
+      <div class="flex items-center gap-1.5 bg-binanceDark p-1 rounded-xl border border-binanceBorder text-xs font-semibold">
+        <button onclick="setMainView('all')" id="viewBtn_all" class="px-3 py-1.5 rounded-lg bg-binanceCard text-binanceYellow border border-binanceYellow/30 transition">
+          전체 통합 보기
+        </button>
+        <button onclick="setMainView('alerts')" id="viewBtn_alerts" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">
+          지정가 알리미
+        </button>
+        <button onclick="setMainView('stophunt')" id="viewBtn_stophunt" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">
+          10x 스탑헌팅
+        </button>
+        <button onclick="setMainView('options')" id="viewBtn_options" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">
+          옵션 지지·저항
+        </button>
+      </div>
+
+      <!-- Quick Action Controls -->
+      <div class="flex items-center gap-2">
+        <button onclick="resetAlertState()" title="지정가 알림 감시 상태 초기화" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-binanceBorder/60 hover:bg-binanceBorder text-gray-300 hover:text-white transition text-xs font-semibold">
+          <i class="fa-solid fa-arrows-rotate text-[11px]"></i>
+          <span class="hidden md:inline">알림 재장전</span>
+        </button>
+        <button onclick="openCloudModal()" class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-binanceYellow text-black hover:bg-yellow-400 transition text-xs font-bold">
+          <i class="fa-solid fa-cloud-arrow-up text-[11px]"></i>
+          <span>GitHub / Render 배포</span>
+        </button>
+        <button onclick="playBeep()" title="알림 사운드 테스트" class="p-2 rounded-lg bg-binanceBorder/50 hover:bg-binanceBorder text-gray-300 transition text-xs">
+          <i class="fa-solid fa-volume-high"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-[1600px] w-full mx-auto p-4 lg:p-6 space-y-6">
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 1: VARIATIONAL DEX 지정가 텔레그램 알리미                     -->
+    <!-- ===================================================================== -->
+    <section id="sec_alerts" class="space-y-5">
+
+      <!-- Add Any Variational Ticker Bar -->
+      <div class="bg-binanceCard border border-binanceBorder rounded-2xl p-4 lg:p-5 shadow-xl">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-bell text-binanceYellow text-sm"></i>
+              <h2 class="text-base font-bold text-white">Variational 상장 종목 지정가 텔레그램 알림 추가</h2>
+              <span id="listingsCountBadge" class="text-[11px] px-2 py-0.5 rounded bg-binanceDark border border-binanceBorder text-gray-400 mono">588종목 지원</span>
             </div>
-            <button onclick="clearOptionChat()" style="font-size:11.5px;padding:4px 9px;">초기화</button>
+            <p class="text-xs text-gray-400 mt-1">
+              Variational DEX에 상장된 모든 선물 종목(예: QQQ, NFLX, BTC, ETH, SOL, HYPE, NVDA, TSLA, SOXX, EWY 등)의 목표 달러($) 도달 시 텔레그램으로 즉시 전송합니다.
+            </p>
           </div>
 
-          <div class="sr-box" id="srSummaryBox" style="display:none;"></div>
-
-          <!-- 핵심 수치 카드 채팅창 -->
-          <div class="chat-feed" id="optionChatFeed" style="height:540px;"></div>
-
-          <!-- 티커 입력창 -->
-          <form class="chat-form" onsubmit="submitOptionChat(event)">
-            <input type="text" id="optionChatInput" placeholder="종목 티커 또는 한글명 입력 (예: MRNA, 모더나, TSLA, 아이온큐, NVDA)" />
-            <button type="submit" class="btn-primary" id="btnAskAi">조회</button>
+          <form onsubmit="addNewAlertSymbol(event)" class="flex flex-wrap sm:flex-nowrap items-center gap-2 w-full lg:w-auto">
+            <div class="relative w-full sm:w-44">
+              <input
+                type="text"
+                id="newAlertSymbolInput"
+                list="variationalTickerList"
+                oninput="onNewSymbolInput()"
+                placeholder="티커 검색 (예: NVDA, BTC)"
+                class="w-full px-3 py-2 bg-binanceDark border border-binanceBorder rounded-xl text-xs font-mono font-bold text-white uppercase focus:outline-none focus:border-binanceYellow"
+              />
+              <datalist id="variationalTickerList"></datalist>
+            </div>
+            <div class="relative w-full sm:w-36">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+              <input
+                type="number"
+                step="any"
+                id="newAlertPriceInput"
+                placeholder="목표 가격"
+                class="w-full pl-6 pr-3 py-2 bg-binanceDark border border-binanceBorder rounded-xl text-xs font-mono font-bold text-white focus:outline-none focus:border-binanceYellow"
+              />
+            </div>
+            <select id="newAlertCondSelect" class="w-full sm:w-auto bg-binanceDark border border-binanceBorder rounded-xl px-3 py-2 text-xs text-gray-300 focus:outline-none focus:border-binanceYellow">
+              <option value="gte">이상 (&gt;=) 돌파</option>
+              <option value="lte">이하 (&lt;=) 도달</option>
+            </select>
+            <button type="submit" class="w-full sm:w-auto px-4 py-2 rounded-xl bg-binanceYellow text-black font-bold text-xs hover:bg-yellow-400 transition whitespace-nowrap">
+              <i class="fa-solid fa-plus mr-1"></i>알림 카드 추가
+            </button>
           </form>
         </div>
+        <div id="newSymbolHint" class="text-[11px] text-gray-400 mono mt-2 hidden"></div>
       </div>
+
+      <!-- Dynamic Asset Alert Cards Grid -->
+      <div id="alertCardsGrid" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5"></div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 2: 10x 스탑헌팅 모의매매 (좌) & 옵션 감마 지지·저항 수치 (우) -->
+    <!-- ===================================================================== -->
+    <section id="sec_trading_options" class="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+
+      <!-- LEFT: Variational 10x 스탑헌팅 모의매매 -->
+      <div id="subsec_stophunt" class="bg-binanceCard border border-binanceBorder rounded-2xl p-5 lg:p-6 shadow-xl space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-binanceBorder pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-bolt text-binanceYellow text-sm"></i>
+              <h2 class="text-base font-bold text-white">Variational 10x 스탑헌팅 모의매매</h2>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-binanceDark border border-binanceBorder text-gray-300 mono">$1,000 금고</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+              평일 미장 개장 전 90분 과열 스탑헌팅 + 꼬리 확인 시 반대 포지션 10배(10x) 자동 진입 · 주말 작동 중지
+            </p>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="triggerScan()" id="btnScan" class="px-3 py-1.5 rounded-lg bg-binanceBorder/70 hover:bg-binanceBorder text-white text-xs font-semibold transition">
+              <i class="fa-solid fa-rotate mr-1"></i>스캔
+            </button>
+            <button onclick="resetVault()" class="px-3 py-1.5 rounded-lg bg-binanceDark hover:bg-binanceBorder border border-binanceBorder text-gray-400 hover:text-white text-xs font-semibold transition">
+              금고 초기화
+            </button>
+          </div>
+        </div>
+
+        <!-- Vault KPI Row -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
+            <div class="text-[11px] text-gray-400">총 평가자산</div>
+            <div id="vEquity" class="text-base font-extrabold mono text-white mt-0.5">$1,000.00</div>
+          </div>
+          <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
+            <div class="text-[11px] text-gray-400">가용 현금</div>
+            <div id="vCash" class="text-base font-extrabold mono text-gray-200 mt-0.5">$1,000.00</div>
+          </div>
+          <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
+            <div class="text-[11px] text-gray-400">투입 증거금 (10x)</div>
+            <div id="vDeployed" class="text-base font-extrabold mono text-gray-200 mt-0.5">$0.00</div>
+          </div>
+          <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
+            <div class="text-[11px] text-gray-400">10x 누적 손익</div>
+            <div id="vPnl" class="text-base font-extrabold mono text-binanceGreen mt-0.5">$0.00</div>
+          </div>
+        </div>
+
+        <!-- 7 Elite Variational Futures Scan Table -->
+        <div class="overflow-x-auto rounded-xl border border-binanceBorder bg-binanceDark/60">
+          <div id="stopHuntTableWrap"></div>
+        </div>
+
+        <!-- Sub-Tabs for Open Positions / History / Backtest Logic / Logs -->
+        <div class="flex flex-wrap gap-1.5 border-b border-binanceBorder pb-3 text-xs font-semibold">
+          <button onclick="switchLeftTab('pos')" id="tabBtn_pos" class="px-3 py-1.5 rounded-lg bg-binanceYellow text-black font-bold transition">
+            열린 10x 포지션 (<span id="openCountTxt">0</span>)
+          </button>
+          <button onclick="switchLeftTab('hist')" id="tabBtn_hist" class="px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition">
+            청산 내역 (<span id="closedCountTxt">0</span>)
+          </button>
+          <button onclick="switchLeftTab('logic')" id="tabBtn_logic" class="px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition">
+            매매 로직 &amp; 60일 백테스트 기준
+          </button>
+          <button onclick="switchLeftTab('log')" id="tabBtn_log" class="px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition">
+            시스템 로그
+          </button>
+        </div>
+
+        <div id="leftPanel_pos" class="overflow-x-auto">
+          <div id="openPositionsWrap"></div>
+        </div>
+
+        <div id="leftPanel_hist" class="overflow-x-auto hidden">
+          <div id="closedPositionsWrap"></div>
+        </div>
+
+        <div id="leftPanel_logic" class="space-y-3 hidden">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+            <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
+              <div class="font-bold text-white mb-1">1. 진입 조건 (90분 과열 + 꼬리 확인)</div>
+              <div class="text-gray-400">최근 90분 변동폭이 종목별 적정 구간에 진입하고 꼬리 되돌림이 확인될 때 반대 방향으로 10x 진입합니다.</div>
+            </div>
+            <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
+              <div class="font-bold text-white mb-1">2. 익절(TP1/TP2) 및 칼손절(SL)</div>
+              <div class="text-gray-400">급등락 출발점 55% 회귀 시 1차 익절, 90% 회귀 시 전량 익절하며, 꼬리 끝 돌파 시 즉시 손절합니다.</div>
+            </div>
+          </div>
+          <div class="overflow-x-auto rounded-xl border border-binanceBorder bg-binanceDark">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-gray-400 border-b border-binanceBorder">
+                  <th class="py-2 px-3">종목</th>
+                  <th class="py-2 px-3">분류</th>
+                  <th class="py-2 px-3">적정 변동 %</th>
+                  <th class="py-2 px-3">원웨이 위험선</th>
+                  <th class="py-2 px-3">최소 꼬리</th>
+                  <th class="py-2 px-3">60일 승률</th>
+                  <th class="py-2 px-3">60일 10x 수익</th>
+                </tr>
+              </thead>
+              <tbody id="backtestRefBody" class="divide-y divide-binanceBorder/40"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div id="leftPanel_log" class="hidden">
+          <div id="botLogWrap" class="max-h-56 overflow-y-auto space-y-1.5"></div>
+        </div>
+      </div>
+
+      <!-- RIGHT: 옵션 감마 & 지지·저항 핵심 수치 조회 -->
+      <div id="subsec_options" class="bg-binanceCard border border-binanceBorder rounded-2xl p-5 lg:p-6 shadow-xl flex flex-col justify-between space-y-4">
+        <div class="flex items-center justify-between border-b border-binanceBorder pb-4">
+          <div>
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-chart-Simple text-binanceYellow text-sm"></i>
+              <h2 class="text-base font-bold text-white">옵션 감마 &amp; 지지·저항 핵심 수치 조회</h2>
+              <span class="text-[11px] px-2 py-0.5 rounded bg-binanceDark border border-binanceBorder text-gray-300 mono">tooja.me 실시간 연동</span>
+            </div>
+            <p class="text-xs text-gray-400 mt-1">
+              종목 티커(예: MRNA, TSLA, NVDA)나 한글명(예: 모더나, 테슬라, 아이온큐)을 입력하면 양/음감마 · 감마플립 · 맥스페인 · 만기일 · 지지·저항선만 즉시 표시합니다.
+            </p>
+          </div>
+          <button onclick="clearOptionChat()" class="px-3 py-1.5 rounded-lg bg-binanceDark hover:bg-binanceBorder border border-binanceBorder text-gray-400 hover:text-white text-xs font-semibold transition whitespace-nowrap">
+            초기화
+          </button>
+        </div>
+
+        <div id="srSummaryBox" class="hidden"></div>
+
+        <!-- Option Cards Feed -->
+        <div id="optionChatFeed" class="h-[460px] overflow-y-auto space-y-3 p-3 rounded-xl bg-binanceDark border border-binanceBorder"></div>
+
+        <!-- Ticker Input Form -->
+        <form onsubmit="submitOptionChat(event)" class="flex gap-2">
+          <input
+            type="text"
+            id="optionChatInput"
+            placeholder="티커 또는 한글 종목명 입력 (예: MRNA, 모더나, TSLA, 아이온큐, NVDA)"
+            class="flex-1 px-4 py-2.5 bg-binanceDark border border-binanceBorder rounded-xl text-xs font-medium text-white focus:outline-none focus:border-binanceYellow"
+          />
+          <button type="submit" id="btnAskAi" class="px-5 py-2.5 rounded-xl bg-binanceYellow text-black font-bold text-xs hover:bg-yellow-400 transition">
+            조회
+          </button>
+        </form>
+      </div>
+
+    </section>
+
+    <!-- ===================================================================== -->
+    <!-- SECTION 3: 텔레그램 연동 관리 & 지정가 알림 발송 기록                  -->
+    <!-- ===================================================================== -->
+    <section id="sec_logs" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+      <!-- Telegram Status & Settings Card -->
+      <div class="bg-binanceCard border border-binanceBorder rounded-2xl p-5 lg:p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-binanceBorder pb-3">
+          <h3 class="font-bold text-white text-sm flex items-center gap-2">
+            <i class="fa-brands fa-telegram text-[#2AABEE]"></i>
+            텔레그램 연동 관리
+          </h3>
+          <span id="telegramStatusBadge" class="text-[11px] px-2.5 py-0.5 rounded-full bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/30 font-semibold">
+            연동 완료
+          </span>
+        </div>
+
+        <div class="p-3.5 bg-binanceDark rounded-xl border border-binanceBorder space-y-1.5 text-xs">
+          <div class="flex items-center justify-between">
+            <span class="text-gray-400">연동된 사용자</span>
+            <span id="chatUserDisplay" class="font-semibold text-white">도윤 이 (@shortbetofohsun)</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-400">Chat ID</span>
+            <span id="chatIdDisplay" class="mono text-binanceYellow font-semibold">8417795671</span>
+          </div>
+          <div class="flex items-center justify-between">
+            <span class="text-gray-400">연동 봇</span>
+            <span class="mono text-gray-300">@Alert_123455_bot / @dytradingdemo_bot</span>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-xs font-semibold text-gray-300 mb-1.5">Chat ID 변경</label>
+          <div class="flex gap-2">
+            <input type="text" id="manualChatIdInput" placeholder="예: 8417795671" class="flex-1 px-3 py-2 bg-binanceDark border border-binanceBorder rounded-xl text-xs mono text-white focus:outline-none focus:border-binanceYellow">
+            <button onclick="saveManualChatId()" class="px-3.5 py-2 rounded-xl bg-binanceBorder hover:bg-gray-700 text-xs font-semibold text-white transition">저장</button>
+          </div>
+        </div>
+
+        <div class="pt-1">
+          <button onclick="testTelegram()" class="w-full py-2.5 px-3 rounded-xl bg-binanceYellow/15 border border-binanceYellow/40 hover:bg-binanceYellow/25 text-binanceYellow font-bold text-xs transition flex items-center justify-center gap-1.5">
+            <i class="fa-solid fa-paper-plane text-[11px]"></i>
+            <span>텔레그램 통합 연결 테스트 발송</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Trigger History Logs Card (2 cols) -->
+      <div class="lg:col-span-2 bg-binanceCard border border-binanceBorder rounded-2xl p-5 lg:p-6 shadow-xl flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between mb-4 pb-3 border-b border-binanceBorder">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-clock-rotate-left text-gray-400 text-sm"></i>
+              <h3 class="font-bold text-white text-sm">지정가 알림 발송 기록</h3>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-binanceBorder text-gray-300 mono" id="alertCountBadge">0회</span>
+            </div>
+            <button onclick="clearAlertLogs()" class="text-xs text-gray-400 hover:text-binanceRed transition flex items-center gap-1">
+              <i class="fa-solid fa-trash-can"></i>
+              <span>기록 비우기</span>
+            </button>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead>
+                <tr class="text-gray-400 border-b border-binanceBorder/80">
+                  <th class="py-2 px-3">발송 일시</th>
+                  <th class="py-2 px-3">종목</th>
+                  <th class="py-2 px-3">도달 마크가</th>
+                  <th class="py-2 px-3">설정 목표가</th>
+                  <th class="py-2 px-3">상태</th>
+                  <th class="py-2 px-3">상세</th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody" class="divide-y divide-binanceBorder/40">
+                <tr>
+                  <td colspan="6" class="py-8 text-center text-gray-500">
+                    아직 발송된 지정가 알림 내역이 없습니다. 목표가 도달 시 실시간으로 텔레그램 발송 및 기록됩니다.
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- GitHub & Render Cloud Deploy Modal -->
+  <div id="cloudModal" onclick="if(event.target===this)this.classList.add('hidden')" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
+    <div class="bg-binanceCard border border-binanceBorder rounded-2xl p-6 max-w-lg w-full shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-binanceBorder pb-3">
+        <div class="font-bold text-white text-sm flex items-center gap-2">
+          <i class="fa-solid fa-cloud-arrow-up text-binanceYellow"></i>
+          <span>GitHub Public 업로드 &amp; Render 서버 배포</span>
+        </div>
+        <button onclick="document.getElementById('cloudModal').classList.add('hidden')" class="text-gray-400 hover:text-white text-xs">닫기</button>
+      </div>
+      <p class="text-xs text-gray-400 leading-relaxed">
+        아래 버튼을 누르면 <code>shortbetofohsun/grok-trading-team</code> 저장소를 Public 상태로 유지하며 최신 통합 코드(Variational 지정가 알리미 + 10x 스탑헌팅 + 옵션 지지저항)를 즉시 업로드합니다.
+      </p>
+      <div class="p-4 rounded-xl bg-binanceDark border border-binanceBorder space-y-2">
+        <button onclick="deployCloudNow()" id="btnDeployCloud" class="w-full py-2.5 rounded-xl bg-binanceYellow text-black font-bold text-xs hover:bg-yellow-400 transition">
+          저장된 인증으로 GitHub 즉시 업데이트
+        </button>
+        <button onclick="startGitHubDeviceLogin()" id="btnDeviceLogin" class="w-full py-2 rounded-xl bg-binanceBorder hover:bg-gray-700 text-gray-200 font-semibold text-xs transition">
+          또는 8자리 코드로 GitHub 재인증
+        </button>
+        <div id="ghDeviceBox" class="hidden p-3 rounded-lg bg-binanceCard border border-binanceBorder text-xs"></div>
+      </div>
+      <div class="p-3.5 rounded-xl bg-binanceDark border border-binanceBorder text-xs space-y-1.5">
+        <div class="font-bold text-binanceYellow">Render 웹서버 연결 주소 (Public Git Repository)</div>
+        <div class="mono text-gray-300 select-all bg-binanceCard p-2 rounded border border-binanceBorder">https://github.com/shortbetofohsun/grok-trading-team</div>
+        <div class="text-gray-400">
+          <a href="https://dashboard.render.com/select-repo?type=web" target="_blank" class="text-binanceGreen font-semibold underline">Render Web Service 생성 페이지 열기</a>에서 위 주소를 넣으면 Variational API가 차단 없이 24시간 돌아갑니다.
+        </div>
+      </div>
+      <input type="hidden" id="ghTokenInput" value="" />
+      <input type="hidden" id="ghRepoInput" value="grok-trading-team" />
+      <div id="ghDeployStatus" class="text-xs text-binanceGreen font-semibold"></div>
     </div>
   </div>
 
-  <!-- GitHub & Render 클라우드 배포 모달 -->
-  <div class="modal-backdrop" id="cloudModal" onclick="if(event.target===this)this.style.display='none'">
-    <div class="modal">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <b style="font-size:15px;">☁️ GitHub 업로드 &amp; Render 웹서버 연동</b>
-        <button onclick="document.getElementById('cloudModal').style.display='none'">닫기 ✕</button>
-      </div>
-      <p style="font-size:12.5px;color:var(--muted);margin-top:0;">
-        ① 먼저 아래 버튼으로 <b>GitHub(`grok-trading-team`)</b>에 최신 v4.0 코드와 <code>render.yaml</code>을 자동 업로드합니다.<br/>
-        ② 이후 <b>Render(render.com)</b>에서 해당 GitHub 저장소만 연결하면 스마트폰·외부 PC 어디서나 접속 가능한 전용 웹 주소(<code>https://...onrender.com</code>)가 생성됩니다!
-      </p>
-      <div style="background:var(--card-sub);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
-        <button class="btn-primary" onclick="startGitHubDeviceLogin()" id="btnDeviceLogin" style="width:100%;">🚀 STEP 1: 1클릭 GitHub 최신 코드 업로드 (8자리 코드 인증)</button>
-        <div id="ghDeviceBox" style="margin-top:10px;display:none;background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border);"></div>
-      </div>
-      <div style="background:var(--card-sub);border:1px solid rgba(59,130,246,0.35);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;">
-        <div style="font-weight:800;color:#60a5fa;margin-bottom:6px;">🌐 STEP 2: Render 웹서버 연결 (이미 만든 Render가 있다면 자동 재배포됨!)</div>
-        <div style="color:var(--muted);line-height:1.55;">
-          • <b>이미 이 GitHub 저장소로 Render를 만들어 두셨다면:</b> STEP 1 업로드 즉시 Render가 자동으로 최신 버전을 감지해 1분 내로 업데이트됩니다!<br/>
-          • <b>새로 연결하시려면:</b> <a href="https://dashboard.render.com/select-repo?type=web" target="_blank" style="color:#34d399;font-weight:700;">Render Web Service 생성 페이지 열기 ↗</a> ➔ <code>grok-trading-team</code> 선택 ➔ Build Command: <code>npm install</code> / Start Command: <code>node server.js</code> / Plan: <code>Free</code> 클릭!
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;">
-        <input type="password" id="ghTokenInput" placeholder="또는 GitHub 토큰(ghp_...) 직접 입력" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;" />
-        <input type="hidden" id="ghRepoInput" value="grok-trading-team" />
-        <button onclick="deployCloudNow()" id="btnDeployCloud">토큰으로 업로드</button>
-      </div>
-      <div id="ghDeployStatus" style="font-size:12px;margin-top:8px;color:var(--blue);"></div>
-    </div>
-  </div>
+  <!-- Notification Toast Container -->
+  <div id="toastContainer" class="fixed bottom-6 right-6 z-50 flex flex-col gap-2 pointer-events-none"></div>
 
   <script>
     let latestState = null;
     let stopHuntUniverse = [];
     let currentLeftTab = 'pos';
-    let currentOptionSymbol = null;
     let isOptionChatPending = false;
     let lastRenderedChatCount = -1;
     let ghDevicePollInterval = null;
 
+    // Variational Price Alert State
+    let varCatalog = [];
+    let alertCharts = {};
+    let lastAlertPrices = {};
+    let renderedAlertSymbolsKey = '';
+
     function fmtUsd(v) {
       const n = Number(v || 0);
       return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtPrice(v) {
+      const n = Number(v || 0);
+      if (n >= 100) return n.toFixed(2);
+      if (n >= 1) return n.toFixed(2);
+      return n.toFixed(4);
     }
     function fmtPnl(v) {
       const n = Number(v || 0);
@@ -578,16 +488,599 @@
         .replace(/>/g, '&gt;');
     }
 
+    // Audio Beep
+    let audioCtx = null;
+    function playBeep() {
+      try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(1760, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.25, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.3);
+        showToast('알림 사운드가 재생되었습니다.', 'info');
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const toast = document.createElement('div');
+      toast.className = `pointer-events-auto px-4 py-3 rounded-xl text-xs font-semibold shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2 max-w-sm ${
+        type === 'success' ? 'bg-binanceGreen text-black font-bold' :
+        type === 'error' ? 'bg-binanceRed text-white' :
+        type === 'warning' ? 'bg-binanceYellow text-black font-bold' :
+        'bg-binanceCard border border-binanceBorder text-white'
+      }`;
+      const iconClass = type === 'success' ? 'fa-circle-check' : type === 'error' ? 'fa-circle-xmark' : 'fa-bell';
+      toast.innerHTML = `<i class="fa-solid ${iconClass}"></i><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      requestAnimationFrame(() => toast.classList.remove('translate-y-2', 'opacity-0'));
+      setTimeout(() => {
+        toast.classList.add('translate-y-2', 'opacity-0');
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    function setMainView(view) {
+      ['all', 'alerts', 'stophunt', 'options'].forEach(v => {
+        const btn = document.getElementById('viewBtn_' + v);
+        if (!btn) return;
+        if (v === view) {
+          btn.className = 'px-3 py-1.5 rounded-lg bg-binanceCard text-binanceYellow border border-binanceYellow/30 transition';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition';
+        }
+      });
+
+      const secAlerts = document.getElementById('sec_alerts');
+      const secTradingOptions = document.getElementById('sec_trading_options');
+      const subStop = document.getElementById('subsec_stophunt');
+      const subOpt = document.getElementById('subsec_options');
+      const secLogs = document.getElementById('sec_logs');
+
+      if (view === 'all') {
+        secAlerts.classList.remove('hidden');
+        secTradingOptions.classList.remove('hidden');
+        secTradingOptions.className = 'grid grid-cols-1 lg:grid-cols-2 gap-6 items-start';
+        subStop.classList.remove('hidden');
+        subOpt.classList.remove('hidden');
+        secLogs.classList.remove('hidden');
+      } else if (view === 'alerts') {
+        secAlerts.classList.remove('hidden');
+        secTradingOptions.classList.add('hidden');
+        secLogs.classList.remove('hidden');
+      } else if (view === 'stophunt') {
+        secAlerts.classList.add('hidden');
+        secTradingOptions.classList.remove('hidden');
+        secTradingOptions.className = 'grid grid-cols-1 gap-6 items-start';
+        subStop.classList.remove('hidden');
+        subOpt.classList.add('hidden');
+        secLogs.classList.add('hidden');
+      } else if (view === 'options') {
+        secAlerts.classList.add('hidden');
+        secTradingOptions.classList.remove('hidden');
+        secTradingOptions.className = 'grid grid-cols-1 gap-6 items-start';
+        subStop.classList.add('hidden');
+        subOpt.classList.remove('hidden');
+        secLogs.classList.add('hidden');
+      }
+    }
+
     function switchLeftTab(tab) {
       currentLeftTab = tab;
       ['pos', 'hist', 'logic', 'log'].forEach(t => {
         const btn = document.getElementById('tabBtn_' + t);
         const pnl = document.getElementById('leftPanel_' + t);
-        if (btn) btn.classList.toggle('active', t === tab);
-        if (pnl) pnl.style.display = t === tab ? 'block' : 'none';
+        if (btn) {
+          btn.className = t === tab
+            ? 'px-3 py-1.5 rounded-lg bg-binanceYellow text-black font-bold transition'
+            : 'px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition';
+        }
+        if (pnl) pnl.classList.toggle('hidden', t !== tab);
       });
     }
 
+    // =========================================================================
+    // 1. VARIATIONAL DEX 지정가 알리미 프론트엔드 로직
+    // =========================================================================
+    async function loadVariationalCatalog() {
+      try {
+        const res = await fetch('/api/price-alerts/listings');
+        const data = await res.json();
+        if (data.ok && Array.isArray(data.listings)) {
+          varCatalog = data.listings;
+          if (data.total) {
+            document.getElementById('listingsCountBadge').textContent = `${data.total}종목 실시간 지원`;
+          }
+          const dl = document.getElementById('variationalTickerList');
+          dl.innerHTML = varCatalog.map(item =>
+            `<option value="${escapeHtml(item.ticker)}">${escapeHtml(item.name)} ($${fmtPrice(item.markPrice)})</option>`
+          ).join('');
+        }
+      } catch (e) {
+        console.warn('Catalog load error:', e);
+      }
+    }
+
+    function onNewSymbolInput() {
+      const raw = document.getElementById('newAlertSymbolInput').value.trim().toUpperCase().replace(/USDT$/, '');
+      const hint = document.getElementById('newSymbolHint');
+      const priceInput = document.getElementById('newAlertPriceInput');
+      if (!raw) {
+        hint.classList.add('hidden');
+        return;
+      }
+      const found = varCatalog.find(x => x.ticker === raw);
+      if (found) {
+        hint.classList.remove('hidden');
+        hint.innerHTML = `<span class="text-binanceGreen font-bold">${escapeHtml(found.ticker)}</span> (${escapeHtml(found.name)}) 현재 Variational 마크가: <b class="text-white">$${fmtPrice(found.markPrice)}</b> (Bid $${fmtPrice(found.bidPrice)} / Ask $${fmtPrice(found.askPrice)})`;
+        if (!priceInput.value) {
+          priceInput.value = Number(found.markPrice.toPrecision(4));
+        }
+      } else {
+        hint.classList.add('hidden');
+      }
+    }
+
+    async function addNewAlertSymbol(e) {
+      e.preventDefault();
+      const symInput = document.getElementById('newAlertSymbolInput');
+      const priceInput = document.getElementById('newAlertPriceInput');
+      const condSelect = document.getElementById('newAlertCondSelect');
+
+      const symbol = symInput.value.trim().toUpperCase().replace(/^\$/, '').replace(/USDT$/, '');
+      const targetPrice = parseFloat(priceInput.value);
+      const condition = condSelect.value;
+
+      if (!symbol) return showToast('티커 심볼을 입력해주세요.', 'error');
+      if (isNaN(targetPrice) || targetPrice <= 0) return showToast('유효한 목표 가격($)을 입력해주세요.', 'error');
+
+      try {
+        const res = await fetch('/api/price-alerts/target', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol,
+            target_price: targetPrice,
+            condition,
+            enabled: true
+          })
+        });
+        const out = await res.json();
+        if (out.ok) {
+          showToast(`${symbol} 목표가 $${targetPrice} (${condition === 'gte' ? '이상 돌파' : '이하 도달'}) 알림이 등록되었습니다.`, 'success');
+          symInput.value = '';
+          priceInput.value = '';
+          document.getElementById('newSymbolHint').classList.add('hidden');
+          await updatePriceAlertStatus();
+        } else {
+          showToast(out.error || '추가 실패', 'error');
+        }
+      } catch (err) {
+        showToast('추가 중 오류 발생', 'error');
+      }
+    }
+
+    function createSparkline(canvasId, colorHex) {
+      const canvas = document.getElementById(canvasId);
+      if (!canvas) return null;
+      const ctx = canvas.getContext('2d');
+      const gradient = ctx.createLinearGradient(0, 0, 0, 96);
+      gradient.addColorStop(0, colorHex + '44');
+      gradient.addColorStop(1, colorHex + '00');
+
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: [],
+          datasets: [{
+            data: [],
+            borderColor: colorHex,
+            borderWidth: 2,
+            backgroundColor: gradient,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          animation: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { display: false },
+            y: {
+              position: 'right',
+              grid: { color: 'rgba(255, 255, 255, 0.04)' },
+              ticks: { color: '#848E9C', font: { size: 9, family: 'JetBrains Mono' }, callback: v => '$' + fmtPrice(v) }
+            }
+          }
+        }
+      });
+    }
+
+    function buildPresetsForTarget(basePrice) {
+      const p = Number(basePrice || 100);
+      const steps = [-0.03, -0.015, 0, 0.015, 0.03];
+      return steps.map(s => {
+        const v = p * (1 + s);
+        return v >= 100 ? Math.round(v) : Number(v.toFixed(2));
+      });
+    }
+
+    function ensureAlertCardsStructure(symbolsObj) {
+      const keys = Object.keys(symbolsObj);
+      const nextKey = keys.join(',');
+      if (nextKey === renderedAlertSymbolsKey) return;
+      renderedAlertSymbolsKey = nextKey;
+
+      // Destroy old charts
+      Object.values(alertCharts).forEach(ch => { try { ch.destroy(); } catch {} });
+      alertCharts = {};
+
+      const grid = document.getElementById('alertCardsGrid');
+      if (!keys.length) {
+        grid.innerHTML = `<div class="col-span-full p-8 text-center text-gray-500 bg-binanceCard border border-binanceBorder rounded-2xl text-xs">등록된 지정가 알림 종목이 없습니다. 위 입력창에서 Variational 종목을 추가해주세요.</div>`;
+        return;
+      }
+
+      grid.innerHTML = keys.map((sym, idx) => {
+        const s = symbolsObj[sym];
+        const isLte = s.condition === 'lte';
+        const accentColor = idx % 2 === 0 ? '#F0B90B' : '#0ECB81';
+        const presets = buildPresetsForTarget(s.target_price || s.current_price || 100);
+
+        return `
+        <div class="bg-binanceCard border border-binanceBorder rounded-2xl p-5 shadow-xl relative overflow-hidden flex flex-col justify-between">
+          <div>
+            <!-- Card Header -->
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-binanceDark border border-binanceBorder text-binanceYellow flex items-center justify-center font-bold text-xs mono">
+                  ${escapeHtml(sym.slice(0, 4))}
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h3 class="text-lg font-extrabold tracking-tight text-white mono">${escapeHtml(sym)} / USDT</h3>
+                    <span class="text-[11px] px-2 py-0.5 rounded bg-binanceDark text-gray-300 font-medium border border-binanceBorder">${escapeHtml(s.name)}</span>
+                  </div>
+                  <span id="card_${sym}_spread" class="text-[11px] text-gray-400 mono">Variational 무기한 선물</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-2">
+                <div class="text-right">
+                  <span class="text-[10px] text-gray-400 block">변동률</span>
+                  <div id="card_${sym}_chg" class="text-xs font-bold mono text-binanceGreen">+0.00%</div>
+                </div>
+                <button onclick="deleteAlertSymbol('${sym}')" title="알림 카드 삭제" class="p-1.5 rounded-lg text-gray-500 hover:text-binanceRed hover:bg-binanceDark transition text-xs">
+                  <i class="fa-solid fa-xmark"></i>
+                </button>
+              </div>
+            </div>
+
+            <!-- Live Price Display -->
+            <div class="flex items-baseline gap-2.5 my-2">
+              <div id="card_${sym}_price" class="text-3xl lg:text-4xl font-black mono tracking-tight text-white transition-colors duration-300">
+                $---.--
+              </div>
+              <div class="text-xs text-gray-400 font-medium mono">USDT</div>
+            </div>
+
+            <!-- Target Strip -->
+            <div class="p-3 rounded-xl bg-binanceDark/80 border border-binanceBorder flex items-center justify-between gap-2 text-xs my-3">
+              <div class="flex items-center gap-1.5">
+                <span class="text-gray-400">목표가:</span>
+                <span id="card_${sym}_targetTxt" class="font-bold text-binanceYellow mono text-sm">$${fmtPrice(s.target_price)}</span>
+                <span id="card_${sym}_condBadge" class="text-[10px] px-1.5 py-0.5 rounded bg-binanceYellow/10 text-binanceYellow border border-binanceYellow/25">
+                  ${isLte ? '이하 (<=)' : '이상 (>=)'}
+                </span>
+              </div>
+              <div id="card_${sym}_distTxt" class="font-bold mono text-right text-amber-400">
+                계산 중...
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="space-y-1 mb-3">
+              <div class="flex justify-between text-[11px] text-gray-400 mono">
+                <span id="card_${sym}_lowTxt">저가: $--</span>
+                <span id="card_${sym}_midTargetTxt" class="text-binanceYellow font-semibold">목표: $${fmtPrice(s.target_price)}</span>
+                <span id="card_${sym}_highTxt">고가: $--</span>
+              </div>
+              <div class="w-full bg-binanceDark h-1.5 rounded-full overflow-hidden border border-binanceBorder/60">
+                <div id="card_${sym}_prog" class="h-full bg-gradient-to-r from-binanceYellow to-binanceGreen transition-all duration-500 rounded-full" style="width: 50%;"></div>
+              </div>
+            </div>
+
+            <!-- Sparkline Chart -->
+            <div class="h-24 w-full mb-3">
+              <canvas id="chart_${sym}"></canvas>
+            </div>
+          </div>
+
+          <!-- Inline Controls -->
+          <div class="pt-3 border-t border-binanceBorder/80 space-y-2.5">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-semibold text-gray-300 flex items-center gap-1.5">
+                <i class="fa-solid fa-sliders text-binanceYellow text-[11px]"></i>
+                ${escapeHtml(sym)} 목표가 설정
+              </span>
+              <div class="flex items-center gap-3">
+                <button onclick="sendTestAlert('${sym}')" class="text-[11px] text-blue-400 hover:text-blue-300 font-semibold">
+                  <i class="fa-solid fa-paper-plane mr-1"></i>테스트 발송
+                </button>
+                <label class="flex items-center gap-1.5 cursor-pointer text-xs">
+                  <input type="checkbox" id="card_${sym}_enabled" ${s.enabled ? 'checked' : ''} onchange="saveSymbolConfig('${sym}')" class="rounded border-binanceBorder text-binanceYellow focus:ring-0">
+                  <span class="text-gray-400">감시 활성</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-bold text-xs">$</span>
+                <input type="number" step="any" id="card_${sym}_input" value="${s.target_price}" class="w-full pl-6 pr-2.5 py-1.5 bg-binanceDark border border-binanceBorder rounded-lg text-white mono font-bold text-xs focus:outline-none focus:border-binanceYellow">
+              </div>
+              <select id="card_${sym}_cond" class="bg-binanceDark border border-binanceBorder rounded-lg px-2 py-1.5 text-xs text-gray-300 focus:outline-none focus:border-binanceYellow">
+                <option value="gte" ${!isLte ? 'selected' : ''}>이상 (&gt;=) 돌파</option>
+                <option value="lte" ${isLte ? 'selected' : ''}>이하 (&lt;=) 도달</option>
+              </select>
+              <button onclick="saveSymbolConfig('${sym}')" class="px-3.5 py-1.5 rounded-lg bg-binanceYellow text-black font-bold text-xs hover:bg-yellow-400 transition">
+                저장
+              </button>
+            </div>
+
+            <div class="flex gap-1.5">
+              ${presets.map(val => `
+                <button onclick="setPreset('${sym}', ${val})" class="flex-1 py-1 bg-binanceDark hover:bg-binanceBorder border border-binanceBorder rounded text-[11px] mono text-gray-300">${val}</button>
+              `).join('')}
+            </div>
+          </div>
+        </div>`;
+      }).join('');
+
+      keys.forEach((sym, idx) => {
+        const colorHex = idx % 2 === 0 ? '#F0B90B' : '#0ECB81';
+        alertCharts[sym] = createSparkline(`chart_${sym}`, colorHex);
+      });
+    }
+
+    function updateSingleAlertCard(sym, sData) {
+      const pEl = document.getElementById(`card_${sym}_price`);
+      if (!pEl || !sData) return;
+
+      const currP = Number(sData.current_price || 0);
+      const targetP = Number(sData.target_price || 0);
+      const cond = sData.condition === 'lte' ? 'lte' : 'gte';
+      const distEl = document.getElementById(`card_${sym}_distTxt`);
+
+      if (currP <= 0) {
+        pEl.textContent = '$---.--';
+        distEl.textContent = sData.api_status || '시세 수신 대기 중';
+        return;
+      }
+
+      pEl.textContent = `$${fmtPrice(currP)}`;
+      const prevP = lastAlertPrices[sym];
+      if (prevP !== undefined && prevP !== currP) {
+        const cls = currP > prevP ? ['text-binanceGreen', 'price-glow-green'] : ['text-binanceRed', 'price-glow-red'];
+        pEl.classList.add(...cls);
+        setTimeout(() => pEl.classList.remove(...cls), 450);
+      }
+      lastAlertPrices[sym] = currP;
+
+      const spreadEl = document.getElementById(`card_${sym}_spread`);
+      if (spreadEl && sData.bid_price && sData.ask_price) {
+        spreadEl.textContent = `Bid $${fmtPrice(sData.bid_price)} / Ask $${fmtPrice(sData.ask_price)}`;
+      }
+
+      const chgEl = document.getElementById(`card_${sym}_chg`);
+      const chgPct = Number(sData.price_change_pct || 0);
+      chgEl.textContent = `${chgPct >= 0 ? '+' : ''}${chgPct.toFixed(2)}%`;
+      chgEl.className = `text-xs font-bold mono ${chgPct >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}`;
+
+      document.getElementById(`card_${sym}_lowTxt`).textContent = `저가: $${fmtPrice(sData.low_24h)}`;
+      document.getElementById(`card_${sym}_highTxt`).textContent = `고가: $${fmtPrice(sData.high_24h)}`;
+      document.getElementById(`card_${sym}_targetTxt`).textContent = `$${fmtPrice(targetP)}`;
+      document.getElementById(`card_${sym}_midTargetTxt`).textContent = `목표: $${fmtPrice(targetP)}`;
+      document.getElementById(`card_${sym}_condBadge`).textContent = cond === 'lte' ? '이하 (<=)' : '이상 (>=)';
+
+      const diff = currP - targetP;
+      const diffPct = targetP > 0 ? (diff / targetP) * 100 : 0;
+      if (cond === 'gte') {
+        if (currP >= targetP) {
+          distEl.innerHTML = `<span class="text-binanceGreen font-bold">목표 도달 (+$${fmtPrice(diff)})</span>`;
+        } else {
+          distEl.innerHTML = `<span class="text-amber-400">+$${fmtPrice(-diff)} (${(-diffPct).toFixed(2)}% 남음)</span>`;
+        }
+      } else {
+        if (currP <= targetP) {
+          distEl.innerHTML = `<span class="text-binanceGreen font-bold">목표 도달 (-$${fmtPrice(-diff)})</span>`;
+        } else {
+          distEl.innerHTML = `<span class="text-amber-400">-$${fmtPrice(diff)} (${diffPct.toFixed(2)}% 하락 필요)</span>`;
+        }
+      }
+
+      const minP = Math.min(sData.low_24h || currP * 0.98, targetP * 0.96);
+      const maxP = Math.max(sData.high_24h || currP * 1.02, targetP * 1.04);
+      const prog = maxP > minP ? Math.min(100, Math.max(0, ((currP - minP) / (maxP - minP)) * 100)) : 50;
+      document.getElementById(`card_${sym}_prog`).style.width = `${prog}%`;
+
+      const chartObj = alertCharts[sym];
+      if (chartObj && Array.isArray(sData.price_history) && sData.price_history.length > 0) {
+        chartObj.data.labels = sData.price_history.map(x => x.time);
+        chartObj.data.datasets[0].data = sData.price_history.map(x => x.price);
+        chartObj.update();
+      }
+    }
+
+    function setPreset(symbol, val) {
+      const inp = document.getElementById(`card_${symbol}_input`);
+      if (inp) {
+        inp.value = val;
+        saveSymbolConfig(symbol);
+      }
+    }
+
+    async function saveSymbolConfig(symbol) {
+      const targetP = parseFloat(document.getElementById(`card_${symbol}_input`)?.value);
+      const cond = document.getElementById(`card_${symbol}_cond`)?.value || 'gte';
+      const enabled = document.getElementById(`card_${symbol}_enabled`)?.checked ?? true;
+
+      if (isNaN(targetP) || targetP <= 0) {
+        return showToast('유효한 목표 가격을 입력해주세요.', 'error');
+      }
+
+      try {
+        const res = await fetch('/api/price-alerts/target', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            symbol,
+            target_price: targetP,
+            condition: cond,
+            enabled
+          })
+        });
+        const out = await res.json();
+        if (out.ok) {
+          showToast(`${symbol} 목표가가 $${fmtPrice(targetP)} (${cond === 'gte' ? '이상 돌파' : '이하 도달'})로 저장되었습니다.`, 'success');
+          await updatePriceAlertStatus();
+        }
+      } catch {
+        showToast('설정 저장 중 오류가 발생했습니다.', 'error');
+      }
+    }
+
+    async function deleteAlertSymbol(symbol) {
+      try {
+        await fetch('/api/price-alerts/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol })
+        });
+        showToast(`${symbol} 알림 카드가 삭제되었습니다.`, 'info');
+        await updatePriceAlertStatus();
+      } catch {
+        showToast('삭제 실패', 'error');
+      }
+    }
+
+    async function sendTestAlert(symbol) {
+      try {
+        showToast(`${symbol} 텔레그램 테스트 발송 중...`, 'info');
+        const res = await fetch('/api/price-alerts/test-telegram', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol })
+        });
+        const out = await res.json();
+        if (out.ok) {
+          showToast(`${symbol} 테스트 알림이 텔레그램으로 전송되었습니다.`, 'success');
+        } else {
+          showToast(out.error || '발송 실패', 'error');
+        }
+      } catch (e) {
+        showToast('전송 오류: ' + e.message, 'error');
+      }
+    }
+
+    async function resetAlertState() {
+      try {
+        const res = await fetch('/api/price-alerts/reset-state', { method: 'POST' });
+        const out = await res.json();
+        if (out.ok) showToast(out.message, 'success');
+      } catch {
+        showToast('초기화 실패', 'error');
+      }
+    }
+
+    async function clearAlertLogs() {
+      await fetch('/api/price-alerts/clear-logs', { method: 'POST' });
+      showToast('알림 발송 기록이 삭제되었습니다.', 'info');
+      await updatePriceAlertStatus();
+    }
+
+    async function saveManualChatId() {
+      const cid = document.getElementById('manualChatIdInput').value.trim();
+      if (!cid) return showToast('Chat ID를 입력해주세요.', 'error');
+      const res = await fetch('/api/price-alerts/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chat_id: cid, chat_user: `지정됨 (${cid})` })
+      });
+      const out = await res.json();
+      if (out.ok) {
+        showToast(`Chat ID (${cid}) 저장 완료`, 'success');
+        await updatePriceAlertStatus();
+      }
+    }
+
+    async function updatePriceAlertStatus() {
+      try {
+        const res = await fetch('/api/price-alerts/status');
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const symbols = data.symbols || {};
+        ensureAlertCardsStructure(symbols);
+        const keys = Object.keys(symbols);
+        keys.forEach(sym => updateSingleAlertCard(sym, symbols[sym]));
+
+        const firstSym = keys[0] && symbols[keys[0]];
+        if (firstSym && firstSym.last_updated) {
+          document.getElementById('lastUpdatedTime').textContent = firstSym.last_updated;
+          document.getElementById('headerStatusText').textContent = `Variational DEX 실시간 연동 중 (${data.total_listings_count || 588}종목)`;
+        }
+
+        if (data.chat_id) {
+          document.getElementById('chatUserDisplay').textContent = data.chat_user || '설정됨';
+          document.getElementById('chatIdDisplay').textContent = data.chat_id;
+        }
+
+        document.getElementById('alertCountBadge').textContent = `${data.total_alert_count || 0}회`;
+        const tbody = document.getElementById('logsTableBody');
+        if (Array.isArray(data.logs) && data.logs.length > 0) {
+          tbody.innerHTML = data.logs.map(log => `
+            <tr class="hover:bg-binanceDark/50 transition">
+              <td class="py-2.5 px-3 mono text-gray-300">${escapeHtml(log.timestamp)}</td>
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-binanceYellow/15 text-binanceYellow border border-binanceYellow/30 mono">
+                  ${escapeHtml(log.symbol)}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 mono font-bold text-white">$${fmtPrice(log.price)}</td>
+              <td class="py-2.5 px-3 mono text-binanceYellow">$${fmtPrice(log.target)} (${log.condition === 'gte' ? '>=' : '<='})</td>
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold ${log.success ? 'bg-binanceGreen/20 text-binanceGreen' : 'bg-binanceRed/20 text-binanceRed'}">
+                  ${log.success ? '성공' : '실패'}
+                </span>
+              </td>
+              <td class="py-2.5 px-3 text-gray-400">${escapeHtml(log.detail)}</td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-500">아직 발송된 지정가 알림 내역이 없습니다. 목표가 도달 시 실시간 기록됩니다.</td></tr>`;
+        }
+      } catch (e) {
+        console.warn('Alert status error:', e);
+      }
+    }
+
+    // =========================================================================
+    // 2. 10x 스탑헌팅 & 옵션 감마 지지·저항 프론트엔드 로직
+    // =========================================================================
     async function fetchState() {
       try {
         const res = await fetch('/api/desk/state');
@@ -599,12 +1092,6 @@
         renderPositionsAndLogs();
         renderBacktestRefTable();
         if (!isOptionChatPending) {
-          if (latestState.lastOptionAnalysis) {
-            currentOptionSymbol = latestState.lastOptionSymbol || latestState.lastOptionAnalysis.symbol;
-            renderSrSummaryBox(latestState.lastOptionAnalysis);
-          } else {
-            document.getElementById('srSummaryBox').style.display = 'none';
-          }
           const hist = latestState.optionChatHistory || [];
           if (hist.length !== lastRenderedChatCount) {
             renderOptionChat(hist);
@@ -617,9 +1104,10 @@
 
     function renderHeader(sessionInfo) {
       const badge = document.getElementById('sessionBadge');
-      if (sessionInfo) {
-        badge.textContent = `${sessionInfo.sessionLabel} (${sessionInfo.nyTimeStr})`;
-        badge.style.color = sessionInfo.isWeekend ? '#f59e0b' : '#34d399';
+      if (sessionInfo && badge) {
+        const cleanLabel = String(sessionInfo.sessionLabel || '').replace(/[^\w\s가-힣·:()\-]/g, '').trim();
+        badge.textContent = `${cleanLabel} (${sessionInfo.nyTimeStr})`;
+        badge.className = `hidden sm:inline font-semibold ${sessionInfo.isWeekend ? 'text-amber-400' : 'text-binanceGreen'}`;
       }
       const p = latestState?.desks?.memecoin?.portfolio || { totalEquityUsd: 1000, cashUsd: 1000, deployedUsd: 0, realizedPnlUsd: 0, unrealizedPnlUsd: 0 };
       const pnl = Number((p.realizedPnlUsd + p.unrealizedPnlUsd).toFixed(2));
@@ -628,70 +1116,74 @@
       document.getElementById('vDeployed').textContent = fmtUsd(p.deployedUsd);
       const pnlEl = document.getElementById('vPnl');
       pnlEl.textContent = fmtPnl(pnl);
-      pnlEl.className = pnl >= 0 ? 'text-green' : 'text-red';
+      pnlEl.className = `text-base font-extrabold mono mt-0.5 ${pnl >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}`;
     }
 
     function renderStopHuntTable() {
       const wrap = document.getElementById('stopHuntTableWrap');
       const results = latestState?.desks?.memecoin?.lastVetResults || [];
       if (!results.length) {
-        wrap.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);">스캔 데이터를 불러오는 중입니다... 상단 [↻ 스탑헌팅 스캔]을 눌러주세요.</div>`;
+        wrap.innerHTML = `<div class="p-6 text-center text-xs text-gray-500">스캔 데이터를 불러오는 중입니다. 상단 [스캔] 버튼을 눌러주세요.</div>`;
         return;
       }
 
-      wrap.innerHTML = `<table>
+      wrap.innerHTML = `<table class="w-full text-left text-xs">
         <thead>
-          <tr>
-            <th>선물 종목</th>
-            <th>현재 마크가 (Bid / Ask)</th>
-            <th>90분 변동 (적정 기준)</th>
-            <th>꼬리 되돌림</th>
-            <th>10x 대기 포지션</th>
-            <th>회귀목표(TP2) / 손절(SL)</th>
-            <th>상태</th>
+          <tr class="text-gray-400 border-b border-binanceBorder bg-binanceCard/50">
+            <th class="py-2.5 px-3">종목</th>
+            <th class="py-2.5 px-3">마크가 (Bid/Ask)</th>
+            <th class="py-2.5 px-3">90분 변동 (기준)</th>
+            <th class="py-2.5 px-3">꼬리</th>
+            <th class="py-2.5 px-3">포지션</th>
+            <th class="py-2.5 px-3">TP2 / SL</th>
+            <th class="py-2.5 px-3">상태</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody class="divide-y divide-binanceBorder/40">
           ${results.map(r => {
             const c = r.candidate || {};
             const pass = r.decision === 'PASS' || r.decision === 'PASS_PARTIAL';
             const isShort = c.direction === 'SHORT';
             const moveVal = c.huntMovePct ?? 0;
-            let shortReason = '변동폭 대기 중';
-            if (c.isWeekend) shortReason = '⏸️ 주말 작동 중지';
-            else if (pass) shortReason = '🔥 타점 포착 (진입)';
-            else if (r.failedRule === 1) shortReason = `변동 미달 (최소 ±${c.minHuntPct}%)`;
-            else if (r.failedRule === 2) shortReason = `원웨이 추세 위험 (≥${c.dangerTrendPct}%)`;
-            else if (r.failedRule === 3) shortReason = '밴드 과열/스윕 대기';
+            let shortReason = '변동폭 대기';
+            if (c.isWeekend) shortReason = '주말 작동 중지';
+            else if (pass) shortReason = '타점 포착 (진입)';
+            else if (r.failedRule === 1) shortReason = `변동 미달 (±${c.minHuntPct}%)`;
+            else if (r.failedRule === 2) shortReason = `원웨이 위험 (≥${c.dangerTrendPct}%)`;
+            else if (r.failedRule === 3) shortReason = '밴드 스윕 대기';
             else if (r.failedRule === 4) shortReason = `꼬리 대기 (<${c.minWickPct}%)`;
-            else if (r.failedRule === 5) shortReason = '손익비 미달 (<1.5)';
+            else if (r.failedRule === 5) shortReason = '손익비 미달';
 
-            return `<tr>
-              <td>
-                <b>$${r.symbol}</b>
-                <div style="font-size:11px;color:var(--muted);">60d 승률 ${c.btWinRate ?? 60}% (${c.btPnl10x || '+15%'})</div>
+            return `<tr class="hover:bg-binanceCard/40 transition">
+              <td class="py-2.5 px-3">
+                <b class="text-white mono">$${escapeHtml(r.symbol)}</b>
+                <div class="text-[10px] text-gray-500">승률 ${c.btWinRate ?? 60}%</div>
               </td>
-              <td>
-                <b>$${c.markPriceUsd ?? c.priceUsd ?? '-'}</b>
-                <div style="font-size:11px;color:var(--muted);">${c.bidPriceUsd ?? '-'} / ${c.askPriceUsd ?? '-'}</div>
+              <td class="py-2.5 px-3 mono">
+                <b class="text-white">$${c.markPriceUsd ?? c.priceUsd ?? '-'}</b>
+                <div class="text-[10px] text-gray-500">${c.bidPriceUsd ?? '-'} / ${c.askPriceUsd ?? '-'}</div>
               </td>
-              <td class="${moveVal >= 0 ? 'text-green' : 'text-red'}">
+              <td class="py-2.5 px-3 mono ${moveVal >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}">
                 <b>${moveVal >= 0 ? '+' : ''}${moveVal}%</b>
-                <div style="font-size:11px;color:var(--muted);">기준 ±${c.minHuntPct}%~${c.maxHuntPct}%</div>
+                <div class="text-[10px] text-gray-500">±${c.minHuntPct}~${c.maxHuntPct}%</div>
               </td>
-              <td>
-                <b>${c.wickReversalPct ?? 0}%</b>
-                <div style="font-size:11px;color:var(--muted);">최소 ${c.minWickPct}%</div>
+              <td class="py-2.5 px-3 mono">
+                <b class="text-gray-200">${c.wickReversalPct ?? 0}%</b>
+                <div class="text-[10px] text-gray-500">최소 ${c.minWickPct}%</div>
               </td>
-              <td>
-                <span class="badge ${isShort ? 'badge-short' : 'badge-long'}">${isShort ? 'SHORT 10x' : 'LONG 10x'}</span>
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold mono ${isShort ? 'bg-binanceRed/20 text-binanceRed border border-binanceRed/30' : 'bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/30'}">
+                  ${isShort ? 'SHORT 10x' : 'LONG 10x'}
+                </span>
               </td>
-              <td>
-                <span>TP2 <b>$${c.tp2PriceUsd ?? '-'}</b></span>
-                <div style="font-size:11px;color:var(--muted);">SL $${c.stopPriceUsd ?? '-'} (1:${c.rrRatio ?? '-'})</div>
+              <td class="py-2.5 px-3 mono">
+                <span class="text-gray-200">TP2 <b>$${c.tp2PriceUsd ?? '-'}</b></span>
+                <div class="text-[10px] text-gray-500">SL $${c.stopPriceUsd ?? '-'}</div>
               </td>
-              <td>
-                <span class="badge ${pass ? 'badge-long' : 'badge-wait'}">${shortReason}</span>
+              <td class="py-2.5 px-3">
+                <span class="px-2 py-0.5 rounded text-[10px] font-semibold ${pass ? 'bg-binanceGreen/20 text-binanceGreen' : 'bg-binanceBorder text-gray-400'}">
+                  ${escapeHtml(shortReason)}
+                </span>
               </td>
             </tr>`;
           }).join('')}
@@ -710,21 +1202,20 @@
 
       const openWrap = document.getElementById('openPositionsWrap');
       if (!openList.length) {
-        openWrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);">현재 열린 10x 포지션이 없습니다. 평일 미장 개장 전 스탑헌팅 조건 충족 시 자동 진입합니다.</div>`;
+        openWrap.innerHTML = `<div class="p-5 text-center text-xs text-gray-500 bg-binanceDark rounded-xl border border-binanceBorder">현재 열린 10x 포지션이 없습니다. 평일 미장 개장 전 스탑헌팅 조건 충족 시 자동 진입합니다.</div>`;
       } else {
-        openWrap.innerHTML = `<table>
+        openWrap.innerHTML = `<table class="w-full text-left text-xs">
           <thead>
-            <tr>
-              <th>종목 / 방향</th>
-              <th>포착 변동</th>
-              <th>진입가 ➔ 현재가</th>
-              <th>TP1 / TP2(출발점)</th>
-              <th>칼손절(SL)</th>
-              <th>증거금 (10x 규모)</th>
-              <th>10x 평가손익 (ROE)</th>
+            <tr class="text-gray-400 border-b border-binanceBorder">
+              <th class="py-2 px-2.5">종목 / 방향</th>
+              <th class="py-2 px-2.5">진입가 ➔ 현재가</th>
+              <th class="py-2 px-2.5">TP1 / TP2</th>
+              <th class="py-2 px-2.5">손절(SL)</th>
+              <th class="py-2 px-2.5">증거금(10x)</th>
+              <th class="py-2 px-2.5">평가손익(ROE)</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-binanceBorder/40">
             ${openList.map(p => {
               const isShort = p.direction === 'SHORT';
               const lev = Number(p.leverage || 10);
@@ -735,15 +1226,13 @@
               const diff = isShort ? (entP - curP) : (curP - entP);
               const pnl = (qty * diff) - fee;
               const roe = p.dollars > 0 ? (pnl / p.dollars) * 100 : 0;
-              const notional = Number(p.notionalUsd || p.dollars * lev).toFixed(0);
               return `<tr>
-                <td><b>$${p.symbol}</b> <span class="badge ${isShort ? 'badge-short' : 'badge-long'}">${isShort ? 'SHORT' : 'LONG'} ${lev}x</span></td>
-                <td>90분 ${p.huntMovePct >= 0 ? '+' : ''}${p.huntMovePct}% (꼬리 ${p.wickReversalPct}%)</td>
-                <td>$${p.entryPriceUsd} ➔ <b>$${p.currentPriceUsd}</b></td>
-                <td>$${p.tp1PriceUsd} / <b class="text-green">$${p.tp2PriceUsd}</b></td>
-                <td class="text-red">$${p.stopPriceUsd}</td>
-                <td><b>$${p.dollars}</b> <span class="text-muted">($${notional})</span></td>
-                <td class="${pnl >= 0 ? 'text-green' : 'text-red'}">${fmtPnl(pnl)} (${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%)</td>
+                <td class="py-2 px-2.5 mono"><b>$${escapeHtml(p.symbol)}</b> <span class="text-[10px] px-1.5 py-0.5 rounded ${isShort ? 'bg-binanceRed/20 text-binanceRed' : 'bg-binanceGreen/20 text-binanceGreen'}">${isShort ? 'SHORT' : 'LONG'} ${lev}x</span></td>
+                <td class="py-2 px-2.5 mono">$${p.entryPriceUsd} ➔ <b>$${p.currentPriceUsd}</b></td>
+                <td class="py-2 px-2.5 mono">$${p.tp1PriceUsd} / <b class="text-binanceGreen">$${p.tp2PriceUsd}</b></td>
+                <td class="py-2 px-2.5 mono text-binanceRed">$${p.stopPriceUsd}</td>
+                <td class="py-2 px-2.5 mono">$${p.dollars}</td>
+                <td class="py-2 px-2.5 mono font-bold ${pnl >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}">${fmtPnl(pnl)} (${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%)</td>
               </tr>`;
             }).join('')}
           </tbody>
@@ -752,25 +1241,23 @@
 
       const closedWrap = document.getElementById('closedPositionsWrap');
       if (!closedList.length) {
-        closedWrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);">아직 청산된 기록이 없습니다.</div>`;
+        closedWrap.innerHTML = `<div class="p-5 text-center text-xs text-gray-500 bg-binanceDark rounded-xl border border-binanceBorder">아직 청산된 기록이 없습니다.</div>`;
       } else {
-        closedWrap.innerHTML = `<table>
+        closedWrap.innerHTML = `<table class="w-full text-left text-xs">
           <thead>
-            <tr>
-              <th>종목 / 방향</th>
-              <th>진입가 ➔ 청산가</th>
-              <th>증거금</th>
-              <th>10x 실현손익 (ROE)</th>
-              <th>청산 사유</th>
+            <tr class="text-gray-400 border-b border-binanceBorder">
+              <th class="py-2 px-2.5">종목</th>
+              <th class="py-2 px-2.5">진입 ➔ 청산</th>
+              <th class="py-2 px-2.5">실현손익</th>
+              <th class="py-2 px-2.5">사유</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody class="divide-y divide-binanceBorder/40">
             ${closedList.slice(0, 15).map(c => `<tr>
-              <td><b>$${escapeHtml(c.symbol)}</b> <span class="badge ${c.direction === 'SHORT' ? 'badge-short' : 'badge-long'}">${c.direction || 'LONG'} 10x</span></td>
-              <td>$${c.entryPriceUsd} ➔ <b>$${c.exitPriceUsd}</b></td>
-              <td>$${c.dollars}</td>
-              <td class="${c.pnlUsd >= 0 ? 'text-green' : 'text-red'}">${fmtPnl(c.pnlUsd)} (${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct}%)</td>
-              <td style="font-size:11.5px;color:var(--muted);">${escapeHtml(c.closeRule)}</td>
+              <td class="py-2 px-2.5 mono"><b>$${escapeHtml(c.symbol)}</b> (${c.direction || 'LONG'} 10x)</td>
+              <td class="py-2 px-2.5 mono">$${c.entryPriceUsd} ➔ <b>$${c.exitPriceUsd}</b></td>
+              <td class="py-2 px-2.5 mono font-bold ${c.pnlUsd >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}">${fmtPnl(c.pnlUsd)} (${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct}%)</td>
+              <td class="py-2 px-2.5 text-gray-400">${escapeHtml(c.closeRule)}</td>
             </tr>`).join('')}
           </tbody>
         </table>`;
@@ -779,8 +1266,9 @@
       const logWrap = document.getElementById('botLogWrap');
       logWrap.innerHTML = logs.slice(0, 25).map(l => {
         const t = new Date(l.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        return `<div style="background:var(--card-sub);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;">
-          <span class="text-muted">[${t}]</span> ${escapeHtml(l.text)}
+        const cleanTxt = String(l.text || '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
+        return `<div class="p-2 rounded-lg bg-binanceDark border border-binanceBorder text-xs">
+          <span class="text-gray-500 mono">[${t}]</span> <span class="text-gray-300">${escapeHtml(cleanTxt)}</span>
         </div>`;
       }).join('');
     }
@@ -789,21 +1277,19 @@
       const tbody = document.getElementById('backtestRefBody');
       if (!tbody || !stopHuntUniverse.length) return;
       tbody.innerHTML = stopHuntUniverse.map(u => `<tr>
-        <td><b>$${u.symbol}</b></td>
-        <td class="text-muted">${escapeHtml(u.tier)}</td>
-        <td><b>±${u.minHuntPct}% ~ ±${u.maxHuntPct}%</b></td>
-        <td class="text-red">±${u.dangerTrendPct}% 이상</td>
-        <td>${u.minWickPct}% 이상</td>
-        <td class="text-green">${u.btWinRate}% (${u.btTrades}회)</td>
-        <td><b>${u.btPnl10x}</b></td>
+        <td class="py-2 px-3 mono font-bold text-white">$${escapeHtml(u.symbol)}</td>
+        <td class="py-2 px-3 text-gray-400">${escapeHtml(u.tier)}</td>
+        <td class="py-2 px-3 mono text-white">±${u.minHuntPct}% ~ ±${u.maxHuntPct}%</td>
+        <td class="py-2 px-3 mono text-binanceRed">±${u.dangerTrendPct}% 이상</td>
+        <td class="py-2 px-3 mono text-gray-300">${u.minWickPct}% 이상</td>
+        <td class="py-2 px-3 mono text-binanceGreen font-bold">${u.btWinRate}% (${u.btTrades}회)</td>
+        <td class="py-2 px-3 mono text-binanceYellow font-bold">${escapeHtml(u.btPnl10x)}</td>
       </tr>`).join('');
     }
 
-    function renderSrSummaryBox(d) {
-      const box = document.getElementById('srSummaryBox');
-      if (box) box.style.display = 'none';
-    }
-
+    // =========================================================================
+    // 3. 옵션 감마 & 지지·저항 수치 카드 렌더링 (이모티콘 없음 · 색상 박스)
+    // =========================================================================
     function renderOptionChat(history) {
       lastRenderedChatCount = history.length;
       const feed = document.getElementById('optionChatFeed');
@@ -815,67 +1301,73 @@
         if (!isUser && m.card) {
           const c = m.card;
           const isPos = Boolean(c.isPositiveGamma);
-          const gammaBg = isPos ? 'rgba(16, 185, 129, 0.18)' : 'rgba(244, 63, 94, 0.18)';
-          const gammaBorder = isPos ? 'rgba(16, 185, 129, 0.55)' : 'rgba(244, 63, 94, 0.55)';
-          const gammaColor = isPos ? '#34d399' : '#fb7185';
           const dteTxt = c.dte != null && c.dte > 0 ? ` (D-${c.dte})` : '';
 
-          return `<div class="chat-bubble assistant" style="padding:14px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
-              <div>
-                <b style="font-size:17px;color:#fff;">$${escapeHtml(c.symbol)}</b>
-                <span style="font-size:12px;color:var(--muted);margin-left:6px;">${escapeHtml(c.name || '')}</span>
-                <span style="font-size:16px;font-weight:800;color:#60a5fa;margin-left:10px;">현재가 $${c.spot}</span>
+          return `<div class="p-4 rounded-xl bg-binanceCard border border-binanceBorder space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-binanceBorder pb-2.5">
+              <div class="flex items-baseline gap-2">
+                <b class="text-base font-extrabold text-white mono">$${escapeHtml(c.symbol)}</b>
+                <span class="text-xs text-gray-400">${escapeHtml(c.name || '')}</span>
+                <span class="text-sm font-extrabold text-binanceYellow mono ml-2">현재가 $${c.spot}</span>
               </div>
-              <div style="background:${gammaBg};border:1px solid ${gammaBorder};color:${gammaColor};padding:5px 11px;border-radius:8px;font-weight:800;font-size:13px;">
-                ${isPos ? '🟢 양감마 (+GEX)' : '🔴 음감마 (-GEX)'} · ${escapeHtml(c.netGexText || '')}
+              <div class="px-2.5 py-1 rounded-lg text-xs font-extrabold mono border ${
+                isPos
+                  ? 'bg-binanceGreen/15 border-binanceGreen/40 text-binanceGreen'
+                  : 'bg-binanceRed/15 border-binanceRed/40 text-binanceRed'
+              }">
+                ${isPos ? '양감마 (+GEX)' : '음감마 (-GEX)'} · ${escapeHtml(c.netGexText || '')}
               </div>
             </div>
 
             <!-- 감마플립 · 맥스페인가 · 만기일 -->
-            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
-              <div style="background:#0b101b;border:1px solid rgba(168,85,247,0.4);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:#c084fc;font-weight:700;">감마플립 (Gamma Flip)</div>
-                <div style="font-size:16px;font-weight:800;color:#e9d5ff;margin-top:3px;">$${c.gammaFlip}</div>
+            <div class="grid grid-cols-3 gap-2.5">
+              <div class="p-2.5 rounded-lg bg-binanceDark border border-binanceBorder text-center">
+                <div class="text-[11px] text-purple-400 font-semibold">감마플립 (Gamma Flip)</div>
+                <div class="text-sm font-extrabold text-white mono mt-1">$${c.gammaFlip}</div>
               </div>
-              <div style="background:#0b101b;border:1px solid rgba(59,130,246,0.45);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:#60a5fa;font-weight:700;">맥스페인가 (Max Pain)</div>
-                <div style="font-size:16px;font-weight:800;color:#93c5fd;margin-top:3px;">$${c.maxPain}</div>
+              <div class="p-2.5 rounded-lg bg-binanceDark border border-binanceBorder text-center">
+                <div class="text-[11px] text-blue-400 font-semibold">맥스페인가 (Max Pain)</div>
+                <div class="text-sm font-extrabold text-white mono mt-1">$${c.maxPain}</div>
               </div>
-              <div style="background:#0b101b;border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:var(--muted);font-weight:700;">만기일 (Expiry)</div>
-                <div style="font-size:14.5px;font-weight:800;color:#f8fafc;margin-top:4px;">${escapeHtml(c.expiry)}${escapeHtml(dteTxt)}</div>
+              <div class="p-2.5 rounded-lg bg-binanceDark border border-binanceBorder text-center">
+                <div class="text-[11px] text-gray-400 font-semibold">만기일 (Expiry)</div>
+                <div class="text-xs font-extrabold text-white mono mt-1.5">${escapeHtml(c.expiry)}${escapeHtml(dteTxt)}</div>
               </div>
             </div>
 
             <!-- 유의미한 저항선(빨강) & 지지선(초록) -->
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
-              <div style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.4);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:#fda4af;font-weight:700;">2차 저항 (콜벽)</div>
-                <div style="font-size:15.5px;font-weight:800;color:#fb7185;margin-top:3px;">$${c.r2}</div>
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+              <div class="p-2.5 rounded-lg bg-binanceRed/10 border border-binanceRed/35 text-center">
+                <div class="text-[11px] text-red-300 font-semibold">2차 저항 (콜벽)</div>
+                <div class="text-sm font-extrabold text-binanceRed mono mt-1">$${c.r2}</div>
               </div>
-              <div style="background:rgba(244,63,94,0.06);border:1px solid rgba(244,63,94,0.28);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:#fda4af;font-weight:700;">1차 저항</div>
-                <div style="font-size:15.5px;font-weight:800;color:#fb7185;margin-top:3px;">$${c.r1}</div>
+              <div class="p-2.5 rounded-lg bg-binanceRed/5 border border-binanceRed/25 text-center">
+                <div class="text-[11px] text-red-300 font-semibold">1차 저항</div>
+                <div class="text-sm font-extrabold text-binanceRed mono mt-1">$${c.r1}</div>
               </div>
-              <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:#6ee7b7;font-weight:700;">1차 지지</div>
-                <div style="font-size:15.5px;font-weight:800;color:#34d399;margin-top:3px;">$${c.s1}</div>
+              <div class="p-2.5 rounded-lg bg-binanceGreen/5 border border-binanceGreen/25 text-center">
+                <div class="text-[11px] text-emerald-300 font-semibold">1차 지지</div>
+                <div class="text-sm font-extrabold text-binanceGreen mono mt-1">$${c.s1}</div>
               </div>
-              <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.4);border-radius:8px;padding:9px;text-align:center;">
-                <div style="font-size:11px;color:#6ee7b7;font-weight:700;">2차 지지 (풋벽)</div>
-                <div style="font-size:15.5px;font-weight:800;color:#34d399;margin-top:3px;">$${c.s2}</div>
+              <div class="p-2.5 rounded-lg bg-binanceGreen/10 border border-binanceGreen/35 text-center">
+                <div class="text-[11px] text-emerald-300 font-semibold">2차 지지 (풋벽)</div>
+                <div class="text-sm font-extrabold text-binanceGreen mono mt-1">$${c.s2}</div>
               </div>
             </div>
           </div>`;
         }
 
-        return `<div class="chat-bubble ${isUser ? 'user' : 'assistant'}">
-          <div class="chat-meta">
-            <b>${isUser ? `나${symLabel}` : `옵션 수치${symLabel}`}</b>
-            <span>${t}</span>
+        const cleanMsg = String(m.text || '').replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}]/gu, '').trim();
+        return `<div class="p-3 rounded-xl border text-xs ${
+          isUser
+            ? 'bg-binanceCard/80 border-binanceYellow/30 ml-8'
+            : 'bg-binanceCard border-binanceBorder'
+        }">
+          <div class="flex justify-between text-[11px] text-gray-400 mb-1">
+            <b class="text-gray-200">${isUser ? `조회 요청${symLabel}` : `옵션 수치 안내${symLabel}`}</b>
+            <span class="mono">${t}</span>
           </div>
-          <div>${escapeHtml(m.text)}</div>
+          <div class="text-gray-200 leading-relaxed whitespace-pre-line">${escapeHtml(cleanMsg)}</div>
         </div>`;
       }).join('');
       feed.scrollTop = feed.scrollHeight;
@@ -895,12 +1387,12 @@
       const feed = document.getElementById('optionChatFeed');
       const nowStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
       feed.insertAdjacentHTML('beforeend', `
-        <div class="chat-bubble user">
-          <div class="chat-meta"><b>나</b><span>${nowStr}</span></div>
-          <div>${escapeHtml(text)}</div>
+        <div class="p-3 rounded-xl border bg-binanceCard/80 border-binanceYellow/30 ml-8 text-xs">
+          <div class="flex justify-between text-[11px] text-gray-400 mb-1"><b class="text-gray-200">조회 요청</b><span class="mono">${nowStr}</span></div>
+          <div class="text-white">${escapeHtml(text)}</div>
         </div>
-        <div class="chat-bubble assistant" id="pendingAiBubble">
-          <div style="color:#60a5fa;font-size:12.5px;">⏳ 실시간 옵션 수치(감마·감마플립·맥스페인·지지저항) 조회 중...</div>
+        <div class="p-3 rounded-xl border bg-binanceCard border-binanceBorder text-xs text-binanceYellow" id="pendingAiBubble">
+          실시간 옵션 수치(양/음감마 · 감마플립 · 맥스페인 · 만기일 · 지지저항) 조회 중...
         </div>
       `);
       feed.scrollTop = feed.scrollHeight;
@@ -912,12 +1404,10 @@
           body: JSON.stringify({ text })
         });
         const out = await res.json();
-        if (out.history) {
-          renderOptionChat(out.history);
-        }
+        if (out.history) renderOptionChat(out.history);
       } catch (err) {
         const pend = document.getElementById('pendingAiBubble');
-        if (pend) pend.innerHTML = `<div style="color:#f43f5e;">❌ 오류: ${escapeHtml(err.message)}</div>`;
+        if (pend) pend.innerHTML = `<span class="text-binanceRed">오류: ${escapeHtml(err.message)}</span>`;
       } finally {
         isOptionChatPending = false;
         btn.disabled = false;
@@ -928,7 +1418,6 @@
     async function clearOptionChat() {
       const res = await fetch('/api/options-ai/clear', { method: 'POST' });
       const out = await res.json();
-      document.getElementById('srSummaryBox').style.display = 'none';
       if (out.history) renderOptionChat(out.history);
     }
 
@@ -939,26 +1428,51 @@
       try {
         await fetch('/api/desk/run-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
         await fetchState();
+        showToast('Variational 10x 스탑헌팅 스캔이 완료되었습니다.', 'success');
       } finally {
         btn.disabled = false;
-        btn.textContent = '↻ 스탑헌팅 스캔';
+        btn.innerHTML = '<i class="fa-solid fa-rotate mr-1"></i>스캔';
       }
     }
 
     async function testTelegram() {
       const res = await fetch('/api/desk/telegram-test', { method: 'POST' });
       const out = await res.json();
-      if (out.ok) alert('텔레그램(@dytradingdemo_bot)으로 테스트 알림을 발송했습니다.');
+      if (out.ok) showToast('텔레그램으로 테스트 알림을 발송했습니다.', 'success');
+      else showToast('텔레그램 발송 실패', 'error');
     }
 
     async function resetVault() {
       if (!confirm('10x 스탑헌팅 금고를 $1,000.00로 초기화할까요?')) return;
       await fetch('/api/desk/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       await fetchState();
+      showToast('금고가 $1,000.00로 초기화되었습니다.', 'info');
     }
 
     function openCloudModal() {
-      document.getElementById('cloudModal').style.display = 'grid';
+      document.getElementById('cloudModal').classList.remove('hidden');
+    }
+
+    async function deployCloudNow() {
+      const token = document.getElementById('ghTokenInput').value.trim();
+      const repo = document.getElementById('ghRepoInput').value.trim() || 'grok-trading-team';
+      const statusEl = document.getElementById('ghDeployStatus');
+      const btn = document.getElementById('btnDeployCloud');
+      btn.disabled = true;
+      statusEl.textContent = 'GitHub 저장소에 최신 통합 코드 업로드 중...';
+      try {
+        const res = await fetch('/api/desk/github-deploy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ githubToken: token, repoName: repo, isPrivate: false })
+        });
+        const out = await res.json();
+        statusEl.innerHTML = out.ok
+          ? `배포 완료: <a href="${out.repoUrl}" target="_blank" class="underline">${out.repoUrl}</a>`
+          : `오류: ${escapeHtml(out.error)}`;
+      } finally {
+        btn.disabled = false;
+      }
     }
 
     async function startGitHubDeviceLogin() {
@@ -966,8 +1480,8 @@
       const box = document.getElementById('ghDeviceBox');
       const btn = document.getElementById('btnDeviceLogin');
       btn.disabled = true;
-      box.style.display = 'block';
-      box.innerHTML = '⏳ GitHub 8자리 코드 발급 중...';
+      box.classList.remove('hidden');
+      box.textContent = 'GitHub 8자리 코드 발급 중...';
       try {
         const res = await fetch('/api/desk/github-device-start', {
           method: 'POST',
@@ -976,15 +1490,15 @@
         });
         const out = await res.json();
         if (!out.ok) {
-          box.innerHTML = `❌ 오류: ${escapeHtml(out.error)}`;
+          box.textContent = `오류: ${out.error}`;
           btn.disabled = false;
           return;
         }
         window.open(out.verificationUri, '_blank');
         box.innerHTML = `
-          <div style="font-size:12px;margin-bottom:6px;">열린 <a href="${out.verificationUri}" target="_blank" style="color:#60a5fa;font-weight:700;">${out.verificationUri}</a> 창에 아래 코드를 입력하고 <b>Authorize</b>를 누르세요:</div>
-          <div style="font-size:22px;font-weight:800;letter-spacing:3px;color:#fff;background:var(--card-sub);padding:8px;text-align:center;border-radius:8px;margin:6px 0;">${out.userCode}</div>
-          <div id="ghDevicePollStatus" style="font-size:11.5px;color:#34d399;">🔄 Authorize 대기 중...</div>
+          <div class="mb-1">열린 창에 아래 코드를 입력하고 Authorize를 누르세요:</div>
+          <div class="text-lg font-extrabold mono tracking-widest text-binanceYellow text-center py-2 bg-binanceDark rounded">${out.userCode}</div>
+          <div id="ghDevicePollStatus" class="text-binanceGreen mt-1">인증 대기 중...</div>
         `;
         if (ghDevicePollInterval) clearInterval(ghDevicePollInterval);
         ghDevicePollInterval = setInterval(async () => {
@@ -994,52 +1508,31 @@
           const statusLine = document.getElementById('ghDevicePollStatus');
           if (!statusLine) return;
           if (sess.status === 'DEPLOYING') {
-            statusLine.textContent = '🚀 인증 완료! GitHub Actions에 최신 v4.0 코드 업로드 중...';
+            statusLine.textContent = '인증 완료. GitHub 업로드 중...';
           } else if (sess.status === 'DEPLOYED' && sess.deployResult) {
             clearInterval(ghDevicePollInterval);
-            statusLine.innerHTML = `✅ <b>배포 완료!</b> <a href="${sess.deployResult.actionsUrl}" target="_blank" style="color:#60a5fa;font-weight:700;">GitHub Actions 확인</a>`;
+            statusLine.innerHTML = `배포 완료: <a href="${sess.deployResult.repoUrl}" target="_blank" class="underline">${sess.deployResult.repoUrl}</a>`;
             btn.disabled = false;
           } else if (sess.status === 'ERROR') {
             clearInterval(ghDevicePollInterval);
-            statusLine.style.color = '#f43f5e';
-            statusLine.textContent = `❌ ${sess.error}`;
+            statusLine.textContent = `오류: ${sess.error}`;
             btn.disabled = false;
           }
         }, 3000);
       } catch (e) {
-        box.innerHTML = `❌ 오류: ${escapeHtml(e.message)}`;
+        box.textContent = `오류: ${e.message}`;
         btn.disabled = false;
       }
     }
 
-    async function deployCloudNow() {
-      const token = document.getElementById('ghTokenInput').value.trim();
-      const repo = document.getElementById('ghRepoInput').value.trim() || 'grok-trading-team';
-      const statusEl = document.getElementById('ghDeployStatus');
-      const btn = document.getElementById('btnDeployCloud');
-      if (!token) {
-        statusEl.textContent = '토큰을 입력하거나 위 1클릭 인증 버튼을 눌러주세요.';
-        return;
-      }
-      btn.disabled = true;
-      statusEl.textContent = '업로드 중...';
-      try {
-        const res = await fetch('/api/desk/github-deploy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ githubToken: token, repoName: repo, isPrivate: false })
-        });
-        const out = await res.json();
-        statusEl.innerHTML = out.ok
-          ? `✅ 배포 완료! <a href="${out.actionsUrl}" target="_blank" style="color:#60a5fa;">GitHub Actions 바로가기</a>`
-          : `❌ 오류: ${escapeHtml(out.error)}`;
-      } finally {
-        btn.disabled = false;
-      }
-    }
-
+    // Initial Load & Intervals
+    loadVariationalCatalog();
+    updatePriceAlertStatus();
     fetchState();
+
+    setInterval(updatePriceAlertStatus, 2500);
     setInterval(fetchState, 8000);
+    setInterval(loadVariationalCatalog, 60000);
   </script>
 </body>
 </html>
