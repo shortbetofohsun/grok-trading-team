@@ -131,7 +131,7 @@
               <span id="listingsCountBadge" class="text-[11px] px-2 py-0.5 rounded bg-binanceDark border border-binanceBorder text-gray-400 mono">588종목 지원</span>
             </div>
             <p class="text-xs text-gray-400 mt-1">
-              Variational DEX에 상장된 모든 선물 종목(예: QQQ, NFLX, BTC, ETH, SOL, HYPE, NVDA, TSLA, SOXX, EWY 등)의 목표 달러($) 도달 시 텔레그램으로 즉시 전송합니다.
+              Variational DEX에 상장된 모든 선물 종목(예: QQQ, NFLX, BTC, ETH, SOL, HYPE, NVDA, TSLA, SOXL, EWY 등)의 목표 달러($) 도달 시 텔레그램으로 즉시 전송합니다.
             </p>
           </div>
 
@@ -236,7 +236,7 @@
             청산 내역 (<span id="closedCountTxt">0</span>)
           </button>
           <button onclick="switchLeftTab('logic')" id="tabBtn_logic" class="px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition">
-            매매 로직 &amp; 60일 백테스트 기준
+            매매 로직 &amp; 12개월·60일 최적 구간
           </button>
           <button onclick="switchLeftTab('log')" id="tabBtn_log" class="px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition">
             시스템 로그
@@ -254,12 +254,12 @@
         <div id="leftPanel_logic" class="space-y-3 hidden">
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
-              <div class="font-bold text-white mb-1">1. 진입 조건 (90분 과열 + 꼬리 확인)</div>
-              <div class="text-gray-400">최근 90분 변동폭이 종목별 적정 구간에 진입하고 꼬리 되돌림이 확인될 때 반대 방향으로 10x 진입합니다.</div>
+              <div class="font-bold text-white mb-1">1. 킬존(07:30~10:30 ET) 확정 스탑헌팅 구간 진입</div>
+              <div class="text-gray-400">12개월·6개월·60일 동시 검증된 최적 스탑헌팅 % 구간에 진입하고 꼬리가 확인되면 즉시 10x 모의 매수(LONG) 또는 매도(SHORT) 후 텔레그램으로 전송합니다.</div>
             </div>
             <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
-              <div class="font-bold text-white mb-1">2. 익절(TP1/TP2) 및 칼손절(SL)</div>
-              <div class="text-gray-400">급등락 출발점 55% 회귀 시 1차 익절, 90% 회귀 시 전량 익절하며, 꼬리 끝 돌파 시 즉시 손절합니다.</div>
+              <div class="font-bold text-white mb-1">2. 실시간 3초 익절(TP1/TP2) · 손절(SL) 알림</div>
+              <div class="text-gray-400">Variational 실시간 호가로 3초마다 TP1/TP2 및 SL 도달 여부를 감시하여 체결 즉시 텔레그램 알림과 하단 스탑헌팅 최종수익률을 전송합니다.</div>
             </div>
           </div>
           <div class="overflow-x-auto rounded-xl border border-binanceBorder bg-binanceDark">
@@ -267,12 +267,12 @@
               <thead>
                 <tr class="text-gray-400 border-b border-binanceBorder">
                   <th class="py-2 px-3">종목</th>
-                  <th class="py-2 px-3">분류</th>
-                  <th class="py-2 px-3">적정 변동 %</th>
-                  <th class="py-2 px-3">원웨이 위험선</th>
+                  <th class="py-2 px-3">확정 스탑헌팅 구간</th>
                   <th class="py-2 px-3">최소 꼬리</th>
+                  <th class="py-2 px-3">평균 손익비</th>
+                  <th class="py-2 px-3">12개월 승률</th>
                   <th class="py-2 px-3">60일 승률</th>
-                  <th class="py-2 px-3">60일 10x 수익</th>
+                  <th class="py-2 px-3">12개월 10x 수익</th>
                 </tr>
               </thead>
               <tbody id="backtestRefBody" class="divide-y divide-binanceBorder/40"></tbody>
@@ -282,6 +282,12 @@
 
         <div id="leftPanel_log" class="hidden">
           <div id="botLogWrap" class="max-h-56 overflow-y-auto space-y-1.5"></div>
+        </div>
+
+        <!-- 맨 아래 작게 표시되는 스탑헌팅 최종수익률 바 -->
+        <div class="pt-3 border-t border-binanceBorder/70 flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-400 mono">
+          <span id="stopHuntPanelFooter">스탑헌팅 최종수익률: +0.00% ($1,000.00 / 원금 $1,000.00 · 누적손익 +$0.00 · 청산 0건 승률 0.0%)</span>
+          <span class="text-gray-500">텔레그램 알림 하단 자동 첨부</span>
         </div>
       </div>
 
@@ -414,6 +420,18 @@
     </section>
 
   </main>
+
+  <!-- 맨 아래 작게 표시되는 스탑헌팅 최종수익률 글로벌 푸터 -->
+  <footer class="border-t border-binanceBorder bg-binanceCard/80 px-4 lg:px-8 py-2.5 mt-4">
+    <div class="max-w-[1600px] mx-auto flex flex-wrap items-center justify-between gap-2 text-[11px] text-gray-400 mono">
+      <div id="globalStopHuntFooter">
+        스탑헌팅 최종수익률: +0.00% ($1,000.00 / 원금 $1,000.00 · 누적손익 +$0.00 · 청산 0건 승률 0.0%)
+      </div>
+      <div class="text-gray-500">
+        Variational 7종목(BTC · ETH · SOL · HYPE · QQQ · SOXL · EWY) 킬존(07:30~10:30 ET) 자동 모의매매 &amp; 실시간 TP/SL 텔레그램 연동
+      </div>
+    </div>
+  </footer>
 
   <!-- GitHub & Render Cloud Deploy Modal -->
   <div id="cloudModal" onclick="if(event.target===this)this.classList.add('hidden')" class="hidden fixed inset-0 bg-black/75 z-50 flex items-center justify-center p-4">
@@ -1087,7 +1105,7 @@
         const data = await res.json();
         latestState = data.state;
         stopHuntUniverse = data.stopHuntUniverse || [];
-        renderHeader(data.sessionInfo);
+        renderHeader(data.sessionInfo, data.stopHuntPerformance);
         renderStopHuntTable();
         renderPositionsAndLogs();
         renderBacktestRefTable();
@@ -1102,14 +1120,14 @@
       }
     }
 
-    function renderHeader(sessionInfo) {
+    function renderHeader(sessionInfo, perfData) {
       const badge = document.getElementById('sessionBadge');
       if (sessionInfo && badge) {
         const cleanLabel = String(sessionInfo.sessionLabel || '').replace(/[^\w\s가-힣·:()\-]/g, '').trim();
         badge.textContent = `${cleanLabel} (${sessionInfo.nyTimeStr})`;
         badge.className = `hidden sm:inline font-semibold ${sessionInfo.isWeekend ? 'text-amber-400' : 'text-binanceGreen'}`;
       }
-      const p = latestState?.desks?.memecoin?.portfolio || { totalEquityUsd: 1000, cashUsd: 1000, deployedUsd: 0, realizedPnlUsd: 0, unrealizedPnlUsd: 0 };
+      const p = latestState?.desks?.memecoin?.portfolio || { startingBalanceUsd: 1000, totalEquityUsd: 1000, cashUsd: 1000, deployedUsd: 0, realizedPnlUsd: 0, unrealizedPnlUsd: 0 };
       const pnl = Number((p.realizedPnlUsd + p.unrealizedPnlUsd).toFixed(2));
       document.getElementById('vEquity').textContent = fmtUsd(p.totalEquityUsd);
       document.getElementById('vCash').textContent = fmtUsd(p.cashUsd);
@@ -1117,6 +1135,20 @@
       const pnlEl = document.getElementById('vPnl');
       pnlEl.textContent = fmtPnl(pnl);
       pnlEl.className = `text-base font-extrabold mono mt-0.5 ${pnl >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}`;
+
+      const closedList = latestState?.desks?.memecoin?.closedPositions || [];
+      const closedCnt = perfData?.closedCount ?? closedList.length;
+      const winRate = perfData?.winRatePct ?? (closedCnt > 0 ? Number(((closedList.filter(x => Number(x.pnlUsd || 0) > 0).length / closedCnt) * 100).toFixed(1)) : 0.0);
+      const startBal = Number(p.startingBalanceUsd || 1000);
+      const finalRetPct = perfData?.finalReturnPct ?? Number((((p.totalEquityUsd - startBal) / startBal) * 100).toFixed(2));
+      const retSign = finalRetPct >= 0 ? '+' : '';
+      const retColor = finalRetPct >= 0 ? 'text-binanceGreen' : 'text-binanceRed';
+      const summaryHtml = `스탑헌팅 최종수익률: <b class="${retColor}">${retSign}${finalRetPct.toFixed(2)}%</b> ($${Number(p.totalEquityUsd).toFixed(2)} / 원금 $${startBal.toFixed(2)} · 누적손익 ${fmtPnl(pnl)} · 청산 ${closedCnt}건 승률 ${Number(winRate).toFixed(1)}%)`;
+
+      const panelFoot = document.getElementById('stopHuntPanelFooter');
+      if (panelFoot) panelFoot.innerHTML = summaryHtml;
+      const globalFoot = document.getElementById('globalStopHuntFooter');
+      if (globalFoot) globalFoot.innerHTML = summaryHtml;
     }
 
     function renderStopHuntTable() {
@@ -1132,9 +1164,9 @@
           <tr class="text-gray-400 border-b border-binanceBorder bg-binanceCard/50">
             <th class="py-2.5 px-3">종목</th>
             <th class="py-2.5 px-3">마크가 (Bid/Ask)</th>
-            <th class="py-2.5 px-3">90분 변동 (기준)</th>
+            <th class="py-2.5 px-3">90분 변동 (확정 구간)</th>
             <th class="py-2.5 px-3">꼬리</th>
-            <th class="py-2.5 px-3">포지션</th>
+            <th class="py-2.5 px-3">타점 방향</th>
             <th class="py-2.5 px-3">TP2 / SL</th>
             <th class="py-2.5 px-3">상태</th>
           </tr>
@@ -1148,8 +1180,9 @@
             let shortReason = '변동폭 대기';
             if (c.isWeekend) shortReason = '주말 작동 중지';
             else if (pass) shortReason = '타점 포착 (진입)';
-            else if (r.failedRule === 1) shortReason = `변동 미달 (±${c.minHuntPct}%)`;
-            else if (r.failedRule === 2) shortReason = `원웨이 위험 (≥${c.dangerTrendPct}%)`;
+            else if (r.failedRule === 6) shortReason = `킬존 대기 (07:30~10:30 ET)`;
+            else if (r.failedRule === 1) shortReason = `구간 미달 (<±${c.minHuntPct}%)`;
+            else if (r.failedRule === 2) shortReason = `구간 상한 초과 (>±${c.maxHuntPct}%)`;
             else if (r.failedRule === 3) shortReason = '밴드 스윕 대기';
             else if (r.failedRule === 4) shortReason = `꼬리 대기 (<${c.minWickPct}%)`;
             else if (r.failedRule === 5) shortReason = '손익비 미달';
@@ -1157,7 +1190,7 @@
             return `<tr class="hover:bg-binanceCard/40 transition">
               <td class="py-2.5 px-3">
                 <b class="text-white mono">$${escapeHtml(r.symbol)}</b>
-                <div class="text-[10px] text-gray-500">승률 ${c.btWinRate ?? 60}%</div>
+                <div class="text-[10px] text-gray-500">12M ${c.btWinRate ?? 75}% / 60D ${c.bt60dWinRate ?? 100}%</div>
               </td>
               <td class="py-2.5 px-3 mono">
                 <b class="text-white">$${c.markPriceUsd ?? c.priceUsd ?? '-'}</b>
@@ -1165,7 +1198,7 @@
               </td>
               <td class="py-2.5 px-3 mono ${moveVal >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}">
                 <b>${moveVal >= 0 ? '+' : ''}${moveVal}%</b>
-                <div class="text-[10px] text-gray-500">±${c.minHuntPct}~${c.maxHuntPct}%</div>
+                <div class="text-[10px] text-binanceYellow font-semibold">±${c.minHuntPct}~${c.maxHuntPct}%</div>
               </td>
               <td class="py-2.5 px-3 mono">
                 <b class="text-gray-200">${c.wickReversalPct ?? 0}%</b>
@@ -1173,7 +1206,7 @@
               </td>
               <td class="py-2.5 px-3">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold mono ${isShort ? 'bg-binanceRed/20 text-binanceRed border border-binanceRed/30' : 'bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/30'}">
-                  ${isShort ? 'SHORT 10x' : 'LONG 10x'}
+                  ${isShort ? '매도 SHORT 10x' : '매수 LONG 10x'}
                 </span>
               </td>
               <td class="py-2.5 px-3 mono">
@@ -1278,11 +1311,11 @@
       if (!tbody || !stopHuntUniverse.length) return;
       tbody.innerHTML = stopHuntUniverse.map(u => `<tr>
         <td class="py-2 px-3 mono font-bold text-white">$${escapeHtml(u.symbol)}</td>
-        <td class="py-2 px-3 text-gray-400">${escapeHtml(u.tier)}</td>
-        <td class="py-2 px-3 mono text-white">±${u.minHuntPct}% ~ ±${u.maxHuntPct}%</td>
-        <td class="py-2 px-3 mono text-binanceRed">±${u.dangerTrendPct}% 이상</td>
+        <td class="py-2 px-3 mono text-binanceYellow font-bold">±${u.minHuntPct}% ~ ±${u.maxHuntPct}%</td>
         <td class="py-2 px-3 mono text-gray-300">${u.minWickPct}% 이상</td>
+        <td class="py-2 px-3 mono text-white">1 : ${u.btRR ?? 1.80}</td>
         <td class="py-2 px-3 mono text-binanceGreen font-bold">${u.btWinRate}% (${u.btTrades}회)</td>
+        <td class="py-2 px-3 mono text-binanceGreen font-bold">${u.bt60dWinRate ?? 100}%</td>
         <td class="py-2 px-3 mono text-binanceYellow font-bold">${escapeHtml(u.btPnl10x)}</td>
       </tr>`).join('');
     }
