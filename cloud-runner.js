@@ -1,36 +1,26 @@
 /**
- * GitHub Actions 15분 주기 무인 클라우드 실행기 v3.0 (cloud-runner.js)
- * 3대 독립 모의매매 데스크 ($1,000 + $1,000 + $1,000 = 총 $3,000):
- *  1) 🪙 데스크 1 (memecoin): 솔라나 밈코인 (DexScreener + Solana RPC/RugCheck + 거래량 비율 청산)
- *  2) 🎯 데스크 2 (prediction): 예측시장 괴리율 (Kalshi/Polymarket + Gemini AI 블라인드 확률 괴리율 >= 8%)
- *  3) 🏛️ 데스크 3 (rwa): RWA 차트(켈트너·볼린저) & 옵션 감마(콜감마·숏감마 Net GEX·콜벽/풋벽·맥스페인)
+ * GitHub Actions 15분 주기 무인 클라우드 실행기 v4.0 (cloud-runner.js)
+ * - 오직 Variational DEX 7대 정예 선물 10x 스탑헌팅 역추세 모의매매($1,000 단일 금고)만 전담 실행
+ * - 대상: BTC, ETH, SOL, HYPE, QQQUSDT, SOXXUSDT, EWYUSDT (60일 백테스트 최적 % 적용)
+ * - 주말(토·일) 자동 작동 중지 (Weekend Guard)
+ * - 평일 장 시작 전 스탑헌팅 포착 및 10x 체결/청산 시 텔레그램 즉시 알림 발송
  */
 
 const fs = require('fs');
 const path = require('path');
 const {
   fetchJson,
-  callGeminiAI,
   runScanAgent,
   runVetAgent,
   runSizeAgent,
   runFillsAgent,
-  checkContractRiskLive,
-  runBookAgent,
-  runPredictionFillsAgent,
-  checkPredictionRiskLive,
-  runRwaDeskScanAndVet,
-  runRwaFillsAgent,
-  checkRwaPositionsRiskLive
+  checkContractRiskLive
 } = require('./agents');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'desk_state.json');
 
 const DEFAULT_TG_B64 = 'ODgxMDAzMTEzNzpBQUdyZ3JPZXB5SlJ6TE42OXpqbm1lV0RKQmlfWFY0Tkxidw==';
-const DEFAULT_GM_B64 = 'QVEuQWI4Uk42THE1YUNscXNIVlkxbDMxUDIzREJ1eUNxSXFRZkFHeW5FMElCbUhPSjIzMkE=';
-
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || Buffer.from(DEFAULT_GM_B64, 'base64').toString('utf-8');
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN || Buffer.from(DEFAULT_TG_B64, 'base64').toString('utf-8');
 const TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8417795671';
 
@@ -50,56 +40,30 @@ function createVaultPortfolio(startingUsd = 1000.00) {
   };
 }
 
-function getDefaultCloudState() {
+function getDefaultState() {
   return {
-    version: '3.0.0',
+    version: '4.0.0',
     createdAt: new Date().toISOString(),
-    wmMode: 'READY',
-    lastDailyReportDateKst: '',
-    lastTelegramUpdateId: 0,
     config: {
       startingBalanceUsd: 1000,
-      minLiquidityUsd: 10000,
-      minPairAgeMinutes: 30,
       slippageBudgetPct: 0.02,
       minOrderUsd: 50,
-      maxKellyCapPct: 0.06,
-      maxTopWalletPct: 5.0
+      maxKellyCapPct: 0.08
     },
     desks: {
       memecoin: {
         id: 'memecoin',
-        name: '🪙 크립토 밈코인 데스크',
+        name: 'Variational 10x 스탑헌팅 봇',
         portfolio: createVaultPortfolio(1000.00),
         openPositions: [],
         closedPositions: [],
-        stats: { scans: 0, candidatesCount: 0, passedCount: 0, rejectedCount: 0, rejectionReasons: {}, closedCount: 0 }
-      },
-      prediction: {
-        id: 'prediction',
-        name: '🎯 예측시장 괴리율 데스크',
-        portfolio: createVaultPortfolio(1000.00),
-        openPositions: [],
-        closedPositions: [],
-        stats: { scans: 0, evaluatedCount: 0, passedCount: 0, rejectedCount: 0, closedCount: 0 }
-      },
-      rwa: {
-        id: 'rwa',
-        name: '🏛️ RWA 차트·옵션감마 데스크',
-        portfolio: createVaultPortfolio(1000.00),
-        openPositions: [],
-        closedPositions: [],
-        stats: { scans: 0, evaluatedCount: 0, passedCount: 0, rejectedCount: 0, closedCount: 0 }
+        lastScanCandidates: [],
+        lastVetResults: [],
+        stats: { scans: 0, candidatesCount: 0, passedCount: 0, rejectedCount: 0, closedCount: 0 }
       }
     },
-    totalCombinedPortfolio: {
-      startingBalanceUsd: 3000.00,
-      cashUsd: 3000.00,
-      deployedUsd: 0.00,
-      realizedPnlUsd: 0.00,
-      unrealizedPnlUsd: 0.00,
-      totalEquityUsd: 3000.00
-    }
+    logs: [],
+    optionChatHistory: []
   };
 }
 
@@ -107,61 +71,58 @@ function loadState() {
   if (fs.existsSync(STATE_FILE)) {
     try {
       const raw = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
-      if (raw && raw.version === '3.0.0' && raw.desks) {
-        return { ...getDefaultCloudState(), ...raw };
+      if (raw && raw.desks?.memecoin) {
+        return {
+          ...getDefaultState(),
+          ...raw,
+          desks: {
+            memecoin: {
+              ...getDefaultState().desks.memecoin,
+              ...raw.desks.memecoin
+            }
+          }
+        };
       }
     } catch {
-      return getDefaultCloudState();
+      return getDefaultState();
     }
   }
-  return getDefaultCloudState();
+  return getDefaultState();
 }
 
-function recomputeAll(state) {
-  for (const k of ['memecoin', 'prediction', 'rwa']) {
-    const d = state.desks[k];
-    if (!d) continue;
-    let dep = 0;
-    let unr = 0;
-    for (const pos of d.openPositions) {
-      const dollars = Number(pos.dollars || 0);
-      const qty = Number(pos.quantity || 0);
-      const curPrice = Number(pos.currentPriceUsd || pos.entryPriceUsd || 0);
-      const entPrice = Number(pos.entryPriceUsd || 0);
-      dep += dollars;
-      if (pos.direction === 'SHORT') {
-        unr += qty * (entPrice - curPrice);
-      } else {
-        unr += (qty * curPrice) - dollars;
-      }
-    }
-    d.portfolio.deployedUsd = Number(dep.toFixed(2));
-    d.portfolio.unrealizedPnlUsd = Number(unr.toFixed(2));
-    d.portfolio.totalEquityUsd = Number((d.portfolio.cashUsd + dep + unr).toFixed(2));
+function recomputePortfolio(state) {
+  const d = state.desks.memecoin;
+  let dep = 0;
+  let unr = 0;
+  for (const pos of d.openPositions) {
+    const dollars = Number(pos.dollars || 0);
+    const qty = Number(pos.quantity || 0);
+    const curPrice = Number(pos.currentPriceUsd || pos.entryPriceUsd || 0);
+    const entPrice = Number(pos.entryPriceUsd || 0);
+    const fee = Number(pos.feeUsd || 0);
+    dep += dollars;
+    const diff = pos.direction === 'SHORT' ? (entPrice - curPrice) : (curPrice - entPrice);
+    unr += (qty * diff) - fee;
   }
-  const m = state.desks.memecoin.portfolio;
-  const p = state.desks.prediction.portfolio;
-  const r = state.desks.rwa.portfolio;
-  state.totalCombinedPortfolio = {
-    startingBalanceUsd: 3000.00,
-    cashUsd: Number((m.cashUsd + p.cashUsd + r.cashUsd).toFixed(2)),
-    deployedUsd: Number((m.deployedUsd + p.deployedUsd + r.deployedUsd).toFixed(2)),
-    realizedPnlUsd: Number((m.realizedPnlUsd + p.realizedPnlUsd + r.realizedPnlUsd).toFixed(2)),
-    unrealizedPnlUsd: Number((m.unrealizedPnlUsd + p.unrealizedPnlUsd + r.unrealizedPnlUsd).toFixed(2)),
-    totalEquityUsd: Number((m.totalEquityUsd + p.totalEquityUsd + r.totalEquityUsd).toFixed(2))
-  };
+  d.portfolio.deployedUsd = Number(dep.toFixed(2));
+  d.portfolio.unrealizedPnlUsd = Number(unr.toFixed(2));
+  d.portfolio.totalEquityUsd = Number((d.portfolio.cashUsd + dep + unr).toFixed(2));
+}
+
+function addLog(state, type, text) {
+  if (!Array.isArray(state.logs)) state.logs = [];
+  state.logs.unshift({
+    id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    type,
+    timestamp: new Date().toISOString(),
+    text
+  });
+  if (state.logs.length > 80) state.logs = state.logs.slice(0, 80);
 }
 
 function saveState(state) {
   const cleanCopy = { ...state };
-  if (cleanCopy.integrations) {
-    cleanCopy.integrations = {
-      geminiModel: 'gemini-3.5-flash',
-      telegramBotUsername: '@dytradingdemo_bot',
-      telegramEnabled: true,
-      lastTelegramSentAt: cleanCopy.integrations.lastTelegramSentAt || null
-    };
-  }
+  delete cleanCopy.integrations;
   fs.writeFileSync(STATE_FILE, JSON.stringify(cleanCopy, null, 2), 'utf-8');
 }
 
@@ -175,139 +136,102 @@ async function sendTelegram(text, chatId = TELEGRAM_CHAT_ID) {
 }
 
 async function main() {
-  console.log('☁️ [Grok 7-Agent 3-Desk v3.0] 무인 클라우드 루틴 시작');
-  let state = loadState();
-  recomputeAll(state);
+  console.log('⚡ [Variational 10x 스탑헌팅 클라우드 봇 v4.0] 실행 시작');
+  const state = loadState();
+  const desk = state.desks.memecoin;
 
-  // 1. 3대 데스크 RISK 점검
-  const memeDesk = state.desks.memecoin;
-  if (memeDesk.openPositions.length > 0) {
+  const allowedSyms = new Set(['BTC', 'ETH', 'SOL', 'HYPE', 'QQQUSDT', 'SOXXUSDT', 'EWYUSDT']);
+  if ((desk.openPositions || []).some(p => !p.isStopHunt || !allowedSyms.has(p.symbol))) {
+    desk.portfolio = createVaultPortfolio(1000.00);
+    desk.openPositions = [];
+    desk.closedPositions = [];
+  }
+  if (!Array.isArray(desk.closedPositions)) desk.closedPositions = [];
+
+  // 1. 열린 10x 포지션 익절(TP1/TP2) · 칼손절(SL) 점검
+  if (desk.openPositions.length > 0) {
     const rem = [];
-    for (const pos of memeDesk.openPositions) {
-      const check = await checkContractRiskLive(pos.contract);
+    for (const pos of desk.openPositions) {
+      const check = await checkContractRiskLive(pos.contract || pos.symbol, pos);
       if (check.reachable && check.priceUsd > 0) pos.currentPriceUsd = check.priceUsd;
       if (check.action === 'CLOSE') {
-        const gross = pos.quantity * pos.currentPriceUsd;
-        const net = Math.max(0, Number((gross - Math.max(0.0045 * gross, 0.95)).toFixed(2)));
-        const pnl = Number((net - pos.dollars).toFixed(2));
-        memeDesk.portfolio.cashUsd = Number((memeDesk.portfolio.cashUsd + net).toFixed(2));
-        memeDesk.portfolio.realizedPnlUsd = Number((memeDesk.portfolio.realizedPnlUsd + pnl).toFixed(2));
-        await sendTelegram(`🚨 [🪙 밈코인 클라우드 RISK 청산] $${pos.symbol} | 회수 $${net} (${pnl >= 0 ? '+' : ''}$${pnl})`);
-      } else {
-        rem.push(pos);
-      }
-    }
-    memeDesk.openPositions = rem;
-  }
-
-  const predDesk = state.desks.prediction;
-  if (predDesk.openPositions.length > 0) {
-    const checks = await checkPredictionRiskLive(predDesk.openPositions);
-    const rem = [];
-    for (const pos of predDesk.openPositions) {
-      const chk = checks.find(c => c.id === pos.id);
-      if (chk) pos.currentPriceUsd = chk.currentPriceUsd;
-      if (chk && chk.action === 'CLOSE') {
-        const gross = pos.quantity * pos.currentPriceUsd;
-        const net = Math.max(0, Number((gross - Math.max(0.005 * gross, 0.50)).toFixed(2)));
-        const pnl = Number((net - pos.dollars).toFixed(2));
-        predDesk.portfolio.cashUsd = Number((predDesk.portfolio.cashUsd + net).toFixed(2));
-        predDesk.portfolio.realizedPnlUsd = Number((predDesk.portfolio.realizedPnlUsd + pnl).toFixed(2));
-        await sendTelegram(`🔔 [🎯 예측시장 클라우드 RISK 청산] "${pos.question}" (${pos.side}) | ${chk.reason} | 손익 ${pnl >= 0 ? '+' : ''}$${pnl}`);
-      } else {
-        rem.push(pos);
-      }
-    }
-    predDesk.openPositions = rem;
-  }
-
-  const rwaDesk = state.desks.rwa;
-  if (rwaDesk.openPositions.length > 0) {
-    const checks = await checkRwaPositionsRiskLive(rwaDesk.openPositions);
-    const rem = [];
-    for (const pos of rwaDesk.openPositions) {
-      const chk = checks.find(c => c.id === pos.id);
-      if (chk) pos.currentPriceUsd = chk.currentPriceUsd;
-      if (chk && chk.action === 'CLOSE') {
         const isShort = pos.direction === 'SHORT';
-        const rawPnl = isShort
-          ? pos.quantity * (pos.entryPriceUsd - pos.currentPriceUsd)
-          : (pos.quantity * pos.currentPriceUsd) - pos.dollars;
-        const fee = Math.max(0.0015 * pos.dollars, 0.35);
-        const net = Math.max(0, Number((pos.dollars + rawPnl - fee).toFixed(2)));
+        const diff = isShort ? (pos.entryPriceUsd - pos.currentPriceUsd) : (pos.currentPriceUsd - pos.entryPriceUsd);
+        const rawPnl = pos.quantity * diff;
+        const entryFee = Number(pos.feeUsd || 0);
+        const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.25);
+        const net = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
         const pnl = Number((net - pos.dollars).toFixed(2));
-        rwaDesk.portfolio.cashUsd = Number((rwaDesk.portfolio.cashUsd + net).toFixed(2));
-        rwaDesk.portfolio.realizedPnlUsd = Number((rwaDesk.portfolio.realizedPnlUsd + pnl).toFixed(2));
-        await sendTelegram(`🔔 [🏛️ RWA 클라우드 RISK 청산] $${pos.symbol} (${pos.direction || 'LONG'}) | ${chk.reason} | 손익 ${pnl >= 0 ? '+' : ''}$${pnl}`);
+        const pnlPct = Number(((pnl / pos.dollars) * 100).toFixed(2));
+
+        desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd + net).toFixed(2));
+        desk.portfolio.realizedPnlUsd = Number((desk.portfolio.realizedPnlUsd + pnl).toFixed(2));
+        desk.stats.closedCount = (desk.stats.closedCount || 0) + 1;
+
+        desk.closedPositions.unshift({
+          ...pos,
+          exitPriceUsd: pos.currentPriceUsd,
+          netProceedsUsd: net,
+          pnlUsd: pnl,
+          pnlPct,
+          closeReason: check.reason,
+          closeRule: check.reason,
+          closedAt: new Date().toISOString()
+        });
+
+        const msgText = [
+          `🔔 [Variational 10x 스탑헌팅 청산] $${pos.symbol} (${isShort ? 'SHORT 10x' : 'LONG 10x'})`,
+          `• 사유: ${check.reason}`,
+          `• 정산: 증거금 $${pos.dollars} -> 회수 $${net} (${pnl >= 0 ? '+' : ''}$${pnl} / 10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`
+        ].join('\n');
+        addLog(state, 'EXIT', msgText);
+        await sendTelegram(msgText);
       } else {
         rem.push(pos);
       }
     }
-    rwaDesk.openPositions = rem;
+    desk.openPositions = rem;
   }
 
-  recomputeAll(state);
+  recomputePortfolio(state);
 
-  // 2. 데스크 1 (밈코인) 스캔
+  // 2. Variational DEX 7대 선물 스탑헌팅 스캔 및 10x 진입
   const scanOut = await runScanAgent(state.config, 'READY');
-  const vetOut = await runVetAgent(scanOut.candidates, state.config, 60);
+  const vetOut = await runVetAgent(scanOut.candidates, state.config);
+  desk.lastScanCandidates = scanOut.candidates;
+  desk.lastVetResults = vetOut.results;
+  desk.stats.scans = (desk.stats.scans || 0) + 1;
+  desk.stats.candidatesCount = (desk.stats.candidatesCount || 0) + scanOut.candidates.length;
+  desk.stats.passedCount = (desk.stats.passedCount || 0) + vetOut.passedCount;
+  desk.stats.rejectedCount = (desk.stats.rejectedCount || 0) + vetOut.rejectedCount;
+
   for (const passedItem of vetOut.passed) {
-    if (memeDesk.openPositions.some(p => p.contract === passedItem.contract)) continue;
-    const sizeRes = runSizeAgent(passedItem, memeDesk.portfolio, state.config, 0.06);
+    const c = passedItem.candidate;
+    if (desk.openPositions.some(p => p.symbol === c.symbol)) continue;
+    const capPct = passedItem.decision === 'PASS' ? 0.08 : 0.06;
+    const sizeRes = runSizeAgent(passedItem, desk.portfolio, state.config, capPct);
     if (sizeRes.dollars > 0) {
-      const fillRes = runFillsAgent(passedItem.candidate, sizeRes, state.config);
+      const fillRes = runFillsAgent(c, sizeRes);
       if (fillRes.status === 'FILLED_PAPER') {
-        memeDesk.portfolio.cashUsd = Number((memeDesk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-        memeDesk.openPositions.push(fillRes);
-        await sendTelegram(`📝 [🪙 밈코인 클라우드 체결] $${fillRes.symbol} | 진입 $${fillRes.entryPriceUsd} | 크기 $${fillRes.dollars}`);
+        desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
+        desk.openPositions.push(fillRes);
+        const isShort = fillRes.direction === 'SHORT';
+        const msgText = [
+          `🚨 [평일 미장 개장 전 스탑헌팅 포착 — Variational 10x ${isShort ? 'SHORT' : 'LONG'} 진입!]`,
+          `• 종목: $${fillRes.symbol} | 60일 승률 ${fillRes.btWinRate || 60}% (10x ${fillRes.btPnl10x || '+15%'})`,
+          `• 포착: 90분 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% [최적 ±${fillRes.minHuntPct}%~±${fillRes.maxHuntPct}%] + 꼬리 ${fillRes.wickReversalPct}%`,
+          `• 진입(Variational 호가): $${fillRes.entryPriceUsd} | 증거금 $${fillRes.dollars} (10x 규모 $${fillRes.notionalUsd} · 손익비 1:${fillRes.rrRatio})`,
+          `• 목표 TP1 $${fillRes.tp1PriceUsd} / TP2(Anchor) $${fillRes.tp2PriceUsd} | 칼손절 SL $${fillRes.stopPriceUsd}`
+        ].join('\n');
+        addLog(state, 'ENTRY', msgText);
+        await sendTelegram(msgText);
       }
     }
   }
 
-  // 3. 데스크 2 (예측시장 괴리율) 스캔
-  const existingPredIds = new Set(predDesk.openPositions.map(p => p.marketId));
-  const bookOut = await runBookAgent(null, predDesk.openPositions.length, GEMINI_API_KEY, existingPredIds);
-  for (const prop of (bookOut.proposals || [])) {
-    if (predDesk.openPositions.some(p => p.marketId === prop.marketId)) continue;
-    const sizeRes = runSizeAgent({ myProb: prop.myProb, liquidityUsd: prop.liquidityUsd, payoffRatio: 1.8 }, predDesk.portfolio, state.config, 0.08);
-    if (sizeRes.dollars > 0) {
-      const fillRes = runPredictionFillsAgent(prop, sizeRes);
-      if (fillRes.status === 'FILLED_PAPER') {
-        predDesk.portfolio.cashUsd = Number((predDesk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-        predDesk.openPositions.push(fillRes);
-        await sendTelegram(`📝 [🎯 예측시장 클라우드 체결] "${fillRes.question}" (${fillRes.side}) | 괴리율 +${fillRes.edgePct}% | 크기 $${fillRes.dollars}`);
-      }
-    }
-  }
-
-  // 4. 데스크 3 (RWA & 7대 섹터 개별주 차트·옵션감마) 스캔 (LONG + SHORT 양방향)
-  if (rwaDesk.openPositions.length < 8) {
-    const existingRwaSyms = new Set(rwaDesk.openPositions.map(p => p.symbol));
-    const rwaOut = await runRwaDeskScanAndVet(existingRwaSyms, GEMINI_API_KEY, 'all');
-    const topLong = rwaOut.passed.find(p => p.analysis.tradeSetup.direction === 'LONG');
-    const topShort = rwaOut.passed.find(p => p.analysis.tradeSetup.direction === 'SHORT');
-    const selected = [topLong, topShort].filter(Boolean);
-    if (selected.length === 0 && rwaOut.passed.length > 0) selected.push(rwaOut.passed[0]);
-    for (const item of selected) {
-      if (rwaDesk.openPositions.length >= 8) break;
-      const a = item.analysis;
-      const dir = a.tradeSetup.direction || 'LONG';
-      const capPct = a.options.gammaRegime === 'LONG_GAMMA' ? 0.10 : 0.06;
-      const sizeRes = runSizeAgent({ decision: 'PASS', myProb: 0.62, payoffRatio: Math.max(1.4, a.tradeSetup.rrRatio), liquidityUsd: 500000 }, rwaDesk.portfolio, state.config, capPct);
-      if (sizeRes.dollars > 0) {
-        const fillRes = runRwaFillsAgent(a, sizeRes, rwaOut.aiComment);
-        if (fillRes.status === 'FILLED_PAPER') {
-          rwaDesk.portfolio.cashUsd = Number((rwaDesk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-          rwaDesk.openPositions.push(fillRes);
-          await sendTelegram(`📝 [🏛️ RWA·섹터 개별주 클라우드 ${dir === 'SHORT' ? '🔴 SHORT' : '🟢 LONG'} 체결] [$${fillRes.symbol} · ${fillRes.category}] (${fillRes.setupName}) | 진입 $${fillRes.entryPriceUsd} | TP1 $${fillRes.tp1PriceUsd} / TP2 $${fillRes.tp2PriceUsd} | 크기 $${fillRes.dollars}`);
-        }
-      }
-    }
-  }
-
-  recomputeAll(state);
+  recomputePortfolio(state);
   saveState(state);
-  console.log('✅ 클라우드 루틴 완료! 통합 자산: $' + state.totalCombinedPortfolio.totalEquityUsd.toFixed(2));
+  console.log('✅ 클라우드 루틴 완료! 스탑헌팅 10x 금고 평가액: $' + desk.portfolio.totalEquityUsd.toFixed(2));
 }
 
 main().catch(err => {
