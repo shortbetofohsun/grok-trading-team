@@ -1,40 +1,40 @@
+/**
+ * ⚡ Variational 10x 스탑헌팅 모의매매 봇 & 🎯 AI 옵션 지지·저항선 분석기 (server.js v4.0)
+ * ============================================================================
+ * 1) 좌측 엔진: Variational Omni DEX 7대 선물 (BTC, ETH, SOL, HYPE, QQQUSDT, SOXXUSDT, EWYUSDT)
+ *    - 10배 레버리지(10x) 고정 · 주말 작동 중지(Weekend Guard) · 60일 백테스트 최적 % 적용
+ *    - 평일 미국장 개장 전 스탑헌팅 포착 시 10x 모의체결 + 텔레그램 즉시 알림
+ * 2) 우측 엔진: 실시간 옵션 감마(콜벽·풋벽·맥스페인·감마플립) + 차트(켈트너·볼린저) 연동 AI 지지·저항선 챗봇
+ */
+
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
 const {
-  DEFAULT_GEMINI_KEY,
-  RWA_SECTORS,
-  RWA_UNIVERSE,
-  ROLE_PROFILES_BY_DESK,
-  BOT_PROMPTS,
+  STOPHUNT_UNIVERSE,
+  getStopHuntSessionInfo,
   fetchJson,
   callGeminiAI,
-  runChiefVerification,
-  // 데스크 1 (밈코인 $1,000)
   runScanAgent,
   runVetAgent,
   runSizeAgent,
   runFillsAgent,
-  calculateRiskFormula,
   checkContractRiskLive,
-  // 데스크 2 (예측시장 괴리율 $1,000)
-  runBookAgent,
-  runPredictionFillsAgent,
-  checkPredictionRiskLive,
-  // 데스크 3 (RWA 차트·옵션감마 $1,000)
   analyzeRwaTicker,
-  runRwaDeskScanAndVet,
-  runRwaFillsAgent,
-  checkRwaPositionsRiskLive
+  askOptionSupportResistanceAI
 } = require('./agents');
-
-const DEFAULT_TG_B64 = 'ODgxMDAzMTEzNzpBQUdyZ3JPZXB5SlJ6TE42OXpqbm1lV0RKQmlfWFY0Tkxidw==';
-const DEFAULT_TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || Buffer.from(DEFAULT_TG_B64, 'base64').toString('utf-8');
-const DEFAULT_TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8417795671';
 
 const DATA_DIR = path.join(__dirname, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'desk_state.json');
 const PUBLIC_DIR = path.join(__dirname, 'public');
+const GH_LOCAL_AUTH_FILE = path.join(DATA_DIR, '.gh_local_auth.json');
+
+const DEFAULT_TG_B64 = 'ODgxMDAzMTEzNzpBQUdyZ3JPZXB5SlJ6TE42OXpqbm1lV0RKQmlfWFY0Tkxidw==';
+const DEFAULT_GM_B64 = 'QVEuQWI4Uk42THE1YUNscXNIVlkxbDMxUDIzREJ1eUNxSXFRZkFHeW5FMElCbUhPSjIzMkE=';
+
+const DEFAULT_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from(DEFAULT_GM_B64, 'base64').toString('utf-8');
+const DEFAULT_TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || Buffer.from(DEFAULT_TG_B64, 'base64').toString('utf-8');
+const DEFAULT_TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8417795671';
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -48,42 +48,35 @@ function createVaultPortfolio(startingUsd = 1000.00) {
     totalCapitalEverDeployedUsd: 0.00,
     realizedPnlUsd: 0.00,
     unrealizedPnlUsd: 0.00,
-    totalEquityUsd: startingUsd,
-    lastNotifiedPnlPct: 0
+    totalEquityUsd: startingUsd
   };
 }
 
 function getDefaultState() {
   const nowIso = new Date().toISOString();
   return {
-    version: '3.0.0',
+    version: '4.0.0',
     createdAt: nowIso,
-    wmMode: 'READY',
     wmPort: 3000,
+    config: {
+      startingBalanceUsd: 1000,
+      slippageBudgetPct: 0.02,
+      minOrderUsd: 50,
+      maxKellyCapPct: 0.08
+    },
     integrations: {
       geminiApiKey: DEFAULT_GEMINI_KEY,
       geminiModel: 'gemini-3.5-flash',
-      geminiStatus: 'ACTIVE (Gemini 3.5 Flash 연결됨)',
       telegramToken: DEFAULT_TELEGRAM_TOKEN,
       telegramChatId: DEFAULT_TELEGRAM_CHAT_ID,
       telegramBotUsername: '@dytradingdemo_bot',
       telegramEnabled: true,
       lastTelegramSentAt: null
     },
-    config: {
-      startingBalanceUsd: 1000,
-      minLiquidityUsd: 10000,
-      minPairAgeMinutes: 30,
-      slippageBudgetPct: 0.02,
-      minOrderUsd: 50,
-      maxKellyCapPct: 0.06,
-      maxTopWalletPct: 5.0
-    },
-    // 3대 데스크 각각의 독립 $1,000 금고 (총 $3,000 시드)
     desks: {
       memecoin: {
         id: 'memecoin',
-        name: '🪙 크립토 밈코인 데스크',
+        name: 'Variational 10x 스탑헌팅 봇',
         portfolio: createVaultPortfolio(1000.00),
         openPositions: [],
         closedPositions: [],
@@ -94,110 +87,33 @@ function getDefaultState() {
           candidatesCount: 0,
           passedCount: 0,
           rejectedCount: 0,
-          rejectionReasons: {},
-          closedCount: 0
-        }
-      },
-      prediction: {
-        id: 'prediction',
-        name: '🎯 예측시장 괴리율 데스크',
-        portfolio: createVaultPortfolio(1000.00),
-        openPositions: [],
-        closedPositions: [],
-        lastEvaluatedMarkets: [],
-        lastVetRejected: [],
-        stats: {
-          scans: 0,
-          evaluatedCount: 0,
-          passedCount: 0,
-          rejectedCount: 0,
-          closedCount: 0
-        }
-      },
-      rwa: {
-        id: 'rwa',
-        name: '🏛️ RWA 차트·옵션감마 데스크',
-        portfolio: createVaultPortfolio(1000.00),
-        openPositions: [],
-        closedPositions: [],
-        lastAnalyses: [],
-        lastOverseasGaps: [],
-        lastVetResults: [],
-        stats: {
-          scans: 0,
-          evaluatedCount: 0,
-          passedCount: 0,
-          rejectedCount: 0,
           closedCount: 0
         }
       }
     },
-    // 통합 합산 포트폴리오 ($3,000 총괄)
-    totalCombinedPortfolio: {
-      startingBalanceUsd: 3000.00,
-      cashUsd: 3000.00,
-      deployedUsd: 0.00,
-      realizedPnlUsd: 0.00,
-      unrealizedPnlUsd: 0.00,
-      totalEquityUsd: 3000.00
-    },
-    // 하위 호환용 필드
-    portfolio: createVaultPortfolio(1000.00),
-    openPositions: [],
-    closedPositions: [],
-    predictionBets: [],
-    lastScanCandidates: [],
-    lastVetResults: [],
-    lastVerification: null,
     routines: {
       scan15mEnabled: true,
       risk5mEnabled: true,
-      dailyReport23hEnabled: true,
       lastScanAt: null,
-      lastRiskAt: null,
-      lastDailyReportAt: null
+      lastRiskAt: null
     },
-    supervision: {
-      CHIEF: { status: 'ONLINE (3-Desk AI)', failures: 0, restartsThisHour: 0, lastSeen: nowIso },
-      SCAN: { status: 'ONLINE (Dex/Kalshi/Chart)', failures: 0, restartsThisHour: 0, lastSeen: nowIso },
-      VET: { status: 'ONLINE (7-Rule/MTF/IV)', failures: 0, restartsThisHour: 0, lastSeen: nowIso },
-      BOOK: { status: 'ONLINE (AI Edge/Gamma GEX)', failures: 0, restartsThisHour: 0, lastSeen: nowIso },
-      SIZE: { status: 'ONLINE ($1K×3 Kelly)', failures: 0, restartsThisHour: 0, lastSeen: nowIso },
-      FILLS: { status: 'ONLINE (Paper Logger)', failures: 0, restartsThisHour: 0, lastSeen: nowIso },
-      RISK: { status: 'ONLINE (5m 3-Desk Exit)', failures: 0, restartsThisHour: 0, lastSeen: nowIso }
-    },
-    stats: {
-      totalScans: 0,
-      todayCandidatesCount: 0,
-      todayRejectedCount: 0,
-      todayPassedCount: 0,
-      rejectionReasons: {},
-      closedByRuleCount: 0
-    },
-    messages: [
+    logs: [
       {
-        id: 'msg_init_meme',
-        desk: 'memecoin',
-        sender: 'CHIEF',
-        badge: '👑 밈코인 총괄',
+        id: 'log_init',
+        type: 'INFO',
         timestamp: nowIso,
-        text: `[🪙 데스크 1: 크립토 밈코인 데스크 ($1,000.00 독립 금고) 가동]\n• SCAN(덱스 런치 속도) ➔ VET(Solana RPC + RugCheck 7단계 스캠 필터) ➔ SIZE(켈리 6% 상한) ➔ FILLS(수수료 하한 검증) ➔ RISK(5분 주기 6h/24h 거래량 비율 < 0.20 즉시 청산)`
-      },
+        text: '⚡ Variational DEX 7대 선물 10x 스탑헌팅 모의매매 봇($1,000 금고) 가동 완료 (주말 휴장 가드 · 60일 백테스트 최적 % 적용)'
+      }
+    ],
+    lastOptionSymbol: null,
+    lastOptionAnalysis: null,
+    optionChatHistory: [
       {
-        id: 'msg_init_pred',
-        desk: 'prediction',
-        sender: 'CHIEF',
-        badge: '👑 괴리율총괄',
+        id: 'opt_welcome',
+        role: 'assistant',
+        symbol: null,
         timestamp: nowIso,
-        text: `[🎯 데스크 2: 예측시장 괴리율 모의매매 데스크 ($1,000.00 독립 금고) 가동]\n• SCAN(Kalshi·Polymarket 실시간 마켓) ➔ VET(유동성·최신성 5단계 필터) ➔ BOOK(시장 가격을 가린 Gemini 3.5 Flash 블라인드 확률 추론 후 괴리율 >= 8% 포착) ➔ SIZE(괴리율 비례 켈리 배분) ➔ FILLS(YES/NO 컨트랙트 매수) ➔ RISK(괴리 수렴 익절 & 역행 손절)`
-      },
-      {
-        id: 'msg_init_rwa',
-        desk: 'rwa',
-        sender: 'CHIEF',
-        badge: '👑 RWA총괄',
-        timestamp: nowIso,
-        text: `[🏛️ 데스크 3: RWA 차트(켈트너·볼린저) & 옵션 감마(콜감마·숏감마) 데스크 ($1,000.00 독립 금고) 가동]\n• 대상: 실물 금(GLD), 은(SLV), 미국장기채(TLT), 원유(USO), 리츠(VNQ), SPY, QQQ, 반도체원물(SOXX), NVDA, IBIT\n• SCAN(tooja.me/chart 흰색 켈트너 채널 + 보라색 볼린저 스퀴즈 '꿈틀꿈틀 타점') ➔ VET(1H·10m 멀티타임프레임 & IV 지뢰밭 검증) ➔ BOOK(tooja.me/options 콜감마 Long Gamma vs 숏감마 Short Gamma Net GEX·콜벽·풋벽·맥스페인) ➔ SIZE ➔ FILLS(1차 보라상단·2차 흰색상단/콜벽 목표가) ➔ RISK(채널 이탈/목표 도달 자동 청산)`
+        text: '종목 티커(예: MRNA, TSLA, NVDA) 또는 한글명(예: 모더나, 테슬라, 아이온큐)을 입력하시면 양감마/음감마 · 감마플립 · 맥스페인 · 만기일 · 지지·저항선 수치만 즉시 불러옵니다.'
       }
     ]
   };
@@ -207,21 +123,36 @@ let state = getDefaultState();
 if (fs.existsSync(STATE_FILE)) {
   try {
     const loaded = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
-    if (loaded && loaded.version === '3.0.0' && loaded.desks) {
+    if (loaded && loaded.desks?.memecoin) {
+      const def = getDefaultState();
       state = {
-        ...getDefaultState(),
+        ...def,
         ...loaded,
         integrations: {
-          ...getDefaultState().integrations,
+          ...def.integrations,
           ...(loaded.integrations || {}),
           geminiApiKey: loaded.integrations?.geminiApiKey || DEFAULT_GEMINI_KEY,
           telegramToken: loaded.integrations?.telegramToken || DEFAULT_TELEGRAM_TOKEN,
           telegramChatId: loaded.integrations?.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID
-        }
+        },
+        desks: {
+          memecoin: {
+            ...def.desks.memecoin,
+            ...loaded.desks.memecoin,
+            name: 'Variational 10x 스탑헌팅 봇'
+          }
+        },
+        logs: Array.isArray(loaded.logs) && loaded.logs.length ? loaded.logs : def.logs,
+        optionChatHistory: Array.isArray(loaded.optionChatHistory) && loaded.optionChatHistory.length ? loaded.optionChatHistory : def.optionChatHistory
       };
-    } else {
-      // 구버전(v2.0) 장부에서 v3.0 멀티 데스크($1,000 × 3)로 자동 마이그레이션
-      state = getDefaultState();
+
+      const allowedSyms = new Set(['BTC', 'ETH', 'SOL', 'HYPE', 'QQQUSDT', 'SOXXUSDT', 'EWYUSDT']);
+      const hasInvalid = (state.desks.memecoin.openPositions || []).some(p => !p.isStopHunt || !allowedSyms.has(p.symbol));
+      if (hasInvalid) {
+        state.desks.memecoin.portfolio = createVaultPortfolio(1000.00);
+        state.desks.memecoin.openPositions = [];
+        state.desks.memecoin.closedPositions = [];
+      }
     }
   } catch {
     state = getDefaultState();
@@ -234,7 +165,6 @@ function saveState() {
       ...state,
       integrations: {
         geminiModel: state.integrations?.geminiModel || 'gemini-3.5-flash',
-        geminiStatus: state.integrations?.geminiStatus || 'ACTIVE',
         telegramBotUsername: state.integrations?.telegramBotUsername || '@dytradingdemo_bot',
         telegramEnabled: Boolean(state.integrations?.telegramEnabled ?? true),
         lastTelegramSentAt: state.integrations?.lastTelegramSentAt || null
@@ -246,746 +176,381 @@ function saveState() {
   }
 }
 
+function addLog(type, text) {
+  if (!Array.isArray(state.logs)) state.logs = [];
+  const item = {
+    id: `log_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    type,
+    timestamp: new Date().toISOString(),
+    text
+  };
+  state.logs.unshift(item);
+  if (state.logs.length > 80) {
+    state.logs = state.logs.slice(0, 80);
+  }
+  saveState();
+  return item;
+}
+
+function recomputePortfolio() {
+  const d = state.desks.memecoin;
+  let deployed = 0;
+  let unrealized = 0;
+  for (const pos of d.openPositions) {
+    const cost = Number(pos.dollars || 0);
+    deployed += cost;
+    const qty = Number(pos.quantity || 0);
+    const entryP = Number(pos.entryPriceUsd || 0);
+    const curP = Number(pos.currentPriceUsd || entryP);
+    const fee = Number(pos.feeUsd || 0);
+    const diff = pos.direction === 'SHORT' ? (entryP - curP) : (curP - entryP);
+    unrealized += (qty * diff) - fee;
+  }
+  d.portfolio.deployedUsd = Number(deployed.toFixed(2));
+  d.portfolio.unrealizedPnlUsd = Number(unrealized.toFixed(2));
+  d.portfolio.totalEquityUsd = Number((d.portfolio.cashUsd + deployed + unrealized).toFixed(2));
+  saveState();
+}
+
 async function sendTelegramNotification(text, force = false) {
   const integ = state.integrations || {};
   if (!integ.telegramEnabled && !force) return { ok: false, reason: 'disabled' };
   const token = (integ.telegramToken || DEFAULT_TELEGRAM_TOKEN).trim();
-  let chatId = (integ.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID).trim();
-
-  if (!token) return { ok: false, reason: 'no_token' };
-
-  if (!chatId) {
-    const upd = await fetchJson(`https://api.telegram.org/bot${token}/getUpdates`);
-    const results = upd.data?.result || [];
-    if (results.length > 0) {
-      const lastMsg = results[results.length - 1].message || results[results.length - 1].channel_post;
-      if (lastMsg?.chat?.id) {
-        chatId = String(lastMsg.chat.id);
-        state.integrations.telegramChatId = chatId;
-      }
-    }
-  }
-
-  if (!chatId) return { ok: false, reason: 'no_chat_id' };
+  const chatId = (integ.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID).trim();
+  if (!token || !chatId) return { ok: false, reason: 'missing_credentials' };
 
   const res = await fetchJson(`https://api.telegram.org/bot${token}/sendMessage`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: text.slice(0, 4000)
-    })
+    body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 4000) })
   });
-
   if (res.ok) {
     state.integrations.lastTelegramSentAt = new Date().toISOString();
     saveState();
   }
-  return { ok: res.ok, status: res.status, chatId, data: res.data };
-}
-
-function addMessage(desk, sender, text) {
-  const deskProfile = ROLE_PROFILES_BY_DESK[desk] || ROLE_PROFILES_BY_DESK.memecoin;
-  const botMeta = deskProfile.bots?.[sender] || BOT_PROMPTS[sender] || { badge: '👤 사용자', color: '#94a3b8' };
-  const msg = {
-    id: `msg_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    desk,
-    sender,
-    badge: botMeta.badge || '🤖',
-    timestamp: new Date().toISOString(),
-    text
-  };
-  state.messages.push(msg);
-  if (state.messages.length > 350) {
-    state.messages = state.messages.slice(-350);
-  }
-  if (state.supervision[sender]) {
-    state.supervision[sender].lastSeen = msg.timestamp;
-  }
-  saveState();
-  return msg;
-}
-
-/**
- * 3개 데스크($1,000 × 3) 각각의 포트폴리오 및 통합 포트폴리오($3,000) 재계산
- */
-function recomputeAllPortfolios() {
-  for (const deskKey of ['memecoin', 'prediction', 'rwa']) {
-    const d = state.desks[deskKey];
-    if (!d) continue;
-    let deployed = 0;
-    let unrealized = 0;
-    for (const pos of d.openPositions) {
-      const cost = Number(pos.dollars || 0);
-      deployed += cost;
-      const qty = Number(pos.quantity || 0);
-      const entryP = Number(pos.entryPriceUsd || 0);
-      const curP = Number(pos.currentPriceUsd || entryP);
-      if (pos.direction === 'SHORT') {
-        const fee = Number(pos.feeUsd || 0);
-        const shortPnl = qty * (entryP - curP) - fee;
-        unrealized += shortPnl;
-      } else {
-        const curVal = qty * curP;
-        unrealized += (curVal - cost);
-      }
-    }
-    d.portfolio.deployedUsd = Number(deployed.toFixed(2));
-    d.portfolio.unrealizedPnlUsd = Number(unrealized.toFixed(2));
-    d.portfolio.totalEquityUsd = Number((d.portfolio.cashUsd + deployed + unrealized).toFixed(2));
-  }
-
-  // 통합 포트폴리오 ($3,000 기준)
-  const m = state.desks.memecoin.portfolio;
-  const p = state.desks.prediction.portfolio;
-  const r = state.desks.rwa.portfolio;
-
-  state.totalCombinedPortfolio = {
-    startingBalanceUsd: 3000.00,
-    cashUsd: Number((m.cashUsd + p.cashUsd + r.cashUsd).toFixed(2)),
-    deployedUsd: Number((m.deployedUsd + p.deployedUsd + r.deployedUsd).toFixed(2)),
-    realizedPnlUsd: Number((m.realizedPnlUsd + p.realizedPnlUsd + r.realizedPnlUsd).toFixed(2)),
-    unrealizedPnlUsd: Number((m.unrealizedPnlUsd + p.unrealizedPnlUsd + r.unrealizedPnlUsd).toFixed(2)),
-    totalEquityUsd: Number((m.totalEquityUsd + p.totalEquityUsd + r.totalEquityUsd).toFixed(2))
-  };
-
-  // 하위 호환용 동기화
-  state.portfolio = state.desks.memecoin.portfolio;
-  state.openPositions = state.desks.memecoin.openPositions;
-  state.closedPositions = state.desks.memecoin.closedPositions;
-  state.predictionBets = state.desks.prediction.openPositions;
-  saveState();
+  return { ok: res.ok, status: res.status };
 }
 
 // ============================================================================
-// 1. [데스크 1: 크립토 밈코인 데스크 ($1,000)] 파이프라인 실행
+// 1. 좌측 엔진: Variational DEX 10x 스탑헌팅 역추세 스캔 & 모의체결
 // ============================================================================
-async function executeMemecoinDesk(triggerSource = '수동 실행') {
-  const desk = state.desks.memecoin;
-  desk.stats.scans += 1;
-  state.stats.totalScans += 1;
+let scanRunning = false;
+async function executeStopHuntScan(triggerSource = '수동 스캔') {
+  if (scanRunning) return { ok: false, message: '이미 스캔 중입니다.' };
+  scanRunning = true;
+  try {
+    state.routines.lastScanAt = new Date().toISOString();
+    const desk = state.desks.memecoin;
+    desk.stats.scans += 1;
 
-  addMessage('memecoin', 'CHIEF', `▶️ [${triggerSource}] 🪙 밈코인 데스크($1,000 금고) 파이프라인 시작: SCAN -> VET -> SIZE -> FILLS -> RISK`);
+    const scanOut = await runScanAgent(state.config, 'READY');
+    const vetOut = await runVetAgent(scanOut.candidates, state.config);
 
-  const scanOut = await runScanAgent(state.config, state.wmMode);
-  desk.lastScanCandidates = scanOut.candidates;
-  state.lastScanCandidates = scanOut.candidates;
-  desk.stats.candidatesCount += scanOut.candidates.length;
-  state.stats.todayCandidatesCount += scanOut.candidates.length;
+    desk.lastScanCandidates = scanOut.candidates;
+    desk.lastVetResults = vetOut.results;
+    desk.stats.candidatesCount += scanOut.candidates.length;
+    desk.stats.passedCount += vetOut.passedCount;
+    desk.stats.rejectedCount += vetOut.rejectedCount;
 
-  const scanSummaryLines = scanOut.candidates.map((c, idx) =>
-    `${idx + 1}. $${c.symbol} (${c.contract.slice(0, 6)}...${c.contract.slice(-4)}) | 속도점수: ${c.velocityScore} | 유동성: $${c.liquidityUsd.toLocaleString()} | m5 매수/매도: ${c.txnsM5.buys}/${c.txnsM5.sells} | h1: ${c.priceChangeH1 >= 0 ? '+' : ''}${c.priceChangeH1}% | holders: ${c.holders !== null ? c.holders.toLocaleString() : 'null'}`
-  );
+    const sessionStr = scanOut.sessionInfo?.isWeekend
+      ? `주말 휴장 가드 작동 중 (${scanOut.sessionInfo.nyTimeStr})`
+      : `${scanOut.sessionInfo?.sessionLabel || '평일 감시'} (${scanOut.sessionInfo?.nyTimeStr || ''})`;
 
-  addMessage(
-    'memecoin',
-    'SCAN',
-    `🔍 [덱스스크리너 후보 스캔 완료]\n- 스캔 원본: ${scanOut.rawScannedCount}개 페어 (사전제외: ${scanOut.skippedByScanCount}개)\n- 속도 순위 상위 후보 (${scanOut.candidates.length}개):\n${scanSummaryLines.length ? scanSummaryLines.join('\n') : '(기준 통과 후보 없음)'}`
-  );
+    addLog('SCAN', `[${triggerSource}] 7대 선물 스캔 완료 — 타점 통과 ${vetOut.passedCount}건 / 대기 ${vetOut.rejectedCount}건 | ${sessionStr}`);
 
-  const plannedOrderEst = Math.max(state.config.minOrderUsd, Number((desk.portfolio.totalEquityUsd * state.config.maxKellyCapPct).toFixed(2)));
-  const vetOut = await runVetAgent(scanOut.candidates, state.config, plannedOrderEst);
-  desk.lastVetResults = vetOut.results;
-  state.lastVetResults = vetOut.results;
-  desk.stats.rejectedCount += vetOut.rejectedCount;
-  desk.stats.passedCount += vetOut.passedCount;
-  state.stats.todayRejectedCount += vetOut.rejectedCount;
-  state.stats.todayPassedCount += vetOut.passedCount;
-
-  for (const r of vetOut.rejected) {
-    const key = `규칙 ${r.failedRule}`;
-    desk.stats.rejectionReasons[key] = (desk.stats.rejectionReasons[key] || 0) + 1;
-    state.stats.rejectionReasons[key] = (state.stats.rejectionReasons[key] || 0) + 1;
-  }
-
-  const vetLines = vetOut.results.map(r => `• $${r.symbol}: [${r.decision}] — ${r.reason}`);
-  addMessage(
-    'memecoin',
-    'VET',
-    `🛡️ [7단계 순차 탈락 심사 결과] 검사 ${vetOut.totalEvaluated}개 중 통과 ${vetOut.passedCount}개 / 탈락 ${vetOut.rejectedCount}개\n${vetLines.join('\n')}`
-  );
-
-  if (vetOut.passed.length === 0) {
-    addMessage('memecoin', 'CHIEF', `⏹️ VET을 통과한 후보가 없어 밈코인 금고($${desk.portfolio.cashUsd.toFixed(2)})를 100% 보호했습니다.`);
-  } else {
     for (const passedItem of vetOut.passed) {
-      if (desk.openPositions.some(p => p.contract === passedItem.contract)) {
-        addMessage('memecoin', 'SIZE', `⏭️ $${passedItem.symbol}: 이미 보유 중이므로 중복 매수하지 않습니다.`);
-        continue;
-      }
-      const sizeRes = runSizeAgent(passedItem, desk.portfolio, state.config, 0.06);
-      addMessage('memecoin', 'SIZE', `📐 [$${passedItem.symbol} 크기 산정] $${sizeRes.dollars} (${sizeRes.reason})`);
+      const c = passedItem.candidate;
+      if (desk.openPositions.some(p => p.symbol === c.symbol)) continue;
+      const capPct = passedItem.decision === 'PASS' ? 0.08 : 0.06;
+      const sizeRes = runSizeAgent(passedItem, desk.portfolio, state.config, capPct);
 
       if (sizeRes.dollars > 0) {
-        const fillRes = runFillsAgent(passedItem.candidate, sizeRes, state.config);
+        const fillRes = runFillsAgent(c, sizeRes);
         if (fillRes.status === 'FILLED_PAPER') {
           desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
           desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
           desk.openPositions.push(fillRes);
-          recomputeAllPortfolios();
-
-          const fillMsg = [
-            `📝 [🪙 밈코인 데스크 FILLS 모의 매수 체결]`,
-            `• 종목: $${fillRes.symbol} (${fillRes.name})`,
-            `• 계약 주소: ${fillRes.contract}`,
-            `• 진입가: $${fillRes.entryPriceUsd} | 주문 크기: $${fillRes.dollars} | 수수료: $${fillRes.feeUsd}`,
-            `• 밈코인 금고 잔여 현금: $${desk.portfolio.cashUsd.toFixed(2)}`
-          ].join('\n');
-
-          addMessage('memecoin', 'FILLS', fillMsg);
-          await sendTelegramNotification(fillMsg);
-        } else {
-          addMessage('memecoin', 'FILLS', `🚫 [$${passedItem.symbol} 체결 반려 - ${fillRes.status}] ${fillRes.reason}`);
-        }
-      }
-    }
-  }
-
-  recomputeAllPortfolios();
-  return { scanned: scanOut.candidates.length, passed: vetOut.passedCount, rejected: vetOut.rejectedCount };
-}
-
-// ============================================================================
-// 2. [데스크 2: 예측시장 괴리율 데스크 ($1,000)] 파이프라인 실행
-// ============================================================================
-async function executePredictionDesk(triggerSource = '수동 실행') {
-  const desk = state.desks.prediction;
-  desk.stats.scans += 1;
-
-  addMessage('prediction', 'CHIEF', `▶️ [${triggerSource}] 🎯 예측시장 괴리율 데스크($1,000 금고) 파이프라인 시작: SCAN -> VET -> BOOK(블라인드 확률 추론) -> SIZE -> FILLS`);
-
-  const existingIds = new Set(desk.openPositions.map(p => p.marketId));
-  const bookOut = await runBookAgent(state.wmPort, desk.openPositions.length, state.integrations.geminiApiKey, existingIds);
-
-  if (bookOut.status === 'RESTING' || bookOut.status === 'MAX_BETS_REACHED') {
-    addMessage('prediction', 'BOOK', `⏸️ [BOOK 대기] ${bookOut.reason}`);
-    return { evaluated: 0, entered: 0 };
-  }
-
-  desk.lastEvaluatedMarkets = bookOut.evaluatedMarkets || [];
-  desk.lastVetRejected = bookOut.vetRejected || [];
-  desk.stats.evaluatedCount += (bookOut.evaluatedCount || 0);
-  desk.stats.rejectedCount += (bookOut.vetRejectedCount || 0);
-  desk.stats.passedCount += (bookOut.proposals?.length || 0);
-
-  // 1) SCAN 보고
-  addMessage(
-    'prediction',
-    'SCAN',
-    `🔍 [Kalshi · Polymarket 오픈 마켓 스캔 완료]\n- 수집된 원시 마켓: ${bookOut.scannedRawCount}개 (Kalshi HTTP ${bookOut.kalshiStatus} / Polymarket HTTP ${bookOut.polymarketStatus})`
-  );
-
-  // 2) VET 보고
-  const rejLines = (bookOut.vetRejected || []).slice(0, 5).map(r => `• [${r.source}] "${r.question.slice(0, 48)}..." -> 탈락(${r.reason})`);
-  addMessage(
-    'prediction',
-    'VET',
-    `🛡️ [예측시장 적격성 5단계 필터 완료] 적격 통과 ${bookOut.evaluatedCount}개 / 부적격 탈락 ${bookOut.vetRejectedCount}개\n${rejLines.join('\n') || '(부적격 마켓 없음)'}`
-  );
-
-  // 3) BOOK 괴리율 비교 보고
-  const evalLines = (bookOut.evaluatedMarkets || []).map(m =>
-    `• [${m.source}] "${m.question.slice(0, 55)}..."\n   ↳ 내 추론(${m.side}): ${(m.myProb * 100).toFixed(1)}% vs 시장가격: ${(m.marketPrice * 100).toFixed(1)}% | 괴리율: ${m.edgePct}% ${m.actionable ? '🔥 [>=8% 진입 타겟!]' : '(8% 미만 관망)'}\n   ↳ 근거: ${m.reasoning}`
-  );
-  addMessage(
-    'prediction',
-    'BOOK',
-    `📊 [Gemini AI 블라인드 확률 vs 시장 가격 괴리율 대조 결과]\n${evalLines.join('\n') || '(비교 가능한 마켓 없음)'}`
-  );
-
-  // 4) SIZE & 5) FILLS: 괴리율 8% 이상 마켓 실제 모의 체결 ($1,000 예측시장 금고에서 차감!)
-  let enteredCount = 0;
-  for (const prop of (bookOut.proposals || [])) {
-    if (desk.openPositions.some(p => p.marketId === prop.marketId)) continue;
-    // 괴리율이 클수록 최대 8%($80)까지 배분
-    const capPct = prop.edgePct >= 15 ? 0.08 : 0.06;
-    const sizeRes = runSizeAgent({ myProb: prop.myProb, liquidityUsd: prop.liquidityUsd, payoffRatio: 1.8 }, desk.portfolio, state.config, capPct);
-    addMessage('prediction', 'SIZE', `📐 [괴리율 ${prop.edgePct}% 포지션 크기 산정] $${sizeRes.dollars} (${sizeRes.reason})`);
-
-    if (sizeRes.dollars > 0) {
-      const fillRes = runPredictionFillsAgent(prop, sizeRes);
-      if (fillRes.status === 'FILLED_PAPER') {
-        desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-        desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
-        desk.openPositions.push(fillRes);
-        enteredCount += 1;
-        recomputeAllPortfolios();
-
-        const fillMsg = [
-          `📝 [🎯 예측시장 괴리율 데스크 FILLS 모의 체결]`,
-          `• 마켓: "${fillRes.question}" (${fillRes.source})`,
-          `• 방향: ${fillRes.side} 컨트랙트 (${fillRes.quantity}주)`,
-          `• 진입단가: $${fillRes.entryPriceUsd} vs 내 추정확률: ${(fillRes.myProb * 100).toFixed(1)}% (괴리율 +${fillRes.edgePct}%)`,
-          `• 수렴 익절목표가: $${fillRes.targetPriceUsd} | 역행 손절가: $${fillRes.stopPriceUsd}`,
-          `• 투자금: $${fillRes.dollars} (수수료 $${fillRes.feeUsd}) | 예측시장 금고 잔여현금: $${desk.portfolio.cashUsd.toFixed(2)}`,
-          `• 추론 근거: ${fillRes.reasoning}`
-        ].join('\n');
-
-        addMessage('prediction', 'FILLS', fillMsg);
-        await sendTelegramNotification(fillMsg);
-      }
-    }
-  }
-
-  recomputeAllPortfolios();
-  return { evaluated: bookOut.evaluatedCount, entered: enteredCount };
-}
-
-// ============================================================================
-// 3. [데스크 3: RWA & 7대 섹터 개별주(우주·방산·바이오·반도체·광통신·로봇) 데스크 ($1,000)] 파이프라인 실행
-// ============================================================================
-async function executeRwaDesk(triggerSource = '수동 실행', sectorFilter = 'all') {
-  const desk = state.desks.rwa;
-  desk.stats.scans += 1;
-
-  const sectorMeta = RWA_SECTORS[sectorFilter] || RWA_SECTORS.all;
-  addMessage('rwa', 'CHIEF', `▶️ [${triggerSource}] 🏛️ 데스크 3 (${sectorMeta.label} · $1,000 금고) 차트(켈트너·볼린저) & 옵션 감마(콜/숏감마) 스캔·검증 시작`);
-
-  const existingSymbols = new Set(desk.openPositions.map(p => p.symbol));
-  const rwaOut = await runRwaDeskScanAndVet(existingSymbols, state.integrations.geminiApiKey, sectorFilter);
-
-  desk.lastSectorFilter = rwaOut.sectorFilter || 'all';
-  desk.lastSectorSummary = rwaOut.sectorSummary || {};
-  desk.lastAnalyses = rwaOut.analyses || [];
-  desk.lastOverseasGaps = rwaOut.overseasGaps || [];
-  desk.lastVetResults = rwaOut.vetResults || [];
-  desk.stats.evaluatedCount += rwaOut.scannedCount;
-  desk.stats.passedCount += rwaOut.passed.length;
-  desk.stats.rejectedCount += rwaOut.rejected.length;
-
-  // 1) SCAN 보고 (섹터별 대장주 요약 + 상위 10개 타점 후보)
-  const secSummaryLines = Object.values(rwaOut.sectorSummary || {}).map(s =>
-    `• ${s.label}: 스캔 ${s.count}개 (스퀴즈 ${s.squeezeCount}개 | 🟢롱 ${s.longCount} / 🔴숏 ${s.shortCount}) ➔ 최우선: $${s.topSymbol} (${s.topDirection}, ${s.topScore}점)`
-  );
-  const scanLines = rwaOut.analyses.slice(0, 12).map((a, idx) =>
-    `${idx + 1}. [${a.category}] $${a.symbol} ($${a.spot}) | ${a.tradeSetup.direction === 'SHORT' ? '🔴SHORT' : '🟢LONG'} | 1H 위치 ${a.chart.channelPos1hPct}% | 스퀴즈=${a.chart.purpleInsideWhite1h ? 'YES(꿈틀꿈틀)' : 'NO'} | ${a.tradeSetup.score}점`
-  );
-  const gapLines = (rwaOut.overseasGaps || []).slice(0, 4).map(g => `• ${g.label}: 해외 $${g.price} vs 국내 ₩${g.domWon} (괴리율 ${g.diff})`);
-
-  addMessage(
-    'rwa',
-    'SCAN',
-    `🔍 [${rwaOut.sectorLabel} — 총 ${rwaOut.scannedCount}개 종목 켈트너·볼린저 이중채널 스캔 완료]\n` +
-    (secSummaryLines.length > 1 ? `[섹터별 최우선 타점 요약]\n${secSummaryLines.join('\n')}\n\n` : '') +
-    `[상위 타점 랭킹 Top 12]\n${scanLines.join('\n')}` +
-    (gapLines.length ? `\n\n🌐 [해외시장 원주/ADR 괴리율 모니터]\n${gapLines.join('\n')}` : '')
-  );
-
-  // 2) VET 보고 (멀티타임프레임 1H/10m & 손익비 & IV 열지도 5단계 검증)
-  const vetLines = rwaOut.vetResults.slice(0, 14).map(v => `• [${v.category || 'RWA'}] $${v.symbol}: [${v.decision}] — ${v.reason}`);
-  addMessage(
-    'rwa',
-    'VET',
-    `🛡️ [섹터 개별주 & RWA 5단계 검증 완료] 전체 ${rwaOut.scannedCount}개 중 통과 ${rwaOut.passed.length}개 / 탈락 ${rwaOut.rejected.length}개\n${vetLines.join('\n')}`
-  );
-
-  // 3) BOOK (GAMMA) 보고 (콜감마 vs 숏감마 Net GEX, 콜벽/풋벽, 맥스페인)
-  const gammaLines = rwaOut.analyses.slice(0, 8).map(a =>
-    `• [${a.category}] $${a.symbol} ($${a.spot}): ${a.options.gammaRegimeLabel}\n   ↳ 콜벽: $${a.options.callWall} | 풋벽: $${a.options.putWall} | 감마플립: $${a.options.gammaFlip} | 맥스페인: $${a.options.maxPain} | IV: ${a.options.avgIvPct}%`
-  );
-  addMessage(
-    'rwa',
-    'BOOK',
-    `📊 [tooja.me/options 섹터별 콜감마(Long Gamma) · 숏감마(Short Gamma) · 맥스페인 분석]\n${gammaLines.join('\n')}${rwaOut.aiComment ? `\n\n${rwaOut.aiComment}` : ''}`
-  );
-
-  // 4) SIZE & 5) FILLS: 상위 통과 종목 모의 매매 (LONG & SHORT 양방향 + 섹터 분산, 최대 8개 포지션 운용)
-  let enteredCount = 0;
-  const maxRwaPositions = 8;
-  if (desk.openPositions.length >= maxRwaPositions) {
-    addMessage('rwa', 'SIZE', `⏸️ 현재 데스크 3 열린 포지션이 ${maxRwaPositions}개(최대 한도)이므로 신규 진입을 보류합니다.`);
-  } else {
-    const usedSectors = new Set(desk.openPositions.map(p => p.sector));
-    const selectedToEnter = [];
-    // 1순위: 아직 보유하지 않은 섹터의 최우수 LONG 및 최우수 SHORT 선정 (섹터별 분산 진입)
-    const topLongNewSec = rwaOut.passed.find(p => p.analysis?.tradeSetup?.direction === 'LONG' && !usedSectors.has(p.sector));
-    const topShortNewSec = rwaOut.passed.find(p => p.analysis?.tradeSetup?.direction === 'SHORT' && !usedSectors.has(p.sector));
-    const topLong = topLongNewSec || rwaOut.passed.find(p => p.analysis?.tradeSetup?.direction === 'LONG');
-    const topShort = topShortNewSec || rwaOut.passed.find(p => p.analysis?.tradeSetup?.direction === 'SHORT');
-
-    if (topLong) {
-      selectedToEnter.push(topLong);
-      usedSectors.add(topLong.sector);
-    }
-    if (topShort && (!topLong || topShort.symbol !== topLong.symbol)) {
-      selectedToEnter.push(topShort);
-      usedSectors.add(topShort.sector);
-    }
-    // 2순위: 다른 섹터에서 점수가 가장 높은 통과 종목 추가 (1회 스캔당 최대 4개 섹터 분산 진입)
-    for (const p of rwaOut.passed) {
-      if (selectedToEnter.length >= 4) break;
-      if (!selectedToEnter.some(s => s.symbol === p.symbol) && !usedSectors.has(p.sector)) {
-        selectedToEnter.push(p);
-        usedSectors.add(p.sector);
-      }
-    }
-    for (const p of rwaOut.passed) {
-      if (selectedToEnter.length >= 3) break;
-      if (!selectedToEnter.some(s => s.symbol === p.symbol)) selectedToEnter.push(p);
-    }
-
-    for (const item of selectedToEnter) {
-      if (desk.openPositions.length >= maxRwaPositions) break;
-      const a = item.analysis;
-      if (desk.openPositions.some(p => p.symbol === a.symbol)) continue;
-
-      const dir = a.tradeSetup.direction || 'LONG';
-      const capPct = a.options.gammaRegime === 'LONG_GAMMA' ? 0.10 : 0.06;
-      const sizeRes = runSizeAgent(
-        { decision: 'PASS', myProb: 0.62, payoffRatio: Math.max(1.4, a.tradeSetup.rrRatio), liquidityUsd: 500000 },
-        desk.portfolio,
-        state.config,
-        capPct
-      );
-
-      addMessage('rwa', 'SIZE', `📐 [$${a.symbol} (${a.category}) ${dir === 'SHORT' ? '🔴 SHORT' : '🟢 LONG'} 감마 사이징] ${a.options.gammaRegime === 'LONG_GAMMA' ? '콜감마 안정장(상한 10%)' : '숏감마 변동성장(상한 6%)'} -> $${sizeRes.dollars} 배분`);
-
-      if (sizeRes.dollars > 0) {
-        const fillRes = runRwaFillsAgent(a, sizeRes, enteredCount === 0 ? rwaOut.aiComment : null);
-        if (fillRes.status === 'FILLED_PAPER') {
-          desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-          desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
-          desk.openPositions.push(fillRes);
-          enteredCount += 1;
-          recomputeAllPortfolios();
+          recomputePortfolio();
 
           const isShort = fillRes.direction === 'SHORT';
           const fillMsg = [
-            `📝 [🏛️ 데스크 3 (${fillRes.category}) FILLS 모의 체결 — ${isShort ? '🔴 SHORT(숏)' : '🟢 LONG(롱)'}]`,
-            `• 종목: $${fillRes.symbol} (${fillRes.name})`,
-            `• 섹터/분류: ${fillRes.category}`,
-            `• 포지션 방향: ${isShort ? '🔴 SHORT (하락 베팅)' : '🟢 LONG (상승 베팅)'}`,
-            `• 전략: ${fillRes.setupName}`,
-            `• 감마 레짐: ${fillRes.gammaRegimeLabel}`,
-            `• 진입가: $${fillRes.entryPriceUsd} | 수량: ${fillRes.quantity}주 | 증거금: $${fillRes.dollars}`,
-            `• 목표/손절 라인:`,
-            `  - 1차 익절(${isShort ? '보라색 볼린저 하단' : '보라색 볼린저 상단'}): $${fillRes.tp1PriceUsd}`,
-            `  - 2차 익절(${isShort ? '흰색 켈트너 하단/풋벽·맥스페인' : '흰색 켈트너 상단/콜벽'}): $${fillRes.tp2PriceUsd} (맥스페인 $${fillRes.maxPain})`,
-            `  - 손절 라인(${isShort ? '흰색 상단 돌파' : '흰색 하단 이탈'}): $${fillRes.stopPriceUsd}`,
-            `• 데스크 3 금고 잔여 현금: $${desk.portfolio.cashUsd.toFixed(2)}`
+            `🚨 [평일 미장 개장 전 스탑헌팅 포착 — Variational 10x ${isShort ? 'SHORT(숏)' : 'LONG(롱)'} 진입!]`,
+            `• 종목: $${fillRes.symbol} (${fillRes.name}) | 60일 승률 ${fillRes.btWinRate || 60}% (10x ${fillRes.btPnl10x || '+15%'})`,
+            `• 포착 패턴: 90분 기준가($${fillRes.anchorPriceUsd}) 대비 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% [최적 ±${fillRes.minHuntPct}%~±${fillRes.maxHuntPct}%] + 꼬리 ${fillRes.wickReversalPct}% 확인`,
+            `• 진입(Variational 호가): $${fillRes.entryPriceUsd} | 증거금 $${fillRes.dollars} × 10배 = 포지션 $${fillRes.notionalUsd} (손익비 1:${fillRes.rrRatio})`,
+            `• 목표가: TP1 $${fillRes.tp1PriceUsd} / TP2(출발점) $${fillRes.tp2PriceUsd} | 칼손절(SL): $${fillRes.stopPriceUsd}`
           ].join('\n');
 
-          addMessage('rwa', 'FILLS', fillMsg);
+          addLog('ENTRY', fillMsg);
           await sendTelegramNotification(fillMsg);
         }
       }
     }
-  }
 
-  recomputeAllPortfolios();
-  return { sectorFilter: rwaOut.sectorFilter, scanned: rwaOut.scannedCount, passed: rwaOut.passed.length, entered: enteredCount };
-}
-
-/**
- * 전체 또는 개별 데스크 통합 파이프라인 실행
- */
-let pipelineRunning = false;
-async function executeTradingPipeline(triggerSource = '수동 실행', targetDesk = 'all', sectorFilter = 'all') {
-  if (pipelineRunning) {
-    return { ok: false, message: '이미 파이프라인이 실행 중입니다.' };
-  }
-  pipelineRunning = true;
-  try {
-    state.routines.lastScanAt = new Date().toISOString();
-    const out = {};
-
-    if (targetDesk === 'all' || targetDesk === 'memecoin') {
-      out.memecoin = await executeMemecoinDesk(triggerSource);
-    }
-    if (targetDesk === 'all' || targetDesk === 'prediction') {
-      out.prediction = await executePredictionDesk(triggerSource);
-    }
-    if (targetDesk === 'all' || targetDesk === 'rwa') {
-      out.rwa = await executeRwaDesk(triggerSource, sectorFilter);
-    }
-
-    recomputeAllPortfolios();
+    recomputePortfolio();
     return {
       ok: true,
-      targetDesk,
-      sectorFilter,
-      results: out,
-      totalCombinedEquityUsd: state.totalCombinedPortfolio.totalEquityUsd
+      sessionInfo: scanOut.sessionInfo,
+      scanned: scanOut.candidates.length,
+      passed: vetOut.passedCount,
+      rejected: vetOut.rejectedCount
     };
   } finally {
-    pipelineRunning = false;
+    scanRunning = false;
   }
 }
 
-/**
- * 3대 데스크 통합 5분 RISK 점검 루틴 (밈코인 거래량 급감 + 예측시장 괴리 수렴/손절 + RWA 채널 상하단/감마 청산)
- */
-async function executeRiskRoutine(triggerSource = '5분 루틴') {
+async function executeStopHuntRiskCheck(triggerSource = '5분 리스크 점검') {
   state.routines.lastRiskAt = new Date().toISOString();
-  let totalChecked = 0;
-  let totalClosed = 0;
+  const desk = state.desks.memecoin;
+  let checked = 0;
+  let closed = 0;
 
-  // --------------------------------------------------------------------------
-  // 1) 데스크 1 (밈코인) RISK 점검
-  // --------------------------------------------------------------------------
-  const memeDesk = state.desks.memecoin;
-  if (memeDesk.openPositions.length > 0) {
+  if (desk.openPositions.length > 0) {
     const remaining = [];
-    for (const pos of memeDesk.openPositions) {
-      totalChecked += 1;
-      const check = await checkContractRiskLive(pos.contract);
+    for (const pos of desk.openPositions) {
+      checked += 1;
+      const check = await checkContractRiskLive(pos.contract || pos.symbol, pos);
       if (check.reachable && check.priceUsd > 0) {
         pos.currentPriceUsd = check.priceUsd;
       }
       if (check.action === 'CLOSE') {
-        totalClosed += 1;
-        memeDesk.stats.closedCount += 1;
-        state.stats.closedByRuleCount += 1;
-
-        const grossValue = pos.quantity * pos.currentPriceUsd;
-        const exitFee = Math.max(0.0045 * grossValue, 0.95);
-        const netProceeds = Math.max(0, Number((grossValue - exitFee).toFixed(2)));
+        closed += 1;
+        desk.stats.closedCount += 1;
+        const isShort = pos.direction === 'SHORT';
+        const priceDiff = isShort
+          ? (pos.entryPriceUsd - pos.currentPriceUsd)
+          : (pos.currentPriceUsd - pos.entryPriceUsd);
+        const rawPnl = pos.quantity * priceDiff;
+        const entryFee = Number(pos.feeUsd || 0);
+        const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.25);
+        const netProceeds = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
         const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
         const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
 
-        memeDesk.portfolio.cashUsd = Number((memeDesk.portfolio.cashUsd + netProceeds).toFixed(2));
-        memeDesk.portfolio.realizedPnlUsd = Number((memeDesk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
+        desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd + netProceeds).toFixed(2));
+        desk.portfolio.realizedPnlUsd = Number((desk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
 
-        const closedRec = {
+        desk.closedPositions.unshift({
           ...pos,
           exitPriceUsd: pos.currentPriceUsd,
           netProceedsUsd: netProceeds,
           pnlUsd,
           pnlPct,
           closedAt: new Date().toISOString(),
-          closeRule: check.reachable ? `거래량 급감 규칙 (ratio ${check.ratio} < 0.20)` : '데이터 응답 불능 즉시 청산'
-        };
-        memeDesk.closedPositions.unshift(closedRec);
+          closeRule: check.reason
+        });
 
         const closeMsg = [
-          `🚨 [🪙 밈코인 데스크 RISK 강제 청산 — ${triggerSource}]`,
-          `• 종목: $${pos.symbol} (${pos.contract})`,
-          `• 계산식:\n${check.formattedLine}`,
-          `• 정산: 진입 $${pos.dollars.toFixed(2)} -> 회수 $${netProceeds.toFixed(2)} (${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} / ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`
+          `🔔 [Variational 10x 스탑헌팅 청산 — ${triggerSource}]`,
+          `• 종목: $${pos.symbol} (${isShort ? 'SHORT 10x' : 'LONG 10x'})`,
+          `• 사유: ${check.reason}`,
+          `• 정산: 증거금 $${pos.dollars.toFixed(2)} -> 회수 $${netProceeds.toFixed(2)} (${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} / 10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`
         ].join('\n');
-        addMessage('memecoin', 'RISK', closeMsg);
+        addLog('EXIT', closeMsg);
         await sendTelegramNotification(closeMsg);
       } else {
         remaining.push(pos);
       }
     }
-    memeDesk.openPositions = remaining;
+    desk.openPositions = remaining;
   }
 
-  // --------------------------------------------------------------------------
-  // 2) 데스크 2 (예측시장 괴리율) RISK 점검
-  // --------------------------------------------------------------------------
-  const predDesk = state.desks.prediction;
-  if (predDesk.openPositions.length > 0) {
-    const predChecks = await checkPredictionRiskLive(predDesk.openPositions);
-    const remainingPred = [];
-    for (const pos of predDesk.openPositions) {
-      totalChecked += 1;
-      const chk = predChecks.find(c => c.id === pos.id);
-      if (chk) {
-        pos.currentPriceUsd = chk.currentPriceUsd;
-        pos.currentEdgePct = chk.currentEdgePct;
-      }
-      if (chk && chk.action === 'CLOSE') {
-        totalClosed += 1;
-        predDesk.stats.closedCount += 1;
-
-        const grossValue = pos.quantity * pos.currentPriceUsd;
-        const exitFee = Math.max(0.005 * grossValue, 0.50);
-        const netProceeds = Math.max(0, Number((grossValue - exitFee).toFixed(2)));
-        const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
-        const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
-
-        predDesk.portfolio.cashUsd = Number((predDesk.portfolio.cashUsd + netProceeds).toFixed(2));
-        predDesk.portfolio.realizedPnlUsd = Number((predDesk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
-
-        predDesk.closedPositions.unshift({
-          ...pos,
-          exitPriceUsd: pos.currentPriceUsd,
-          netProceedsUsd: netProceeds,
-          pnlUsd,
-          pnlPct,
-          closedAt: new Date().toISOString(),
-          closeRule: chk.reason
-        });
-
-        const msg = [
-          `🔔 [🎯 예측시장 데스크 RISK 청산 — ${triggerSource}]`,
-          `• 질문: "${pos.question}" (${pos.side})`,
-          `• 사유: ${chk.reason}`,
-          `• 정산: 진입 $${pos.dollars.toFixed(2)} -> 회수 $${netProceeds.toFixed(2)} (${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} / ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`
-        ].join('\n');
-        addMessage('prediction', 'RISK', msg);
-        await sendTelegramNotification(msg);
-      } else {
-        remainingPred.push(pos);
-      }
-    }
-    predDesk.openPositions = remainingPred;
-  }
-
-  // --------------------------------------------------------------------------
-  // 3) 데스크 3 (RWA 차트·옵션감마) RISK 점검
-  // --------------------------------------------------------------------------
-  const rwaDesk = state.desks.rwa;
-  if (rwaDesk.openPositions.length > 0) {
-    const rwaChecks = await checkRwaPositionsRiskLive(rwaDesk.openPositions);
-    const remainingRwa = [];
-    for (const pos of rwaDesk.openPositions) {
-      totalChecked += 1;
-      const chk = rwaChecks.find(c => c.id === pos.id);
-      if (chk) {
-        pos.currentPriceUsd = chk.currentPriceUsd;
-      }
-      if (chk && chk.action === 'CLOSE') {
-        totalClosed += 1;
-        rwaDesk.stats.closedCount += 1;
-
-        const isShort = pos.direction === 'SHORT';
-        const grossValue = isShort
-          ? (pos.dollars + pos.quantity * (pos.entryPriceUsd - pos.currentPriceUsd))
-          : (pos.quantity * pos.currentPriceUsd);
-        const exitFee = Math.max(0.0015 * Math.max(0, grossValue), 0.35);
-        const netProceeds = Math.max(0, Number((grossValue - exitFee).toFixed(2)));
-        const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
-        const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
-
-        rwaDesk.portfolio.cashUsd = Number((rwaDesk.portfolio.cashUsd + netProceeds).toFixed(2));
-        rwaDesk.portfolio.realizedPnlUsd = Number((rwaDesk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
-
-        rwaDesk.closedPositions.unshift({
-          ...pos,
-          exitPriceUsd: pos.currentPriceUsd,
-          netProceedsUsd: netProceeds,
-          pnlUsd,
-          pnlPct,
-          closedAt: new Date().toISOString(),
-          closeRule: chk.reason
-        });
-
-        const msg = [
-          `🔔 [🏛️ RWA 차트·옵션감마 데스크 RISK 청산 — ${triggerSource}]`,
-          `• 종목: $${pos.symbol} (${isShort ? '🔴 SHORT' : '🟢 LONG'})`,
-          `• 사유: ${chk.reason}`,
-          `• 정산: 진입 $${pos.dollars.toFixed(2)} -> 회수 $${netProceeds.toFixed(2)} (${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} / ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`
-        ].join('\n');
-        addMessage('rwa', 'RISK', msg);
-        await sendTelegramNotification(msg);
-      } else {
-        remainingRwa.push(pos);
-      }
-    }
-    rwaDesk.openPositions = remainingRwa;
-  }
-
-  recomputeAllPortfolios();
-  return { ok: true, checked: totalChecked, closed: totalClosed };
+  recomputePortfolio();
+  return { ok: true, checked, closed };
 }
 
-/**
- * 3대 데스크 통합 마감 보고서 생성 ($1,000 + $1,000 + $1,000 = $3,000 총괄)
- */
-async function generateDailyCloseReport(triggerSource = '마감 보고') {
-  state.routines.lastDailyReportAt = new Date().toISOString();
-  recomputeAllPortfolios();
+// ============================================================================
+// 2. 우측 엔진: 티커 입력 시 옵션 감마 & 채널 데이터 기반 AI 지지·저항선 챗봇
+// ============================================================================
+const KO_TICKER_MAP = [
+  ['모더나', 'MRNA'], ['화이자', 'PFE'], ['일라이릴리', 'LLY'], ['릴리', 'LLY'], ['노보노디스크', 'NVO'],
+  ['버텍스', 'VRTX'], ['리제네론', 'REGN'], ['크리스퍼', 'CRSP'], ['암젠', 'AMGN'], ['유나이티드헬스', 'UNH'],
+  ['존슨앤존슨', 'JNJ'], ['머크', 'MRK'], ['애브비', 'ABBV'], ['엔비디아', 'NVDA'], ['테슬라', 'TSLA'],
+  ['애플', 'AAPL'], ['마이크로소프트', 'MSFT'], ['마소', 'MSFT'], ['아마존', 'AMZN'], ['구글', 'GOOGL'],
+  ['알파벳', 'GOOGL'], ['메타', 'META'], ['페북', 'META'], ['넷플릭스', 'NFLX'], ['브로드컴', 'AVGO'],
+  ['대만반도체', 'TSM'], ['암드', 'AMD'], ['인텔', 'INTC'], ['마이크론', 'MU'], ['아이온큐', 'IONQ'],
+  ['리게티', 'RGTI'], ['디웨이브', 'QBTS'], ['퀀텀', 'QUBT'], ['팔란티어', 'PLTR'], ['로켓랩', 'RKLB'],
+  ['인튜이티브머신', 'LUNR'], ['루나', 'LUNR'], ['아스트', 'ASTS'], ['레드와이어', 'RDW'], ['플래닛랩스', 'PL'],
+  ['블랙스카이', 'BKSY'], ['록히드마틴', 'LMT'], ['레이시온', 'RTX'], ['노스롭그루먼', 'NOC'], ['노스롭', 'NOC'],
+  ['제너럴다이내믹스', 'GD'], ['에어로바이런먼트', 'AVAV'], ['크라토스', 'KTOS'], ['보잉', 'BA'],
+  ['슈퍼마이크로', 'SMCI'], ['슈마컴', 'SMCI'], ['암홀딩스', 'ARM'], ['퀄컴', 'QCOM'], ['어플라이드', 'AMAT'],
+  ['램리서치', 'LRCX'], ['루멘텀', 'LITE'], ['코히런트', 'COHR'], ['아리스타', 'ANET'], ['시에나', 'CIEN'],
+  ['코닝', 'GLW'], ['버티브', 'VRT'], ['비스트라', 'VST'], ['컨스텔레이션', 'CEG'], ['오클로', 'OKLO'],
+  ['뉴스케일', 'SMR'], ['카메코', 'CCJ'], ['서브로보틱스', 'SERV'], ['심보틱', 'SYM'], ['인튜이티브서지컬', 'ISRG'],
+  ['우버', 'UBER'], ['에어비앤비', 'ABNB'], ['도어대시', 'DASH'], ['쿠팡', 'CPNG'], ['알리바바', 'BABA'],
+  ['핀둬둬', 'PDD'], ['테무', 'PDD'], ['니오', 'NIO'], ['리비안', 'RIVN'], ['루시드', 'LCID'],
+  ['코인베이스', 'COIN'], ['마이크로스트래티지', 'MSTR'], ['스트래티지', 'MSTR'], ['로빈후드', 'HOOD'],
+  ['소파이', 'SOFI'], ['업스타트', 'UPST'], ['어펌', 'AFRM'], ['페이팔', 'PYPL'], ['서클', 'CRCL'],
+  ['마라', 'MARA'], ['라이엇', 'RIOT'], ['클린스파크', 'CLSK'], ['아이렌', 'IREN'], ['스노우플레이크', 'SNOW'],
+  ['클라우드플레어', 'NET'], ['크라우드스트라이크', 'CRWD'], ['팔로알토', 'PANW'], ['데이터독', 'DDOG'],
+  ['서비스나우', 'NOW'], ['세일즈포스', 'CRM'], ['오라클', 'ORCL'], ['유니티', 'U'], ['로블록스', 'RBLX'],
+  ['스포티파이', 'SPOT'], ['디즈니', 'DIS'], ['나이키', 'NKE'], ['스타벅스', 'SBUX'], ['맥도날드', 'MCD'],
+  ['코카콜라', 'KO'], ['펩시', 'PEP'], ['월마트', 'WMT'], ['코스트코', 'COST'], ['홈디포', 'HD'],
+  ['버크셔', 'BRK-B'], ['제이피모건', 'JPM'], ['골드만삭스', 'GS'], ['모건스탠리', 'MS'], ['비자', 'V'],
+  ['마스터카드', 'MA'], ['엑슨모빌', 'XOM'], ['셰브론', 'CVX'], ['옥시덴탈', 'OXY'], ['카바나', 'CVNA'],
+  ['일루미나', 'ILMN'], ['나스닥', 'QQQ'], ['큐큐큐', 'QQQ'], ['에스앤피', 'SPY'], ['스파이', 'SPY'],
+  ['다우', 'DIA'], ['러셀', 'IWM'], ['반도체', 'SOXX'], ['속슬', 'SOXL'], ['속스', 'SOXS'],
+  ['티큐', 'TQQQ'], ['스큐', 'SQQQ'], ['슈드', 'SCHD'], ['젭피', 'JEPI'], ['금', 'GLD'], ['은', 'SLV'],
+  ['원유', 'USO'], ['장기채', 'TLT'], ['미국채', 'TLT'], ['리츠', 'VNQ'], ['한국', 'EWY'],
+  ['비트코인', 'BTC'], ['비트', 'BTC'], ['이더리움', 'ETH'], ['이더', 'ETH'], ['솔라나', 'SOL'], ['하이프', 'HYPE']
+];
 
-  const m = state.desks.memecoin;
-  const p = state.desks.prediction;
-  const r = state.desks.rwa;
-  const tot = state.totalCombinedPortfolio;
-  const totalPnl = Number((tot.realizedPnlUsd + tot.unrealizedPnlUsd).toFixed(2));
+const IGNORE_EN_WORDS = new Set(['AI', 'TP', 'SL', 'LONG', 'SHORT', 'CALL', 'PUT', 'GEX', 'IV', 'OK', 'VS', 'USD', 'USDT', 'ETF', 'PERP']);
 
-  const aiPrompt = [
-    `너는 3대 멀티 데스크(크립토 밈코인 $1,000 + 예측시장 괴리율 $1,000 + RWA 차트/옵션감마 $1,000 = 총 $3,000)를 총괄하는 CHIEF다.`,
-    `아래 실시간 성과를 바탕으로 3문장 이내의 명쾌한 한국어 총평을 작성하라:`,
-    `- 통합 총 평가액: $${tot.totalEquityUsd.toFixed(2)} (총 손익: ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)})`,
-    `- 데스크 1 (밈코인): 평가액 $${m.portfolio.totalEquityUsd.toFixed(2)}, 열린 포지션 ${m.openPositions.length}개, 스캠 탈락 ${m.stats.rejectedCount}개`,
-    `- 데스크 2 (예측시장 괴리율): 평가액 $${p.portfolio.totalEquityUsd.toFixed(2)}, 열린 베팅 ${p.openPositions.length}개`,
-    `- 데스크 3 (RWA 켈트너·볼린저 & 콜/숏감마): 평가액 $${r.portfolio.totalEquityUsd.toFixed(2)}, 열린 포지션 ${r.openPositions.length}개`
-  ].join('\n');
+async function resolveTickerFromUserText(rawText, fallbackSymbol = null, geminiKey = DEFAULT_GEMINI_KEY) {
+  const clean = String(rawText || '').trim();
+  if (!clean) return { ticker: fallbackSymbol, question: '' };
 
-  let aiCommentary = '';
-  const aiRes = await callGeminiAI(aiPrompt, state.integrations.geminiApiKey, 8000);
-  if (aiRes.ok && aiRes.text) {
-    aiCommentary = `\n🧠 [CHIEF (Gemini AI) 멀티 데스크 총평]\n${aiRes.text}`;
+  // 1) 단독 영문 티커 입력 (예: "MRNA", "$TSLA", "soxx", "f")
+  if (/^\$?[A-Za-z.\-]{1,7}$/.test(clean)) {
+    return { ticker: clean.replace(/^\$/, '').toUpperCase(), question: '' };
   }
 
-  const reportText = [
-    `📋 [CHIEF 3대 데스크 통합 마감 보고 (${triggerSource})]`,
-    `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
-    `💰 통합 총 자산 (시작 $3,000.00 ➔ 현재 $${tot.totalEquityUsd.toFixed(2)} | 총 손익 ${totalPnl >= 0 ? '+' : ''}$${totalPnl.toFixed(2)})`,
-    ``,
-    `1️⃣ [🪙 데스크 1: 크립토 밈코인 금고 ($1,000)]`,
-    `   • 현재 평가액: $${m.portfolio.totalEquityUsd.toFixed(2)} (가용 현금 $${m.portfolio.cashUsd.toFixed(2)} / 운용 중 $${m.portfolio.deployedUsd.toFixed(2)})`,
-    `   • 스캔/검증: 후보 ${m.stats.candidatesCount}개 중 통과 ${m.stats.passedCount}개 / 7단계 탈락 ${m.stats.rejectedCount}개`,
-    `   • 보유 포지션(${m.openPositions.length}개): ${m.openPositions.map(x => `$${x.symbol}($${x.dollars})`).join(', ') || '없음'}`,
-    ``,
-    `2️⃣ [🎯 데스크 2: 예측시장 괴리율 금고 ($1,000)]`,
-    `   • 현재 평가액: $${p.portfolio.totalEquityUsd.toFixed(2)} (가용 현금 $${p.portfolio.cashUsd.toFixed(2)} / 운용 중 $${p.portfolio.deployedUsd.toFixed(2)})`,
-    `   • 괴리율(>=8%) 포지션(${p.openPositions.length}개): ${p.openPositions.map(x => `${x.side} "${x.question.slice(0, 22)}.."(괴리 ${x.edgePct}%)`).join(', ') || '없음'}`,
-    ``,
-    `3️⃣ [🏛️ 데스크 3: RWA 차트·옵션감마 금고 ($1,000)]`,
-    `   • 현재 평가액: $${r.portfolio.totalEquityUsd.toFixed(2)} (가용 현금 $${r.portfolio.cashUsd.toFixed(2)} / 운용 중 $${r.portfolio.deployedUsd.toFixed(2)})`,
-    `   • 켈트너·볼린저 & 콜/숏감마 포지션(${r.openPositions.length}개): ${r.openPositions.map(x => `$${x.symbol}($${x.dollars}, TP1 $${x.tp1PriceUsd}/TP2 $${x.tp2PriceUsd})`).join(', ') || '없음'}${aiCommentary}`
-  ].join('\n');
+  // 2) 한글 종목명 사전 매칭 (예: "모더나 가져와", "아이온큐 지지저항")
+  for (const [ko, sym] of KO_TICKER_MAP) {
+    if (clean.includes(ko)) {
+      return { ticker: sym, question: clean };
+    }
+  }
 
-  addMessage('memecoin', 'CHIEF', reportText);
-  addMessage('prediction', 'CHIEF', reportText);
-  addMessage('rwa', 'CHIEF', reportText);
-  await sendTelegramNotification(reportText);
-  return reportText;
+  // 3) 문장 내 영문 티커 추출 ("MRNA가져와", "MRNA 지지저항", "(MRNA)" 등 붙여쓴 경우도 모두 인식!)
+  const enTokens = clean.match(/[A-Za-z]{1,6}/g) || [];
+  for (const tok of enTokens) {
+    const up = tok.toUpperCase();
+    if (!IGNORE_EN_WORDS.has(up)) {
+      return { ticker: up, question: clean };
+    }
+  }
+
+  // 4) 사전에 없는 한글 종목명일 경우 Gemini AI로 티커 심볼 즉시 추출
+  const aiTickRes = await callGeminiAI(
+    `다음 사용자 질문에서 언급된 미국 주식/ETF/크립토의 영문 티커 심볼(예: MRNA, TSLA, NVDA, CVNA) 딱 1개만 영문 대문자로 출력하라. 만약 종목 언급이 전혀 없는 후속 질문이면 NONE 이라고만 출력하라.\n질문: "${clean}"`,
+    geminiKey,
+    4500
+  );
+  if (aiTickRes.ok && aiTickRes.text) {
+    const m = aiTickRes.text.trim().toUpperCase().match(/^[A-Z.\-]{1,6}$/);
+    if (m && m[0] !== 'NONE') {
+      return { ticker: m[0], question: clean };
+    }
+  }
+
+  return { ticker: fallbackSymbol, question: clean };
 }
 
-/**
- * 데모/테스트용 샘플 모의 포지션(BONK) 체결 — 중복 매수 원천 차단
- */
-async function createSamplePositionIfRequested(contract = 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263') {
-  const memeDesk = state.desks.memecoin;
-  const existing = memeDesk.openPositions.find(p => p.contract === contract);
-  if (existing) {
-    const check = await checkContractRiskLive(contract);
-    const msg = `⚠️ [중복 매수 방지 작동] $${existing.symbol} 포지션($${existing.dollars})이 이미 열려 있습니다!\n${check.formattedLine}`;
-    addMessage('memecoin', 'SIZE', msg);
-    return { ok: false, duplicatePrevented: true, message: msg };
+async function handleOptionAiChat(userText, explicitSymbol = null) {
+  const raw = String(userText || '').trim();
+  const parsed = explicitSymbol
+    ? { ticker: String(explicitSymbol).toUpperCase().trim(), question: raw }
+    : await resolveTickerFromUserText(raw, state.lastOptionSymbol, state.integrations.geminiApiKey);
+
+  const ticker = parsed.ticker;
+  if (!ticker) {
+    const askTickerMsg = {
+      id: `chat_a_${Date.now()}`,
+      role: 'assistant',
+      symbol: null,
+      timestamp: new Date().toISOString(),
+      text: '분석할 종목의 티커(예: MRNA, TSLA, NVDA)나 종목명(예: 모더나, 테슬라)을 함께 입력해 주세요!'
+    };
+    state.optionChatHistory.push({
+      id: `chat_u_${Date.now() - 1}`,
+      role: 'user',
+      symbol: null,
+      timestamp: new Date().toISOString(),
+      text: raw
+    });
+    state.optionChatHistory.push(askTickerMsg);
+    saveState();
+    return { ok: false, error: askTickerMsg.text, history: state.optionChatHistory };
   }
 
-  const res = await fetchJson(`https://api.dexscreener.com/latest/dex/tokens/${encodeURIComponent(contract)}`);
-  if (!res.ok || !Array.isArray(res.data?.pairs) || res.data.pairs.length === 0) {
-    return { ok: false, error: '덱스스크리너에서 토큰 정보를 가져오지 못했습니다.' };
+  const userDisplayMsg = raw || `${ticker} 옵션 감마 데이터 불러와서 핵심 지지·저항선이랑 타점 정해줘`;
+
+  if (!Array.isArray(state.optionChatHistory)) state.optionChatHistory = [];
+  state.optionChatHistory.push({
+    id: `chat_u_${Date.now()}`,
+    role: 'user',
+    symbol: ticker,
+    timestamp: new Date().toISOString(),
+    text: userDisplayMsg
+  });
+
+  const aiOut = await askOptionSupportResistanceAI(ticker, parsed.question, state.integrations.geminiApiKey);
+  if (!aiOut.ok) {
+    const errMsg = {
+      id: `chat_a_${Date.now()}`,
+      role: 'assistant',
+      symbol: ticker,
+      timestamp: new Date().toISOString(),
+      text: `⚠️ ${aiOut.error}`
+    };
+    state.optionChatHistory.push(errMsg);
+    if (state.optionChatHistory.length > 40) state.optionChatHistory = state.optionChatHistory.slice(-40);
+    saveState();
+    return { ok: false, error: aiOut.error, history: state.optionChatHistory };
   }
-  const pair = res.data.pairs.sort((a, b) => Number(b.liquidity?.usd || 0) - Number(a.liquidity?.usd || 0))[0];
-  const cand = {
-    symbol: pair.baseToken?.symbol || 'TOKEN',
-    name: pair.baseToken?.name || 'Token',
-    contract: pair.baseToken?.address || contract,
-    priceUsd: Number(pair.priceUsd || 0.00001),
-    liquidityUsd: Number(pair.liquidity?.usd || 100000),
-    txnsM5: { buys: 20, sells: 5 }
+
+  state.lastOptionSymbol = aiOut.symbol;
+  state.lastOptionAnalysis = aiOut.analysis;
+
+  const botMsg = {
+    id: `chat_a_${Date.now()}`,
+    role: 'assistant',
+    symbol: aiOut.symbol,
+    aiModel: aiOut.aiModel,
+    levels: aiOut.analysis.levels,
+    spot: aiOut.analysis.spot,
+    card: aiOut.card,
+    timestamp: new Date().toISOString(),
+    text: aiOut.reply
   };
-  const sizeRes = runSizeAgent({ decision: 'PASS', candidate: cand }, memeDesk.portfolio, state.config, 0.06);
-  if (sizeRes.dollars <= 0) return { ok: false, error: sizeRes.reason };
-  const fillRes = runFillsAgent(cand, sizeRes, state.config);
-  if (fillRes.status !== 'FILLED_PAPER') return { ok: false, error: fillRes.reason };
+  state.optionChatHistory.push(botMsg);
+  if (state.optionChatHistory.length > 40) {
+    state.optionChatHistory = state.optionChatHistory.slice(-40);
+  }
+  saveState();
 
-  memeDesk.portfolio.cashUsd = Number((memeDesk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-  memeDesk.portfolio.totalCapitalEverDeployedUsd = Number((memeDesk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
-  memeDesk.openPositions.push(fillRes);
-  recomputeAllPortfolios();
-
-  const fillMsg = `📝 [🪙 밈코인 데스크 샘플 모의 체결] $${fillRes.symbol} | 진입가 $${fillRes.entryPriceUsd} | 크기 $${fillRes.dollars} | 잔여현금 $${memeDesk.portfolio.cashUsd.toFixed(2)}`;
-  addMessage('memecoin', 'FILLS', fillMsg);
-  await sendTelegramNotification(fillMsg);
-  return { ok: true, position: fillRes };
+  return {
+    ok: true,
+    symbol: aiOut.symbol,
+    analysis: aiOut.analysis,
+    message: botMsg,
+    history: state.optionChatHistory
+  };
 }
 
-/**
- * GitHub API를 통한 원클릭 24시간 클라우드 배포
- */
-async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPrivate = true) {
-  const token = String(githubToken || '').trim();
-  if (!token) {
-    return { ok: false, error: 'GitHub 토큰(ghp_...)을 입력해 주세요.' };
+// ============================================================================
+// 3. GitHub Actions 클라우드 자동 배포 (1클릭 Device Flow + 로컬 토큰 영구 보관)
+// ============================================================================
+function loadLocalGhAuth() {
+  try {
+    if (fs.existsSync(GH_LOCAL_AUTH_FILE)) {
+      return JSON.parse(fs.readFileSync(GH_LOCAL_AUTH_FILE, 'utf-8'));
+    }
+  } catch {
+    // ignore
   }
+  return {};
+}
+
+function saveLocalGhAuth(data) {
+  try {
+    const prev = loadLocalGhAuth();
+    fs.writeFileSync(GH_LOCAL_AUTH_FILE, JSON.stringify({ ...prev, ...data, updatedAt: new Date().toISOString() }, null, 2), 'utf-8');
+  } catch {
+    // ignore
+  }
+}
+
+async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPrivate = true) {
+  const localAuth = loadLocalGhAuth();
+  const token = String(githubToken || state.integrations?.githubToken || localAuth.githubToken || '').trim();
+  if (!token) {
+    return { ok: false, error: 'GitHub 인증이 필요합니다. [8자리 인증코드 받기]를 눌러 1초 인증을 진행해 주세요.' };
+  }
+  saveLocalGhAuth({ githubToken: token, repoName });
 
   const ghHeaders = {
     'Authorization': `Bearer ${token}`,
@@ -996,7 +561,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
 
   const userRes = await fetchJson('https://api.github.com/user', { headers: ghHeaders });
   if (!userRes.ok || !userRes.data?.login) {
-    return { ok: false, error: `GitHub 인증 실패 (HTTP ${userRes.status}): 토큰 권한(repo, workflow)을 확인해 주세요.` };
+    return { ok: false, error: `GitHub 인증 실패 (HTTP ${userRes.status})` };
   }
   const owner = userRes.data.login;
 
@@ -1007,7 +572,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
       headers: ghHeaders,
       body: JSON.stringify({
         name: repoName,
-        description: 'Grok 7-Agent 3-Desk Trading Team v3.0 (Crypto + Prediction Arbitrage + RWA Chart/Options Gamma)',
+        description: 'Variational 10x Stop-Hunt Bot & AI Option S/R Analyzer v4.0',
         private: Boolean(isPrivate),
         auto_init: true
       })
@@ -1023,10 +588,10 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
 
   const filesToUpload = [
     'package.json',
+    'render.yaml',
     'agents.js',
     'cloud-runner.js',
     'server.js',
-    'cli-verify.js',
     'public/index.html',
     'data/desk_state.json',
     '.github/workflows/trading-cron.yml'
@@ -1040,7 +605,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
 
     const checkRes = await fetchJson(`https://api.github.com/repos/${owner}/${repoName}/contents/${relPath}`, { headers: ghHeaders });
     const body = {
-      message: `deploy(v3.0): update ${relPath}`,
+      message: `deploy(v4.0): update ${relPath} (10x Stop-Hunt + Option S/R AI)`,
       content: contentB64,
       branch: defaultBranch
     };
@@ -1055,10 +620,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
     }, 15000);
 
     if (!putRes.ok) {
-      return {
-        ok: false,
-        error: `${relPath} 업로드 실패 (HTTP ${putRes.status}): ${putRes.data?.message || '권한 부족'}`
-      };
+      return { ok: false, error: `${relPath} 업로드 실패 (HTTP ${putRes.status})` };
     }
     uploaded.push(relPath);
   }
@@ -1071,25 +633,23 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
 
   const repoUrl = `https://github.com/${owner}/${repoName}`;
   const actionsUrl = `https://github.com/${owner}/${repoName}/actions`;
+  saveLocalGhAuth({ githubToken: token, repoName, repoUrl, actionsUrl });
 
   const doneMsg = [
-    `☁️ [GitHub 24시간 무인 클라우드 v3.0 배포 완료!]`,
+    `☁️ [GitHub 24시간 클라우드 v4.0 업데이트 완료!]`,
     `• 저장소: ${repoUrl}`,
-    `• 3대 데스크(크립토 $1,000 + 예측시장 괴리율 $1,000 + RWA 차트·옵션감마 $1,000)가 15분마다 클라우드에서 자동 실행됩니다!`
+    `• ⚡ Variational 10x 스탑헌팅 봇($1,000 금고)이 평일 15분마다 자동 실행되며, 개장 전 스탑헌팅 포착 시 텔레그램 알림을 발송합니다.`
   ].join('\n');
 
-  addMessage('memecoin', 'CHIEF', doneMsg);
+  addLog('INFO', doneMsg);
   await sendTelegramNotification(doneMsg, true);
 
   return { ok: true, owner, repoName, repoUrl, actionsUrl, uploadedCount: uploaded.length };
 }
 
-/**
- * 토큰 직접 발급 없이 1클릭 브라우저 인증으로 GitHub Actions에 자동 업로드하는 Device Flow
- */
 const GH_OAUTH_CLIENT_ID = '178c6fc778ccc68e1d6a';
 let githubDeviceSession = {
-  status: 'IDLE', // IDLE | WAITING_USER | DEPLOYING | DEPLOYED | ERROR
+  status: 'IDLE',
   userCode: null,
   verificationUri: 'https://github.com/login/device',
   repoName: 'grok-trading-team',
@@ -1120,16 +680,7 @@ async function startGitHubDeviceFlow(repoName = 'grok-trading-team', isPrivate =
   });
 
   if (!res.ok || !res.data?.device_code || !res.data?.user_code) {
-    githubDeviceSession = {
-      status: 'ERROR',
-      userCode: null,
-      verificationUri: 'https://github.com/login/device',
-      repoName,
-      deployResult: null,
-      error: 'GitHub Device 인증 코드 요청 실패',
-      startedAt: new Date().toISOString()
-    };
-    return { ok: false, error: githubDeviceSession.error };
+    return { ok: false, error: 'GitHub 인증 코드 발급 실패' };
   }
 
   const deviceCode = res.data.device_code;
@@ -1174,7 +725,6 @@ async function startGitHubDeviceFlow(repoName = 'grok-trading-team', isPrivate =
         if (depOut.ok) {
           githubDeviceSession.status = 'DEPLOYED';
           githubDeviceSession.deployResult = depOut;
-          state.integrations.githubRepoUrl = depOut.repoUrl;
           saveState();
         } else {
           githubDeviceSession.status = 'ERROR';
@@ -1186,213 +736,36 @@ async function startGitHubDeviceFlow(repoName = 'grok-trading-team', isPrivate =
       } else if (tokenRes.data?.error === 'expired_token' || tokenRes.data?.error === 'access_denied') {
         devicePollTimer = null;
         githubDeviceSession.status = 'ERROR';
-        githubDeviceSession.error = `인증 코드 유효시간(15분) 만료 또는 거부됨 (${tokenRes.data.error}) — 버튼을 다시 눌러 새 코드를 받아주세요.`;
+        githubDeviceSession.error = '인증 코드 만료 — 버튼을 다시 눌러 새 코드를 받아주세요.';
         return;
       }
     } catch {
-      // ignore transient network error
+      // ignore transient error
     }
     devicePollTimer = setTimeout(pollOnce, currentIntervalSec * 1000);
   };
 
   devicePollTimer = setTimeout(pollOnce, currentIntervalSec * 1000);
-
-  return {
-    ok: true,
-    userCode,
-    verificationUri,
-    repoName,
-    status: githubDeviceSession.status
-  };
-}
-
-/**
- * 대화창 명령 처리 (3대 데스크별 맞춤 응답 + 실시간 티커 분석 지원)
- */
-async function handleChatMessage(desk, userText) {
-  const targetDesk = ['memecoin', 'prediction', 'rwa'].includes(desk) ? desk : 'memecoin';
-  addMessage(targetDesk, 'USER', userText);
-  const text = userText.trim();
-
-  if (text.includes('4717.70') || text.includes('167.75')) {
-    const calc = calculateRiskFormula(4717.70, 167.75);
-    addMessage(targetDesk, 'RISK', calc.formattedLine);
-    return { handledBy: 'RISK', result: calc };
-  }
-
-  // RWA 및 7대 섹터 개별주 티커 질문 시 즉시 tooja.me 차트+옵션감마 분석!
-  const allUniverseSyms = RWA_UNIVERSE.map(u => u.symbol).concat(['SOXL', 'AAPL', 'MSFT', 'AMZN', 'META', 'GOOGL', 'CRCL', 'COIN', 'MSTR']).join('|');
-  const tickerRegex = new RegExp(`\\b(${allUniverseSyms})\\b`);
-  const tickerMatch = text.toUpperCase().match(tickerRegex);
-  if (tickerMatch && (targetDesk === 'rwa' || text.includes('감마') || text.includes('차트') || text.includes('분석') || text.includes('타점'))) {
-    const sym = tickerMatch[1] === 'SOXL' ? 'SOXX' : tickerMatch[1];
-    const analysis = await analyzeRwaTicker(sym);
-    if (analysis.ok) {
-      const isShort = analysis.tradeSetup.direction === 'SHORT';
-      const msg = [
-        `📊 [$${analysis.symbol} (${analysis.name} · ${analysis.category}) 실시간 차트 채널 & 옵션 감마 분석]`,
-        `• 현재가: $${analysis.spot} | 추천 방향: ${isShort ? '🔴 SHORT(숏)' : '🟢 LONG(롱)'}`,
-        `• [tooja.me/chart 이중 채널]`,
-        `  - 1H 보라색(볼린저) 채널: $${analysis.chart.purple1hLower} ~ $${analysis.chart.purple1hUpper} (스퀴즈=${analysis.chart.purpleInsideWhite1h ? 'YES 꿈틀꿈틀' : 'NO'})`,
-        `  - 1H 흰색(켈트너) 채널: $${analysis.chart.white1hLower} ~ $${analysis.chart.white1hUpper} (채널내 위치 ${analysis.chart.channelPos1hPct}%)`,
-        `  - 10m 보라색 채널: $${analysis.chart.purple10mLower} ~ $${analysis.chart.purple10mUpper}`,
-        `• [tooja.me/options 콜감마·숏감마 & 맥스페인]`,
-        `  - 감마 레짐: ${analysis.options.gammaRegimeLabel}`,
-        `  - 콜감마 벽(Call Wall): $${analysis.options.callWall} | 풋감마 벽(Put Wall): $${analysis.options.putWall} | 감마 플립: $${analysis.options.gammaFlip}`,
-        `  - 맥스페인(기관 만기 목표가): $${analysis.options.maxPain} | 평균 IV: ${analysis.options.avgIvPct}%`,
-        `• [추천 모의 타점 (점수 ${analysis.tradeSetup.score}점 / 손익비 ${analysis.tradeSetup.rrRatio}:1)]`,
-        `  - 전략: ${analysis.tradeSetup.setupName}`,
-        `  - 1차 익절: $${analysis.tradeSetup.tp1Price} | 2차 익절: $${analysis.tradeSetup.tp2Price} | 손절가: $${analysis.tradeSetup.stopPrice}`
-      ].join('\n');
-      addMessage(targetDesk, 'BOOK', msg);
-      return { handledBy: 'BOOK', analysis };
-    }
-  }
-
-  // 섹터별 스캔 명령 인식 (우주, 방산, 바이오, 반도체, 광통신, 로봇, RWA)
-  const sectorMapFromChat = [
-    ['우주', 'space'], ['위성', 'space'],
-    ['방산', 'defense'], ['드론', 'defense'], ['국방', 'defense'],
-    ['바이오', 'bio'], ['비만', 'bio'], ['신약', 'bio'],
-    ['반도체', 'semi'], ['칩', 'semi'],
-    ['광통신', 'optical'], ['데이터센터', 'optical'], ['원전', 'optical'],
-    ['로봇', 'robotics'], ['양자', 'robotics'],
-    ['원자재', 'rwa_macro']
-  ];
-  for (const [kw, secKey] of sectorMapFromChat) {
-    if (text.includes(kw) && (text.includes('스캔') || text.includes('분석') || text.includes('찾아') || text.includes('매매'))) {
-      const res = await executeTradingPipeline(`대화창 [${kw}] 섹터 지시`, 'rwa', secKey);
-      return { handledBy: 'CHIEF', pipeline: res };
-    }
-  }
-
-  if (text.includes('마감 보고') || text.includes('보고서')) {
-    const rep = await generateDailyCloseReport('대화창 요청');
-    return { handledBy: 'CHIEF', report: rep };
-  }
-
-  if (text.includes('스캔') || text.includes('모의 매매를 시작')) {
-    const res = await executeTradingPipeline('대화창 지시', targetDesk);
-    return { handledBy: 'CHIEF', pipeline: res };
-  }
-
-  const dState = state.desks[targetDesk];
-  const roleMeta = ROLE_PROFILES_BY_DESK[targetDesk].bots.CHIEF;
-  const aiPrompt = [
-    roleMeta.prompt,
-    `\n현재 [${dState.name}] 장부 상태:`,
-    `- 데스크 평가액: $${dState.portfolio.totalEquityUsd.toFixed(2)} (가용 현금 $${dState.portfolio.cashUsd.toFixed(2)}, 운용 중 $${dState.portfolio.deployedUsd.toFixed(2)})`,
-    `- 열린 포지션 수: ${dState.openPositions.length}개`,
-    `- 3대 데스크 통합 총 자산: $${state.totalCombinedPortfolio.totalEquityUsd.toFixed(2)}`,
-    `\n사용자 질문: "${text}"`,
-    `위 데이터를 바탕으로 친절하고 명확하게 한국어로 답변하라.`
-  ].join('\n');
-
-  const aiRes = await callGeminiAI(aiPrompt, state.integrations.geminiApiKey, 8000);
-  if (aiRes.ok && aiRes.text) {
-    addMessage(targetDesk, 'CHIEF', `🧠 ${aiRes.text}`);
-    return { handledBy: 'CHIEF', aiModel: aiRes.model };
-  }
-
-  addMessage(targetDesk, 'CHIEF', `현재 [${dState.name}] 평가액은 $${dState.portfolio.totalEquityUsd.toFixed(2)} (가용 현금 $${dState.portfolio.cashUsd.toFixed(2)}, 열린 포지션 ${dState.openPositions.length}개)입니다.`);
-  return { handledBy: 'CHIEF' };
+  return { ok: true, userCode, verificationUri, repoName, status: githubDeviceSession.status };
 }
 
 // ============================================================================
-// 백그라운드 자동 루틴 타이머 (5분 RISK / 15분 3-Desk SCAN / 밤 11시 마감 보고 / 텔레그램 폴링)
+// 4. 백그라운드 타이머 (5분 10x 포지션 점검 / 15분 스탑헌팅 스캔)
 // ============================================================================
 setInterval(async () => {
   if (state.routines.risk5mEnabled) {
-    await executeRiskRoutine('5분 자동 루틴');
+    await executeStopHuntRiskCheck('5분 자동 점검');
   }
 }, 5 * 60 * 1000);
 
 setInterval(async () => {
   if (state.routines.scan15mEnabled) {
-    await executeTradingPipeline('15분 자동 루틴', 'all');
+    await executeStopHuntScan('15분 자동 스캔');
   }
 }, 15 * 60 * 1000);
 
-let lastReportDateKst = '';
-setInterval(async () => {
-  if (!state.routines.dailyReport23hEnabled) return;
-  const nowKst = new Date(Date.now() + 9 * 3600 * 1000);
-  const dateStr = nowKst.toISOString().slice(0, 10);
-  const hour = nowKst.getUTCHours();
-  if (hour === 23 && lastReportDateKst !== dateStr) {
-    lastReportDateKst = dateStr;
-    await generateDailyCloseReport('밤 11시 KST 정기 루틴');
-  }
-}, 60 * 1000);
-
-// 텔레그램 양방향 원격 명령어 (/status, /scan, /rwa, /pred, /report, /reset)
-let lastUpdateId = 0;
-setInterval(async () => {
-  const token = state.integrations?.telegramToken || DEFAULT_TELEGRAM_TOKEN;
-  if (!token) return;
-  try {
-    const url = `https://api.telegram.org/bot${token}/getUpdates?offset=${lastUpdateId + 1}&timeout=1`;
-    const res = await fetchJson(url, {}, 4000);
-    const updates = res.data?.result || [];
-    for (const u of updates) {
-      if (u.update_id > lastUpdateId) lastUpdateId = u.update_id;
-      const msg = u.message;
-      if (!msg || !msg.text) continue;
-      const chatId = String(msg.chat.id);
-      if (state.integrations.telegramChatId !== chatId) {
-        state.integrations.telegramChatId = chatId;
-        saveState();
-      }
-      const cmd = msg.text.trim().toLowerCase();
-      if (cmd === '/start' || cmd === '/status') {
-        recomputeAllPortfolios();
-        const m = state.desks.memecoin;
-        const p = state.desks.prediction;
-        const r = state.desks.rwa;
-        await sendTelegramNotification(
-          [
-            `🤖 [그록 7개 에이전트 멀티 데스크 v3.0 상태]`,
-            `💰 통합 총 평가액: $${state.totalCombinedPortfolio.totalEquityUsd.toFixed(2)} (시작 $3,000.00)`,
-            `• 🪙 밈코인 데스크: $${m.portfolio.totalEquityUsd.toFixed(2)} (보유 ${m.openPositions.length}개)`,
-            `• 🎯 예측시장 괴리율: $${p.portfolio.totalEquityUsd.toFixed(2)} (보유 ${p.openPositions.length}개)`,
-            `• 🏛️ RWA 차트·옵션감마: $${r.portfolio.totalEquityUsd.toFixed(2)} (보유 ${r.openPositions.length}개)`,
-            `• 명령어: /status (상태), /scan (3대 데스크 전체 스캔), /rwa (RWA 스캔), /pred (예측시장 스캔), /report (마감 보고)`
-          ].join('\n'),
-          true
-        );
-      } else if (cmd === '/scan') {
-        await sendTelegramNotification(`🔍 3대 데스크(크립토 + 예측시장 괴리율 + RWA 차트·옵션감마) 통합 스캔을 시작합니다...`, true);
-        await executeTradingPipeline('텔레그램 원격 지시', 'all');
-      } else if (cmd === '/rwa') {
-        await sendTelegramNotification(`🏛️ RWA 차트(켈트너·볼린저) & 옵션 감마 데스크 스캔을 시작합니다...`, true);
-        await executeTradingPipeline('텔레그램 RWA 지시', 'rwa');
-      } else if (cmd === '/pred') {
-        await sendTelegramNotification(`🎯 예측시장 괴리율 데스크 스캔을 시작합니다...`, true);
-        await executeTradingPipeline('텔레그램 예측시장 지시', 'prediction');
-      } else if (cmd === '/report') {
-        await generateDailyCloseReport('텔레그램 원격 요청');
-      }
-    }
-  } catch {
-    // ignore transient polling error
-  }
-}, 12 * 1000);
-
-(async () => {
-  const token = state.integrations?.telegramToken || DEFAULT_TELEGRAM_TOKEN;
-  const res = await fetchJson(`https://api.telegram.org/bot${token}/getUpdates`, {}, 4000);
-  const updates = res.data?.result || [];
-  for (const u of updates) {
-    if (u.update_id > lastUpdateId) lastUpdateId = u.update_id;
-    if (u.message?.chat?.id && !state.integrations.telegramChatId) {
-      state.integrations.telegramChatId = String(u.message.chat.id);
-      saveState();
-    }
-  }
-})();
-
 // ============================================================================
-// HTTP 서버
+// 5. HTTP 서버 및 API 라우터
 // ============================================================================
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
@@ -1420,233 +793,96 @@ const server = http.createServer(async (req, res) => {
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
   const pathname = parsedUrl.pathname;
 
-  // 1. WorldMonitor 호환 엔드포인트
-  if (pathname === '/api/market/v1/get-fear-greed-index') {
-    if (state.wmMode === 'degraded') {
-      return sendJson(res, 200, { unavailable: true, value: null, classification: '', updatedAt: 0 });
-    }
-    const fg = await fetchJson('https://api.alternative.me/fng/?limit=1');
-    const item = fg.data?.data?.[0];
-    return sendJson(res, 200, {
-      unavailable: false,
-      value: Number(item?.value || 54),
-      classification: item?.value_classification || 'Neutral',
-      updatedAt: Date.now()
-    });
+  // Render 헬스체크 엔드포인트
+  if (pathname === '/healthz' && req.method === 'GET') {
+    return sendJson(res, 200, { ok: true, status: 'healthy', version: '4.0.0' });
   }
 
-  if (pathname === '/api/prediction/v1/list-prediction-markets') {
-    if (state.wmMode === 'degraded') {
-      return sendJson(res, 200, { markets: [], dataAvailable: false, fetchedAt: 0 });
-    }
-    const kalshiEv = await fetchJson('https://external-api.kalshi.com/trade-api/v2/events?limit=10&status=open');
-    const markets = Array.isArray(kalshiEv.data?.events)
-      ? kalshiEv.data.events.map(ev => ({ id: ev.event_ticker, title: ev.title, category: ev.category || 'crypto' }))
-      : [{ id: 'wm_seed_1', title: 'Crypto & Macro Prediction Markets Active', category: 'crypto' }];
-    return sendJson(res, 200, { markets, dataAvailable: true, fetchedAt: Date.now() });
-  }
-
-  if (pathname === '/api/intelligence/v1/list-cross-source-signals') {
-    if (state.wmMode === 'degraded') {
-      return sendJson(res, 503, { message: 'Internal server error' });
-    }
-    return sendJson(res, 200, {
-      dataAvailable: true,
-      fetchedAt: Date.now(),
-      signals: [
-        { id: 'sig_1', topic: 'Solana DEX Volume Momentum', sourcesCount: 3, confidence: 0.82 },
-        { id: 'sig_2', topic: 'RWA Options Gamma & Keltner Squeeze Signal', sourcesCount: 4, confidence: 0.85 }
-      ]
-    });
-  }
-
-  // 2. 대시보드 상태 및 제어 API
+  // 1) 전체 상태 조회
   if (pathname === '/api/desk/state' && req.method === 'GET') {
-    recomputeAllPortfolios();
+    recomputePortfolio();
     return sendJson(res, 200, {
       state,
-      botPrompts: BOT_PROMPTS,
-      roleProfilesByDesk: ROLE_PROFILES_BY_DESK,
-      rwaSectors: RWA_SECTORS,
-      rwaUniverse: RWA_UNIVERSE,
+      stopHuntUniverse: STOPHUNT_UNIVERSE,
+      sessionInfo: getStopHuntSessionInfo(),
       githubDeviceSession
     });
   }
 
-  // RWA 개별 티커 실시간 차트(켈트너·볼린저) + 옵션 감마(콜감마·숏감마) 분석 API
-  if (pathname === '/api/rwa/analyze' && req.method === 'GET') {
-    const sym = (parsedUrl.searchParams.get('symbol') || 'SPY').toUpperCase().trim();
-    const analysis = await analyzeRwaTicker(sym);
-    return sendJson(res, 200, analysis);
-  }
-
-  // RWA 개별 티커 즉시 모의 진입 API (LONG / SHORT 양방향 지원!)
-  if (pathname === '/api/rwa/trade' && req.method === 'POST') {
-    const body = await parseBody(req);
-    const sym = String(body.symbol || 'SPY').toUpperCase().trim();
-    const forceDirection = body.direction === 'SHORT' ? 'SHORT' : (body.direction === 'LONG' ? 'LONG' : null);
-    const rwaDesk = state.desks.rwa;
-    if (rwaDesk.openPositions.some(p => p.symbol === sym)) {
-      return sendJson(res, 200, { ok: false, error: `$${sym} 포지션이 이미 열려 있습니다.` });
-    }
-    const analysis = await analyzeRwaTicker(sym);
-    if (!analysis.ok) {
-      return sendJson(res, 200, { ok: false, error: analysis.error });
-    }
-    const capPct = analysis.options.gammaRegime === 'LONG_GAMMA' ? 0.10 : 0.06;
-    const sizeRes = runSizeAgent(
-      { decision: 'PASS', myProb: 0.62, payoffRatio: Math.max(1.4, analysis.tradeSetup.rrRatio), liquidityUsd: 500000 },
-      rwaDesk.portfolio,
-      state.config,
-      capPct
-    );
-    if (sizeRes.dollars <= 0) {
-      return sendJson(res, 200, { ok: false, error: sizeRes.reason });
-    }
-    const fillRes = runRwaFillsAgent(analysis, sizeRes, null, forceDirection);
-    rwaDesk.portfolio.cashUsd = Number((rwaDesk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
-    rwaDesk.portfolio.totalCapitalEverDeployedUsd = Number((rwaDesk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
-    rwaDesk.openPositions.push(fillRes);
-    recomputeAllPortfolios();
-
-    const isShort = fillRes.direction === 'SHORT';
-    const fillMsg = [
-      `📝 [🏛️ RWA 차트·옵션감마 데스크 수동 타점 모의 체결 — ${isShort ? '🔴 SHORT(숏)' : '🟢 LONG(롱)'}]`,
-      `• 종목: $${fillRes.symbol} (${fillRes.name})`,
-      `• 방향: ${isShort ? '🔴 SHORT (하락 베팅)' : '🟢 LONG (상승 베팅)'}`,
-      `• 전략: ${fillRes.setupName} | ${fillRes.gammaRegimeLabel}`,
-      `• 진입가: $${fillRes.entryPriceUsd} | 증거금: $${fillRes.dollars}`,
-      `• TP1: $${fillRes.tp1PriceUsd} | TP2: $${fillRes.tp2PriceUsd} | 손절가: $${fillRes.stopPriceUsd}`
-    ].join('\n');
-    addMessage('rwa', 'FILLS', fillMsg);
-    await sendTelegramNotification(fillMsg);
-    return sendJson(res, 200, { ok: true, position: fillRes, analysis });
-  }
-
-  if (pathname === '/api/desk/verify' && req.method === 'POST') {
-    const ver = await runChiefVerification(state.wmPort);
-    state.lastVerification = ver;
-    addMessage(
-      'memecoin',
-      'CHIEF',
-      `🔍 [전체 데이터 연결 검증 완료] Node ${ver.nodeVersion} | 월드모니터: ${ver.status} | DexScreener: ${ver.checks.dexscreenerBonk.hasPairs ? '정상' : '실패'} | Kalshi: ${ver.checks.kalshiOpen.ok ? '정상' : '실패'} | tooja.me RWA 차트·옵션: ${ver.rwaReady ? '정상(HTTP 200)' : '실패'}`
-    );
-    saveState();
-    return sendJson(res, 200, ver);
-  }
-
-  if (pathname === '/api/desk/wm-mode' && req.method === 'POST') {
-    const body = await parseBody(req);
-    state.wmMode = body.mode === 'READY' ? 'READY' : 'degraded';
-    addMessage('memecoin', 'CHIEF', `⚙️ 월드모니터 모드가 [${state.wmMode}]로 전환되었습니다.`);
-    saveState();
-    return sendJson(res, 200, { ok: true, wmMode: state.wmMode });
-  }
-
+  // 2) 좌측: Variational 10x 스탑헌팅 스캔 실행
   if (pathname === '/api/desk/run-pipeline' && req.method === 'POST') {
-    const body = await parseBody(req);
-    const targetDesk = body.desk || 'all';
-    const sectorFilter = body.sector || 'all';
-    const result = await executeTradingPipeline('대시보드 실행', targetDesk, sectorFilter);
+    const result = await executeStopHuntScan('수동 스캔');
     return sendJson(res, 200, result);
   }
 
+  // 3) 좌측: 10x 열린 포지션 즉시 점검
   if (pathname === '/api/desk/run-risk' && req.method === 'POST') {
-    const body = await parseBody(req);
-    if (body.staticTest) {
-      const calc = calculateRiskFormula(4717.70, 167.75);
-      addMessage('memecoin', 'RISK', `🧮 [STEP 4 정적 수식 검증]\n${calc.formattedLine}`);
-      return sendJson(res, 200, { ok: true, type: 'static', result: calc });
-    }
-    if (body.contract) {
-      const check = await checkContractRiskLive(body.contract.trim());
-      addMessage('memecoin', 'RISK', `🔎 [계약 주소 검증: $${check.symbol || 'TOKEN'}]\n${check.formattedLine}\n판정: ${check.reason}`);
-      return sendJson(res, 200, { ok: true, type: 'contract', result: check });
-    }
-    const routineRes = await executeRiskRoutine('수동 점검');
-    return sendJson(res, 200, { ok: true, type: 'routine', result: routineRes });
+    const routineRes = await executeStopHuntRiskCheck('수동 점검');
+    return sendJson(res, 200, { ok: true, result: routineRes });
   }
 
-  if (pathname === '/api/desk/sample-position' && req.method === 'POST') {
-    const body = await parseBody(req);
-    const out = await createSamplePositionIfRequested(body.contract || 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263');
-    return sendJson(res, 200, out);
-  }
-
-  if (pathname === '/api/desk/daily-report' && req.method === 'POST') {
-    const report = await generateDailyCloseReport('수동 마감 보고 요청');
-    return sendJson(res, 200, { ok: true, report });
-  }
-
-  if (pathname === '/api/desk/telegram-test' && req.method === 'POST') {
-    recomputeAllPortfolios();
-    const m = state.desks.memecoin.portfolio;
-    const p = state.desks.prediction.portfolio;
-    const r = state.desks.rwa.portfolio;
-    const msg = [
-      `🔔 [그록 7개 에이전트 멀티 데스크 v3.0 — 텔레그램 연결 확인]`,
-      `💰 통합 총 평가액: $${state.totalCombinedPortfolio.totalEquityUsd.toFixed(2)} (시작 $3,000.00)`,
-      `• 🪙 데스크 1 (크립토 밈코인): $${m.totalEquityUsd.toFixed(2)}`,
-      `• 🎯 데스크 2 (예측시장 괴리율): $${p.totalEquityUsd.toFixed(2)}`,
-      `• 🏛️ 데스크 3 (RWA 차트·옵션감마): $${r.totalEquityUsd.toFixed(2)}`,
-      `• 3대 데스크에서 체결·익절·손절·마감보고 발생 시 즉시 알림이 전송됩니다!`
-    ].join('\n');
-    const tgOut = await sendTelegramNotification(msg, true);
-    addMessage('memecoin', 'CHIEF', tgOut.ok
-      ? `📱 텔레그램(@dytradingdemo_bot)으로 3대 데스크 테스트 알림을 발송했습니다!`
-      : `⚠️ 텔레그램 발송 실패 (${tgOut.reason || tgOut.status})`);
-    return sendJson(res, 200, tgOut);
-  }
-
-  if (pathname === '/api/desk/chat' && req.method === 'POST') {
-    const body = await parseBody(req);
-    const out = await handleChatMessage(body.desk || 'memecoin', body.text || '');
-    return sendJson(res, 200, { ok: true, ...out });
-  }
-
-  if (pathname === '/api/desk/config' && req.method === 'POST') {
-    const body = await parseBody(req);
-    if (body.config) state.config = { ...state.config, ...body.config };
-    if (body.routines) state.routines = { ...state.routines, ...body.routines };
-    if (body.integrations) state.integrations = { ...state.integrations, ...body.integrations };
-    saveState();
-    return sendJson(res, 200, { ok: true, config: state.config, routines: state.routines });
-  }
-
+  // 4) 좌측: $1,000 스탑헌팅 금고 초기화
   if (pathname === '/api/desk/reset' && req.method === 'POST') {
-    const body = await parseBody(req);
-    const prevIntegrations = state.integrations;
-    if (body.desk && state.desks[body.desk]) {
-      state.desks[body.desk].portfolio = createVaultPortfolio(1000.00);
-      state.desks[body.desk].openPositions = [];
-      state.desks[body.desk].closedPositions = [];
-      recomputeAllPortfolios();
-      addMessage(body.desk, 'CHIEF', `🔄 [${state.desks[body.desk].name}] 금고가 깨끗한 $1,000.00로 초기화되었습니다.`);
-    } else {
-      state = getDefaultState();
-      state.integrations = prevIntegrations;
-      saveState();
-      addMessage('memecoin', 'CHIEF', `🔄 3대 데스크 금고($1,000 + $1,000 + $1,000 = 총 $3,000.00)가 모두 깨끗하게 초기화되었습니다!`);
-    }
+    state.desks.memecoin.portfolio = createVaultPortfolio(1000.00);
+    state.desks.memecoin.openPositions = [];
+    state.desks.memecoin.closedPositions = [];
+    recomputePortfolio();
+    addLog('INFO', '🔄 Variational 10x 스탑헌팅 금고가 $1,000.00로 초기화되었습니다.');
     return sendJson(res, 200, { ok: true, state });
   }
 
+  // 5) 우측: 티커 옵션 감마 & 차트 지지·저항선 단독 조회
+  if (pathname === '/api/rwa/analyze' && req.method === 'GET') {
+    const sym = (parsedUrl.searchParams.get('symbol') || 'NVDA').toUpperCase().trim();
+    const analysis = await analyzeRwaTicker(sym);
+    if (analysis.ok) {
+      state.lastOptionSymbol = analysis.symbol;
+      state.lastOptionAnalysis = analysis;
+      saveState();
+    }
+    return sendJson(res, 200, analysis);
+  }
+
+  // 6) 우측: AI 옵션 지지·저항선 분석 챗봇 API
+  if ((pathname === '/api/options-ai/chat' || pathname === '/api/desk/chat') && req.method === 'POST') {
+    const body = await parseBody(req);
+    const out = await handleOptionAiChat(body.text || '', body.symbol || null);
+    return sendJson(res, 200, out);
+  }
+
+  // 7) 우측: AI 채팅 기록 초기화
+  if (pathname === '/api/options-ai/clear' && req.method === 'POST') {
+    state.optionChatHistory = getDefaultState().optionChatHistory;
+    state.lastOptionSymbol = null;
+    state.lastOptionAnalysis = null;
+    saveState();
+    return sendJson(res, 200, { ok: true, history: state.optionChatHistory });
+  }
+
+  // 8) 텔레그램 연결 테스트
+  if (pathname === '/api/desk/telegram-test' && req.method === 'POST') {
+    recomputePortfolio();
+    const p = state.desks.memecoin.portfolio;
+    const msg = [
+      `🔔 [Variational 10x 스탑헌팅 봇 — 텔레그램 알림 테스트]`,
+      `• 금고 평가액: $${p.totalEquityUsd.toFixed(2)} (가용 현금 $${p.cashUsd.toFixed(2)})`,
+      `• 열린 10x 포지션: ${state.desks.memecoin.openPositions.length}개`,
+      `• 평일 미장 개장 전 스탑헌팅 포착 시 즉시 이 채널로 알림이 전송됩니다.`
+    ].join('\n');
+    const tgOut = await sendTelegramNotification(msg, true);
+    return sendJson(res, 200, tgOut);
+  }
+
+  // 9) GitHub 클라우드 배포 API
   if (pathname === '/api/desk/github-deploy' && req.method === 'POST') {
     const body = await parseBody(req);
-    const out = await deployToGitHub(
-      body.githubToken,
-      body.repoName || 'grok-trading-team',
-      body.isPrivate !== false
-    );
+    const out = await deployToGitHub(body.githubToken, body.repoName || 'grok-trading-team', body.isPrivate !== false);
     return sendJson(res, 200, out);
   }
 
   if (pathname === '/api/desk/github-device-start' && req.method === 'POST') {
     const body = await parseBody(req);
-    const out = await startGitHubDeviceFlow(
-      body.repoName || 'grok-trading-team',
-      body.isPrivate !== false
-    );
+    const out = await startGitHubDeviceFlow(body.repoName || 'grok-trading-team', body.isPrivate !== false);
     return sendJson(res, 200, out);
   }
 
@@ -1654,7 +890,7 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { ok: true, session: githubDeviceSession });
   }
 
-  // 3. 정적 파일 서빙
+  // 10) 정적 파일 서빙
   let filePath = pathname === '/' ? path.join(PUBLIC_DIR, 'index.html') : path.join(PUBLIC_DIR, pathname);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
@@ -1676,24 +912,47 @@ function startServer(port = 3000) {
   server.on('error', (err) => {
     if (err.code === 'EADDRINUSE') {
       const nextPort = port + 1;
-      console.log(`포트 ${port} 사용 중 -> 다음 빈 포트 ${nextPort}로 전환합니다.`);
       state.wmPort = nextPort;
-      server.listen(nextPort);
+      server.listen(nextPort, '0.0.0.0');
     } else {
       console.error('Server error:', err);
     }
   });
 
-  server.listen(port, () => {
+  server.listen(port, '0.0.0.0', () => {
     const actualPort = server.address().port;
     state.wmPort = actualPort;
     saveState();
     console.log(`================================================================`);
-    console.log(`🚀 그록 7-Agent 멀티 데스크 트레이딩 시스템 v3.0 가동!`);
-    console.log(`💰 [데스크1 밈코인 $1,000] + [데스크2 예측시장 괴리율 $1,000] + [데스크3 RWA 차트·옵션감마 $1,000]`);
-    console.log(`🌐 대시보드 주소: http://localhost:${actualPort}`);
+    console.log(`⚡ Variational 10x 스탑헌팅 봇 & 🎯 옵션 지지·저항선 핵심수치 v4.0`);
+    console.log(`🌐 주소: http://localhost:${actualPort}`);
     console.log(`================================================================`);
+
+    if (!state.desks.memecoin.lastVetResults?.length) {
+      setTimeout(() => {
+        executeStopHuntScan('초기 스캔').catch(() => {});
+      }, 1000);
+    }
+
+    // 평일 10분 주기 자동 스탑헌팅 스캔 & 포지션 리스크 점검 (Render 서버에서도 상시 가동)
+    setInterval(async () => {
+      try {
+        const sInfo = getStopHuntSessionInfo();
+        if (!sInfo.isWeekend) {
+          await executeStopHuntRiskCheck('10분 자동점검');
+          await executeStopHuntScan('10분 자동스캔');
+        }
+        // Render 무료 서버 슬립(15분 절전) 방지용 자체 헬스체크 핑
+        if (process.env.RENDER_EXTERNAL_URL && !sInfo.isWeekend) {
+          fetchJson(`${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/healthz`, {}, 5000).catch(() => {});
+        }
+      } catch {}
+    }, 10 * 60 * 1000);
   });
 }
 
-startServer(Number(process.env.WM_PORT || 3000));
+if (require.main === module) {
+  startServer(Number(process.env.PORT || 3000));
+}
+
+module.exports = { server, startServer };
