@@ -972,7 +972,7 @@
         const res = await fetch('/api/desk/github-device-start', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ repoName: repo, isPrivate: true })
+          body: JSON.stringify({ repoName: repo, isPrivate: false })
         });
         const out = await res.json();
         if (!out.ok) {
@@ -1027,7 +1027,7 @@
         const res = await fetch('/api/desk/github-deploy', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ githubToken: token, repoName: repo, isPrivate: true })
+          body: JSON.stringify({ githubToken: token, repoName: repo, isPrivate: false })
         });
         const out = await res.json();
         statusEl.innerHTML = out.ok
