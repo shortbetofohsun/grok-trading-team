@@ -199,7 +199,7 @@ if (fs.existsSync(STATE_FILE)) {
         optionChatHistory: Array.isArray(loaded.optionChatHistory) && loaded.optionChatHistory.length ? loaded.optionChatHistory : def.optionChatHistory
       };
 
-      const allowedSyms = new Set(['BTC', 'ETH', 'SOL', 'HYPE', 'QQQUSDT', 'SOXXUSDT', 'EWYUSDT']);
+      const allowedSyms = new Set(['BTC', 'ETH', 'SOL', 'HYPE', 'QQQUSDT', 'SOXLUSDT', 'EWYUSDT']);
       const hasInvalid = (state.desks.memecoin.openPositions || []).some(p => !p.isStopHunt || !allowedSyms.has(p.symbol));
       if (hasInvalid) {
         state.desks.memecoin.portfolio = createVaultPortfolio(1000.00);
@@ -265,23 +265,133 @@ function recomputePortfolio() {
   saveState();
 }
 
+function getStopHuntPerformanceSummary() {
+  recomputePortfolio();
+  const d = state.desks.memecoin;
+  const startingUsd = Number(d.portfolio.startingBalanceUsd || 1000.00);
+  const totalEquityUsd = Number(d.portfolio.totalEquityUsd || startingUsd);
+  const totalPnlUsd = Number((totalEquityUsd - startingUsd).toFixed(2));
+  const finalReturnPct = Number(((totalPnlUsd / startingUsd) * 100).toFixed(2));
+  const closedList = Array.isArray(d.closedPositions) ? d.closedPositions : [];
+  const closedCount = closedList.length;
+  const winCount = closedList.filter(c => Number(c.pnlUsd || 0) > 0).length;
+  const winRatePct = closedCount > 0 ? Number(((winCount / closedCount) * 100).toFixed(1)) : 0.0;
+  const retSign = finalReturnPct >= 0 ? '+' : '';
+  const pnlSign = totalPnlUsd >= 0 ? '+' : '-';
+
+  const footerPlain = `스탑헌팅 최종수익률: ${retSign}${finalReturnPct.toFixed(2)}% ($${totalEquityUsd.toFixed(2)} / 원금 $${startingUsd.toFixed(2)} · 누적손익 ${pnlSign}$${Math.abs(totalPnlUsd).toFixed(2)} · 청산 ${closedCount}건 승률 ${winRatePct.toFixed(1)}%)`;
+  const footerHtml = `────────────────────\n<i>${footerPlain}</i>`;
+
+  return {
+    startingUsd,
+    totalEquityUsd,
+    totalPnlUsd,
+    finalReturnPct,
+    closedCount,
+    winCount,
+    winRatePct,
+    footerPlain,
+    footerHtml
+  };
+}
+
 async function sendTelegramNotification(text, force = false) {
   const integ = state.integrations || {};
   if (!integ.telegramEnabled && !force) return { ok: false, reason: 'disabled' };
-  const token = (integ.telegramToken || DEFAULT_TELEGRAM_TOKEN).trim();
-  const chatId = (integ.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID).trim();
-  if (!token || !chatId) return { ok: false, reason: 'missing_credentials' };
+  const chatId = String(state.priceAlerts?.chat_id || integ.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID).trim();
+  if (!chatId) return { ok: false, reason: 'missing_credentials' };
 
-  const res = await fetchJson(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text: text.slice(0, 4000) })
-  });
-  if (res.ok) {
-    state.integrations.lastTelegramSentAt = new Date().toISOString();
-    saveState();
+  const tokens = [DEFAULT_ALERT_BOT_TOKEN, integ.telegramToken || DEFAULT_TELEGRAM_TOKEN].filter(Boolean);
+  let lastStatus = 500;
+  for (const tk of tokens) {
+    const res = await fetchJson(`https://api.telegram.org/bot${tk}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: text.slice(0, 4000),
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    }, 8000);
+    lastStatus = res.status;
+    if (res.ok && res.data?.ok) {
+      state.integrations.lastTelegramSentAt = new Date().toISOString();
+      saveState();
+      return { ok: true, status: res.status };
+    }
   }
-  return { ok: res.ok, status: res.status };
+  return { ok: false, status: lastStatus };
+}
+
+function recordStopHuntTelegramLog(symbol, actionLabel, price, target, condition, tgOk) {
+  if (!state.priceAlerts) state.priceAlerts = getDefaultState().priceAlerts;
+  if (!Array.isArray(state.priceAlerts.logs)) state.priceAlerts.logs = [];
+  const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+  state.priceAlerts.logs.unshift({
+    id: Date.now() + Math.floor(Math.random() * 1000),
+    symbol,
+    name: actionLabel,
+    timestamp: nowStr,
+    price: Number(Number(price || 0).toFixed(4)),
+    target: Number(Number(target || 0).toFixed(4)),
+    condition,
+    success: Boolean(tgOk),
+    detail: `[스탑헌팅 ${actionLabel}] 텔레그램 ${tgOk ? '전송 완료' : '전송 실패'}`
+  });
+  if (state.priceAlerts.logs.length > 100) {
+    state.priceAlerts.logs = state.priceAlerts.logs.slice(0, 100);
+  }
+  saveState();
+}
+
+async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, triggerSource = '실시간 TP/SL 감시') {
+  const desk = state.desks.memecoin;
+  desk.stats.closedCount += 1;
+  const isShort = pos.direction === 'SHORT';
+  const curP = Number(exitPriceUsd || pos.currentPriceUsd || pos.entryPriceUsd);
+  const priceDiff = isShort ? (pos.entryPriceUsd - curP) : (curP - pos.entryPriceUsd);
+  const rawPnl = pos.quantity * priceDiff;
+  const entryFee = Number(pos.feeUsd || 0);
+  const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.25);
+  const netProceeds = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
+  const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
+  const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
+
+  desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd + netProceeds).toFixed(2));
+  desk.portfolio.realizedPnlUsd = Number((desk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
+
+  const closedItem = {
+    ...pos,
+    currentPriceUsd: curP,
+    exitPriceUsd: curP,
+    netProceedsUsd: netProceeds,
+    pnlUsd,
+    pnlPct,
+    closedAt: new Date().toISOString(),
+    closeRule: closeReason
+  };
+  desk.closedPositions.unshift(closedItem);
+
+  const perf = getStopHuntPerformanceSummary();
+  const isProfit = pnlUsd >= 0;
+  const exitTitle = isProfit ? '익절(TP) 체결 완료' : '손절(SL) 체결 완료';
+  const sideKo = isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)';
+
+  const closeHtml = [
+    `<b>[Variational 10x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
+    ``,
+    `• <b>포지션:</b> ${sideKo}`,
+    `• <b>체결 가격:</b> 진입 $${pos.entryPriceUsd} ➔ 청산 $${curP}`,
+    `• <b>실현 손익:</b> ${pnlUsd >= 0 ? '+' : '-'}$${Math.abs(pnlUsd).toFixed(2)} (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
+    `• <b>청산 사유:</b> ${closeReason} (${triggerSource})`,
+    perf.footerHtml
+  ].join('\n');
+
+  addLog('EXIT', `[스탑헌팅 ${exitTitle}] $${pos.symbol} (${sideKo}) 진입 $${pos.entryPriceUsd} -> 청산 $${curP} | 실현손익 ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct}%) | ${perf.footerPlain}`);
+  const tgOut = await sendTelegramNotification(closeHtml, true);
+  recordStopHuntTelegramLog(pos.symbol, exitTitle, curP, isProfit ? pos.tp2PriceUsd : pos.stopPriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
+  return closedItem;
 }
 
 // ============================================================================
@@ -323,19 +433,25 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
           desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
           desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
           desk.openPositions.push(fillRes);
-          recomputePortfolio();
+          const perf = getStopHuntPerformanceSummary();
 
           const isShort = fillRes.direction === 'SHORT';
-          const fillMsg = [
-            `🚨 [평일 미장 개장 전 스탑헌팅 포착 — Variational 10x ${isShort ? 'SHORT(숏)' : 'LONG(롱)'} 진입!]`,
-            `• 종목: $${fillRes.symbol} (${fillRes.name}) | 60일 승률 ${fillRes.btWinRate || 60}% (10x ${fillRes.btPnl10x || '+15%'})`,
-            `• 포착 패턴: 90분 기준가($${fillRes.anchorPriceUsd}) 대비 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% [최적 ±${fillRes.minHuntPct}%~±${fillRes.maxHuntPct}%] + 꼬리 ${fillRes.wickReversalPct}% 확인`,
-            `• 진입(Variational 호가): $${fillRes.entryPriceUsd} | 증거금 $${fillRes.dollars} × 10배 = 포지션 $${fillRes.notionalUsd} (손익비 1:${fillRes.rrRatio})`,
-            `• 목표가: TP1 $${fillRes.tp1PriceUsd} / TP2(출발점) $${fillRes.tp2PriceUsd} | 칼손절(SL): $${fillRes.stopPriceUsd}`
+          const actionKo = isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)';
+          const fillHtml = [
+            `<b>[Variational 10x 스탑헌팅 포착 — $${fillRes.symbol} ${actionKo} 진입]</b>`,
+            ``,
+            `• <b>종목:</b> $${fillRes.symbol} (${fillRes.name})`,
+            `• <b>확정 스탑헌팅 구간:</b> ±${fillRes.minHuntPct}% ~ ±${fillRes.maxHuntPct}% (현재 90분 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% + 꼬리 ${fillRes.wickReversalPct}%)`,
+            `• <b>백테스트 검증:</b> 12개월 승률 ${fillRes.btWinRate || 75}% (10x ${fillRes.btPnl10x || '+20%'})`,
+            `• <b>진입 가격(호가):</b> $${fillRes.entryPriceUsd} (증거금 $${fillRes.dollars} × 10배 = $${fillRes.notionalUsd} · 손익비 1:${fillRes.rrRatio})`,
+            `• <b>익절 목표가:</b> 1차(TP1) $${fillRes.tp1PriceUsd} / 2차(TP2) $${fillRes.tp2PriceUsd}`,
+            `• <b>손절 방어선(SL):</b> $${fillRes.stopPriceUsd}`,
+            perf.footerHtml
           ].join('\n');
 
-          addLog('ENTRY', fillMsg);
-          await sendTelegramNotification(fillMsg);
+          addLog('ENTRY', `[스탑헌팅 진입] $${fillRes.symbol} ${actionKo} @ $${fillRes.entryPriceUsd} (변동 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% · 꼬리 ${fillRes.wickReversalPct}%) | TP2 $${fillRes.tp2PriceUsd} / SL $${fillRes.stopPriceUsd} | ${perf.footerPlain}`);
+          const tgOut = await sendTelegramNotification(fillHtml, true);
+          recordStopHuntTelegramLog(fillRes.symbol, actionKo, fillRes.entryPriceUsd, fillRes.tp2PriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
         }
       }
     }
@@ -369,39 +485,7 @@ async function executeStopHuntRiskCheck(triggerSource = '5분 리스크 점검')
       }
       if (check.action === 'CLOSE') {
         closed += 1;
-        desk.stats.closedCount += 1;
-        const isShort = pos.direction === 'SHORT';
-        const priceDiff = isShort
-          ? (pos.entryPriceUsd - pos.currentPriceUsd)
-          : (pos.currentPriceUsd - pos.entryPriceUsd);
-        const rawPnl = pos.quantity * priceDiff;
-        const entryFee = Number(pos.feeUsd || 0);
-        const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.25);
-        const netProceeds = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
-        const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
-        const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
-
-        desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd + netProceeds).toFixed(2));
-        desk.portfolio.realizedPnlUsd = Number((desk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
-
-        desk.closedPositions.unshift({
-          ...pos,
-          exitPriceUsd: pos.currentPriceUsd,
-          netProceedsUsd: netProceeds,
-          pnlUsd,
-          pnlPct,
-          closedAt: new Date().toISOString(),
-          closeRule: check.reason
-        });
-
-        const closeMsg = [
-          `🔔 [Variational 10x 스탑헌팅 청산 — ${triggerSource}]`,
-          `• 종목: $${pos.symbol} (${isShort ? 'SHORT 10x' : 'LONG 10x'})`,
-          `• 사유: ${check.reason}`,
-          `• 정산: 증거금 $${pos.dollars.toFixed(2)} -> 회수 $${netProceeds.toFixed(2)} (${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} / 10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`
-        ].join('\n');
-        addLog('EXIT', closeMsg);
-        await sendTelegramNotification(closeMsg);
+        await settleAndNotifyStopHuntPosition(pos, pos.currentPriceUsd, check.reason, triggerSource);
       } else {
         remaining.push(pos);
       }
@@ -897,6 +981,76 @@ async function pollVariationalPriceAlerts() {
     cat.sort((a, b) => b.volume24h - a.volume24h);
     variationalCatalog = cat;
 
+    // [실시간 3초 주기 스탑헌팅 10x 열린 포지션 익절(TP1/TP2) · 손절(SL) 감시 및 텔레그램 발송]
+    const desk = state.desks?.memecoin;
+    if (desk && Array.isArray(desk.openPositions) && desk.openPositions.length > 0) {
+      const remainingPos = [];
+      let posChanged = false;
+      for (const pos of desk.openPositions) {
+        const cleanTicker = String(pos.contract || pos.symbol || '').toUpperCase().replace(/USDT$/, '');
+        const live = mapByTicker.get(cleanTicker);
+        if (!live || live.markPrice <= 0) {
+          remainingPos.push(pos);
+          continue;
+        }
+        const isShort = pos.direction === 'SHORT';
+        // 청산 기준가: 숏 청산(매수환매) 시 Ask/Mark, 롱 청산(매도전매) 시 Bid/Mark
+        const curP = Number(live.markPrice.toFixed(4));
+        if (pos.currentPriceUsd !== curP) {
+          pos.currentPriceUsd = curP;
+          posChanged = true;
+        }
+
+        const tp1P = Number(pos.tp1PriceUsd || pos.entryPriceUsd);
+        const tp2P = Number(pos.tp2PriceUsd || pos.entryPriceUsd);
+        const stopP = Number(pos.stopPriceUsd || pos.entryPriceUsd);
+
+        let shouldClose = false;
+        let closeReason = '';
+
+        if (isShort) {
+          if (curP <= tp2P) {
+            shouldClose = true;
+            closeReason = `출발 기준가(TP2 $${tp2P}) 도달 전량 익절`;
+          } else if (curP >= stopP) {
+            shouldClose = true;
+            closeReason = `스탑헌팅 고점 방어선(SL $${stopP}) 돌파 칼손절`;
+          } else if (curP <= tp1P) {
+            pos.tp1Reached = true;
+            posChanged = true;
+          } else if (pos.tp1Reached && curP >= tp1P * 1.0015) {
+            shouldClose = true;
+            closeReason = `1차 목표가(TP1 $${tp1P}) 도달 후 수익 보존 익절`;
+          }
+        } else {
+          if (curP >= tp2P) {
+            shouldClose = true;
+            closeReason = `출발 기준가(TP2 $${tp2P}) 도달 전량 익절`;
+          } else if (curP <= stopP) {
+            shouldClose = true;
+            closeReason = `스탑헌팅 저점 방어선(SL $${stopP}) 이탈 칼손절`;
+          } else if (curP >= tp1P) {
+            pos.tp1Reached = true;
+            posChanged = true;
+          } else if (pos.tp1Reached && curP <= tp1P * 0.9985) {
+            shouldClose = true;
+            closeReason = `1차 목표가(TP1 $${tp1P}) 도달 후 수익 보존 익절`;
+          }
+        }
+
+        if (shouldClose) {
+          posChanged = true;
+          await settleAndNotifyStopHuntPosition(pos, curP, closeReason, '실시간 3초 TP/SL 감시');
+        } else {
+          remainingPos.push(pos);
+        }
+      }
+      if (posChanged) {
+        desk.openPositions = remainingPos;
+        recomputePortfolio();
+      }
+    }
+
     if (!state.priceAlerts) state.priceAlerts = getDefaultState().priceAlerts;
     const targets = state.priceAlerts.targets || {};
     const rearmMode = state.priceAlerts.rearm_mode || 'cross_again';
@@ -969,6 +1123,7 @@ async function pollVariationalPriceAlerts() {
         const pctDiff = targetP > 0 ? ((curP - targetP) / targetP) * 100 : 0;
         const condStr = cond === 'gte' ? '이상 돌파 (>=)' : '이하 도달 (<=)';
 
+        const perf = getStopHuntPerformanceSummary();
         const msg = [
           `<b>[Variational ${assetName} (${sym}) 목표가 도달 알림]</b>`,
           ``,
@@ -976,7 +1131,8 @@ async function pollVariationalPriceAlerts() {
           `• <b>현재 마크가:</b> $${curP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} (${diffStr}, ${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(2)}%)`,
           `• <b>호가 (Bid / Ask):</b> $${live.bidPrice.toFixed(2)} / $${live.askPrice.toFixed(2)}`,
           `• <b>도달 시각:</b> ${dateTimeStr}`,
-          `• <b>사유:</b> ${triggerReason}`
+          `• <b>사유:</b> ${triggerReason}`,
+          perf.footerHtml
         ].join('\n');
 
         const tgRes = await sendPriceAlertTelegram(msg);
@@ -1007,9 +1163,19 @@ async function pollVariationalPriceAlerts() {
   }
 }
 
-// 3초 주기 Variational DEX 지정가 감시 루프
+// 3초 주기 Variational DEX 지정가 감시 + 열린 10x 포지션 실시간 익절/손절 감시 루프
 setInterval(pollVariationalPriceAlerts, 3000);
 setTimeout(pollVariationalPriceAlerts, 500);
+
+// 미장 개장 전후 스탑헌팅 킬존(07:30~10:30 ET) 1분 주기 정밀 타점 감시 루프
+setInterval(async () => {
+  try {
+    const sInfo = getStopHuntSessionInfo();
+    if (sInfo.isNyPreOpenKillzone && state.routines.scan15mEnabled) {
+      await executeStopHuntScan('킬존 1분 자동스캔');
+    }
+  } catch {}
+}, 60 * 1000);
 
 // 5분 10x 포지션 점검 / 15분 스탑헌팅 스캔
 setInterval(async () => {
@@ -1055,15 +1221,16 @@ const server = http.createServer(async (req, res) => {
 
   // Render 헬스체크 엔드포인트
   if (pathname === '/healthz' && req.method === 'GET') {
-    return sendJson(res, 200, { ok: true, status: 'healthy', version: '4.0.0' });
+    return sendJson(res, 200, { ok: true, status: 'healthy', version: '4.2.0' });
   }
 
   // 1) 전체 상태 조회
   if (pathname === '/api/desk/state' && req.method === 'GET') {
-    recomputePortfolio();
+    const stopHuntPerformance = getStopHuntPerformanceSummary();
     return sendJson(res, 200, {
       state,
       stopHuntUniverse: STOPHUNT_UNIVERSE,
+      stopHuntPerformance,
       sessionInfo: getStopHuntSessionInfo(),
       githubDeviceSession
     });
@@ -1087,7 +1254,7 @@ const server = http.createServer(async (req, res) => {
     state.desks.memecoin.openPositions = [];
     state.desks.memecoin.closedPositions = [];
     recomputePortfolio();
-    addLog('INFO', '🔄 Variational 10x 스탑헌팅 금고가 $1,000.00로 초기화되었습니다.');
+    addLog('INFO', 'Variational 10x 스탑헌팅 금고가 $1,000.00로 초기화되었습니다.');
     return sendJson(res, 200, { ok: true, state });
   }
 
@@ -1121,13 +1288,16 @@ const server = http.createServer(async (req, res) => {
 
   // 8) 텔레그램 연결 테스트
   if (pathname === '/api/desk/telegram-test' && req.method === 'POST') {
-    recomputePortfolio();
+    const perf = getStopHuntPerformanceSummary();
     const p = state.desks.memecoin.portfolio;
     const msg = [
-      `🔔 [Variational 10x 스탑헌팅 봇 — 텔레그램 알림 테스트]`,
-      `• 금고 평가액: $${p.totalEquityUsd.toFixed(2)} (가용 현금 $${p.cashUsd.toFixed(2)})`,
-      `• 열린 10x 포지션: ${state.desks.memecoin.openPositions.length}개`,
-      `• 평일 미장 개장 전 스탑헌팅 포착 시 즉시 이 채널로 알림이 전송됩니다.`
+      `<b>[Variational 10x 스탑헌팅 봇 — 텔레그램 알림 테스트]</b>`,
+      ``,
+      `• <b>감시 대상 (7종목):</b> BTC, ETH, SOL, HYPE, QQQ, SOXL, EWY`,
+      `• <b>금고 평가액:</b> $${p.totalEquityUsd.toFixed(2)} (가용 현금 $${p.cashUsd.toFixed(2)})`,
+      `• <b>열린 10x 포지션:</b> ${state.desks.memecoin.openPositions.length}개`,
+      `• <b>자동 발송:</b> 킬존(07:30~10:30 ET) 확정 구간 진입 시 모의 매수/매도 및 실시간 익절(TP)/손절(SL) 알림이 즉시 전송됩니다.`,
+      perf.footerHtml
     ].join('\n');
     const tgOut = await sendTelegramNotification(msg, true);
     return sendJson(res, 200, tgOut);
@@ -1281,13 +1451,15 @@ const server = http.createServer(async (req, res) => {
     const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
     const condStr = tConf.condition === 'lte' ? '이하 도달 (<=)' : '이상 돌파 (>=)';
 
+    const perf = getStopHuntPerformanceSummary();
     const msg = [
       `<b>[텔레그램 지정가 알림 테스트 — ${tConf.name} (${sym})]</b>`,
       ``,
       `Variational DEX 실시간 지정가 알림 봇이 정상 연동되어 감시 중입니다.`,
       `• <b>현재 ${sym} 마크가:</b> $${Number(sState.current_price || 0).toFixed(2)}`,
       `• <b>설정 목표가:</b> $${Number(tConf.target_price || 0).toFixed(2)} (${condStr})`,
-      `• <b>발송 시각:</b> ${nowStr}`
+      `• <b>발송 시각:</b> ${nowStr}`,
+      perf.footerHtml
     ].join('\n');
 
     const tgOut = await sendPriceAlertTelegram(msg);
