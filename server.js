@@ -586,7 +586,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
     const patchRes = await fetchJson(`https://api.github.com/repos/${owner}/${repoName}`, {
       method: 'PATCH',
       headers: ghHeaders,
-      body: JSON.stringify({ private: false })
+      body: JSON.stringify({ private: false, visibility: 'public' })
     });
     if (patchRes.ok) {
       repoRes = patchRes;
