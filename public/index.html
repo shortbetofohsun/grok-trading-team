@@ -3,300 +3,317 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>그록 7-Agent 멀티 데스크 트레이딩 시스템 v3.0 ($1,000 × 3 금고)</title>
+  <title>Variational 10x 스탑헌팅 &amp; AI 옵션 지지·저항선 툴</title>
   <style>
     :root {
-      --bg: #080b11;
-      --panel: #101622;
-      --panel-2: #161f30;
-      --border: #243147;
-      --text: #f1f5f9;
-      --muted: #94a3b8;
-      --gold: #f59e0b;
+      --bg: #0d1117;
+      --card: #151b23;
+      --card-sub: #1b222d;
+      --border: #262f3d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --blue: #3b82f6;
       --green: #10b981;
-      --red: #ef4444;
-      --blue: #38bdf8;
-      --purple: #a855f7;
-      --indigo: #6366f1;
+      --red: #f43f5e;
+      --amber: #f59e0b;
     }
+
     * { box-sizing: border-box; }
     body {
       margin: 0;
       background: var(--bg);
       color: var(--text);
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Malgun Gothic", "맑은 고딕", sans-serif;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       font-size: 13.5px;
       line-height: 1.5;
+      font-variant-numeric: tabular-nums;
+      -webkit-font-smoothing: antialiased;
     }
-    .container {
-      max-width: 1480px;
+
+    .app-wrap {
+      max-width: 1580px;
       margin: 0 auto;
-      padding: 16px 20px 48px;
+      padding: 16px 20px 36px;
     }
-    /* Header */
-    .topbar {
+
+    /* Top Header */
+    .header {
       display: flex;
-      flex-wrap: wrap;
       justify-content: space-between;
       align-items: center;
-      gap: 12px;
-      background: linear-gradient(135deg, #111827 0%, #0f172a 100%);
+      flex-wrap: wrap;
+      gap: 14px;
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px 18px;
+      border-radius: 12px;
+      padding: 12px 18px;
       margin-bottom: 16px;
     }
-    .brand-title {
+    .header-left {
       display: flex;
       align-items: center;
-      gap: 10px;
-      font-size: 18px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .app-title {
+      font-size: 16px;
       font-weight: 800;
       letter-spacing: -0.3px;
+      color: #fff;
     }
-    .badge-v3 {
-      background: linear-gradient(135deg, #f59e0b, #ea580c);
-      color: #080b11;
-      font-size: 11px;
-      font-weight: 800;
-      padding: 3px 9px;
-      border-radius: 999px;
+    .session-pill {
+      font-size: 11.5px;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 99px;
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      color: var(--muted);
     }
-    .top-actions {
+    .header-right {
       display: flex;
-      flex-wrap: wrap;
-      gap: 8px;
       align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .vault-stats {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      padding: 6px 14px;
+      border-radius: 9px;
+      font-size: 12.5px;
+    }
+    .vault-stats span { color: var(--muted); }
+    .vault-stats b { color: var(--text); margin-left: 4px; }
+
+    .btn-group {
+      display: flex;
+      gap: 6px;
     }
     button {
-      font-family: inherit;
       cursor: pointer;
-      border-radius: 8px;
       border: 1px solid var(--border);
-      background: var(--panel-2);
+      background: var(--card-sub);
       color: var(--text);
-      font-weight: 700;
-      font-size: 12.5px;
-      padding: 8px 13px;
-      transition: all 0.15s ease;
+      padding: 7px 12px;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 12px;
+      transition: background 0.15s, border-color 0.15s;
     }
     button:hover {
-      border-color: var(--gold);
-      transform: translateY(-1px);
+      background: #232c3b;
+      border-color: #3b4659;
     }
     button:disabled {
       opacity: 0.5;
-      cursor: not-allowed;
-      transform: none;
-    }
-    .btn-primary {
-      background: linear-gradient(135deg, #f59e0b, #d97706);
-      color: #080b11;
-      border-color: #f59e0b;
-    }
-    .btn-green {
-      background: rgba(16, 185, 129, 0.16);
-      color: #34d399;
-      border-color: rgba(16, 185, 129, 0.45);
-    }
-    .btn-purple {
-      background: rgba(168, 85, 247, 0.16);
-      color: #c084fc;
-      border-color: rgba(168, 85, 247, 0.45);
-    }
-    .btn-blue {
-      background: rgba(56, 189, 248, 0.16);
-      color: #38bdf8;
-      border-color: rgba(56, 189, 248, 0.45);
-    }
-    .btn-red {
-      background: rgba(239, 68, 68, 0.15);
-      color: #f87171;
-      border-color: rgba(239, 68, 68, 0.4);
-    }
-
-    /* 4 Vault Summary Cards ($3,000 Total + 3 x $1,000 Desks) */
-    .vault-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    @media (max-width: 1100px) { .vault-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 640px) { .vault-grid { grid-template-columns: 1fr; } }
-
-    .vault-card {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 14px 16px;
-      position: relative;
-      cursor: pointer;
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .vault-card:hover {
-      border-color: #475569;
-    }
-    .vault-card.active {
-      border-color: var(--gold);
-      box-shadow: 0 0 0 1px var(--gold), 0 8px 24px rgba(245, 158, 11, 0.12);
-    }
-    .vault-card.total-card {
-      background: linear-gradient(135deg, #172033 0%, #101622 100%);
-      border-color: rgba(245, 158, 11, 0.45);
       cursor: default;
     }
-    .vault-head {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      font-size: 12.5px;
-      font-weight: 700;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
-    .vault-equity {
-      font-size: 23px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      margin-bottom: 6px;
-    }
-    .vault-sub {
-      font-size: 11.5px;
-      color: var(--muted);
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: space-between;
-      gap: 6px;
-    }
-    .pos-text { color: var(--green); font-weight: 700; }
-    .neg-text { color: var(--red); font-weight: 700; }
-
-    /* Desk Tabs */
-    .desk-tabs {
-      display: flex;
-      gap: 10px;
-      margin-bottom: 14px;
-      flex-wrap: wrap;
-    }
-    .desk-tab {
-      flex: 1;
-      min-width: 240px;
-      padding: 12px 16px;
-      border-radius: 11px;
-      background: var(--panel);
-      border: 1px solid var(--border);
-      text-align: left;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .desk-tab.active {
-      background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(30, 41, 59, 0.9));
-      border-color: var(--gold);
+    .btn-primary {
+      background: var(--blue);
+      border-color: var(--blue);
       color: #fff;
     }
-    .desk-tab-title {
-      font-size: 14px;
-      font-weight: 800;
-      margin-bottom: 2px;
-    }
-    .desk-tab-desc {
-      font-size: 11.5px;
-      color: var(--muted);
-      font-weight: 500;
+    .btn-primary:hover {
+      background: #2563eb;
+      border-color: #2563eb;
     }
 
-    /* 7-Agent Role Strip */
-    .roles-box {
-      background: var(--panel);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 13px 16px;
-      margin-bottom: 16px;
-    }
-    .roles-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-    .roles-grid {
+    /* 50:50 Split Grid */
+    .split-grid {
       display: grid;
-      grid-template-columns: repeat(7, 1fr);
-      gap: 8px;
-    }
-    @media (max-width: 1200px) { .roles-grid { grid-template-columns: repeat(4, 1fr); } }
-    @media (max-width: 680px) { .roles-grid { grid-template-columns: repeat(2, 1fr); } }
-
-    .bot-card {
-      background: var(--panel-2);
-      border: 1px solid var(--border);
-      border-radius: 9px;
-      padding: 9px 10px;
-      cursor: pointer;
-      transition: border-color 0.15s;
-    }
-    .bot-card:hover {
-      border-color: var(--gold);
-    }
-    .bot-top {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 4px;
-    }
-    .bot-name {
-      font-weight: 800;
-      font-size: 13px;
-    }
-    .bot-badge {
-      font-size: 10.5px;
-      padding: 2px 6px;
-      border-radius: 99px;
-      background: rgba(255, 255, 255, 0.07);
-      font-weight: 700;
-    }
-    .bot-role-text {
-      font-size: 11px;
-      color: var(--muted);
-      line-height: 1.35;
-    }
-
-    /* Main 2-Column Workspace */
-    .workspace {
-      display: grid;
-      grid-template-columns: 1.05fr 1.25fr;
+      grid-template-columns: 1.08fr 0.92fr;
       gap: 16px;
       align-items: start;
     }
-    @media (max-width: 1080px) { .workspace { grid-template-columns: 1fr; } }
+    @media (max-width: 1120px) {
+      .split-grid { grid-template-columns: 1fr; }
+    }
 
     .card {
-      background: var(--panel);
+      background: var(--card);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 15px 16px;
+      padding: 16px;
       margin-bottom: 16px;
     }
-    .card-title {
-      font-size: 14.5px;
-      font-weight: 800;
-      margin: 0 0 10px;
+    .card-head {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 12px;
       gap: 8px;
       flex-wrap: wrap;
     }
+    .card-title {
+      font-size: 14.5px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .card-sub {
+      font-size: 12px;
+      color: var(--muted);
+    }
 
-    /* Chat Window */
-    .chat-log {
-      height: 510px;
+    /* Clean Tables */
+    .table-wrap { overflow-x: auto; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12.5px;
+    }
+    th, td {
+      padding: 9px 10px;
+      text-align: left;
+      border-bottom: 1px solid #1e2633;
+    }
+    th {
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 11.5px;
+      background: rgba(255, 255, 255, 0.02);
+      white-space: nowrap;
+    }
+    tr:last-child td { border-bottom: none; }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 7px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 700;
+    }
+    .badge-long { background: rgba(16, 185, 129, 0.14); color: #34d399; }
+    .badge-short { background: rgba(244, 63, 94, 0.14); color: #fb7185; }
+    .badge-wait { background: rgba(139, 148, 158, 0.14); color: #9ca3af; }
+    .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+
+    .text-green { color: var(--green); font-weight: 600; }
+    .text-red { color: var(--red); font-weight: 600; }
+    .text-muted { color: var(--muted); }
+
+    /* Sub-tabs for Positions / History / Logic */
+    .sub-tabs {
+      display: flex;
+      gap: 6px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+    .sub-tab {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted);
+      padding: 5px 11px;
+      border-radius: 7px;
+      font-size: 12px;
+    }
+    .sub-tab.active {
+      background: var(--card-sub);
+      border-color: var(--border);
+      color: #fff;
+    }
+
+    /* Strategy Logic Box */
+    .logic-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+    @media (max-width: 640px) { .logic-grid { grid-template-columns: 1fr; } }
+    .logic-item {
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      border-radius: 9px;
+      padding: 10px 12px;
+      font-size: 12px;
+    }
+    .logic-item b {
+      display: block;
+      color: #fff;
+      margin-bottom: 3px;
+      font-size: 12.5px;
+    }
+
+    /* Right Side: Option S/R Tool & Chat */
+    .chip-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .ticker-chip {
+      padding: 4px 10px;
+      border-radius: 7px;
+      font-size: 12px;
+      font-weight: 600;
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .ticker-chip.active, .ticker-chip:hover {
+      color: #fff;
+      border-color: var(--blue);
+      background: rgba(59, 130, 246, 0.14);
+    }
+
+    /* 5-Level Support & Resistance Ladder */
+    .sr-box {
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 12px;
+    }
+    .sr-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-bottom: 10px;
+      margin-bottom: 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .sr-ladder {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 8px;
+      text-align: center;
+    }
+    @media (max-width: 680px) {
+      .sr-ladder { grid-template-columns: 1fr; }
+    }
+    .sr-cell {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 8px 6px;
+    }
+    .sr-cell .lbl {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 3px;
+    }
+    .sr-cell .val {
+      font-size: 14.5px;
+      font-weight: 800;
+    }
+    .sr-cell .sub {
+      font-size: 10.5px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    /* AI Chat Feed */
+    .chat-feed {
+      height: 410px;
       overflow-y: auto;
-      background: #0a0e17;
+      background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 10px;
       padding: 12px;
@@ -304,487 +321,246 @@
       flex-direction: column;
       gap: 10px;
     }
-    .msg {
-      background: var(--panel-2);
-      border: 1px solid #1e293b;
-      border-left: 3px solid var(--gold);
-      border-radius: 8px;
-      padding: 9px 12px;
-    }
-    .msg-head {
-      display: flex;
-      justify-content: space-between;
-      font-size: 11.5px;
-      margin-bottom: 4px;
-      color: var(--muted);
-    }
-    .msg-sender {
-      font-weight: 800;
-      color: var(--text);
-    }
-    .msg-body {
+    .chat-bubble {
+      padding: 11px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      line-height: 1.6;
       white-space: pre-wrap;
-      font-size: 12.5px;
-      color: #e2e8f0;
-      line-height: 1.55;
       word-break: break-word;
     }
-    .chat-input-row {
+    .chat-bubble.user {
+      align-self: flex-end;
+      background: rgba(59, 130, 246, 0.18);
+      border: 1px solid rgba(59, 130, 246, 0.35);
+      color: #fff;
+      max-width: 82%;
+    }
+    .chat-bubble.assistant {
+      align-self: flex-start;
+      background: var(--card-sub);
+      border: 1px solid var(--border);
+      color: var(--text);
+      width: 100%;
+    }
+    .chat-meta {
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .chat-form {
       display: flex;
       gap: 8px;
       margin-top: 10px;
     }
-    .chat-input-row input {
+    .chat-form input {
       flex: 1;
-      background: #0a0e17;
+      background: var(--bg);
       border: 1px solid var(--border);
       color: var(--text);
       border-radius: 8px;
-      padding: 9px 12px;
+      padding: 10px 12px;
       font-size: 13px;
+      outline: none;
     }
-
-    /* Tables */
-    .table-wrap {
-      overflow-x: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      font-size: 12px;
-    }
-    th, td {
-      padding: 8px 9px;
-      text-align: left;
-      border-bottom: 1px solid #1e293b;
-    }
-    th {
-      color: var(--muted);
-      font-weight: 700;
-      background: rgba(15, 23, 42, 0.6);
-      white-space: nowrap;
-    }
-    .pill {
-      display: inline-block;
-      padding: 2px 7px;
-      border-radius: 99px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .pill-pass { background: rgba(16, 185, 129, 0.18); color: #34d399; }
-    .pill-reject { background: rgba(239, 68, 68, 0.18); color: #f87171; }
-    .pill-purple { background: rgba(168, 85, 247, 0.2); color: #d8b4fe; }
-    .pill-gold { background: rgba(245, 158, 11, 0.2); color: #fcd34d; }
-
-    /* RWA Live Chart Channel & Options Gamma Inspector */
-    .rwa-Presets {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-    .preset-btn {
-      padding: 5px 10px;
-      font-size: 12px;
-      border-radius: 6px;
-      background: #0f172a;
-    }
-    .preset-btn.active {
-      background: var(--gold);
-      color: #080b11;
-      border-color: var(--gold);
-    }
-    .rwa-inspector-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-top: 10px;
-    }
-    @media (max-width: 720px) { .rwa-inspector-grid { grid-template-columns: 1fr; } }
-
-    .channel-box {
-      background: #0b101b;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 12px;
-    }
-    .band-bar {
-      position: relative;
-      height: 26px;
-      background: rgba(214, 218, 226, 0.12);
-      border: 1px solid #d6dae2;
-      border-radius: 6px;
-      margin: 14px 0 8px;
-      overflow: hidden;
-    }
-    .band-purple {
-      position: absolute;
-      top: 3px;
-      bottom: 3px;
-      background: rgba(168, 85, 247, 0.28);
-      border-left: 2px solid #a855f7;
-      border-right: 2px solid #a855f7;
-      border-radius: 4px;
-    }
-    .band-spot {
-      position: absolute;
-      top: 0;
-      bottom: 0;
-      width: 3px;
-      background: var(--gold);
-      box-shadow: 0 0 8px var(--gold);
-    }
-    .gex-row {
-      display: grid;
-      grid-template-columns: 1fr 56px 1fr;
-      align-items: center;
-      gap: 6px;
-      font-size: 11px;
-      margin: 3px 0;
-    }
-    .gex-bar-wrap {
-      height: 12px;
-      background: #131c2e;
-      border-radius: 3px;
-      position: relative;
-      overflow: hidden;
-    }
-    .gex-bar-put {
-      position: absolute;
-      right: 0;
-      top: 0;
-      bottom: 0;
-      background: var(--red);
-    }
-    .gex-bar-call {
-      position: absolute;
-      left: 0;
-      top: 0;
-      bottom: 0;
-      background: var(--green);
+    .chat-form input:focus {
+      border-color: var(--blue);
     }
 
     /* Modal */
     .modal-backdrop {
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.75);
+      background: rgba(0, 0, 0, 0.72);
       display: none;
       place-items: center;
       z-index: 100;
       padding: 16px;
     }
     .modal {
-      background: var(--panel);
+      background: var(--card);
       border: 1px solid var(--border);
-      border-radius: 14px;
-      max-width: 680px;
+      border-radius: 12px;
+      max-width: 540px;
       width: 100%;
       padding: 20px;
-      max-height: 88vh;
-      overflow-y: auto;
     }
   </style>
 </head>
 <body>
-  <div class="container">
-    <!-- 상단 헤더 -->
-    <header class="topbar">
-      <div>
-        <div class="brand-title">
-          <span>🤖 그록 7-Agent 멀티 데스크 트레이딩 시스템</span>
-          <span class="badge-v3">v3.0 · $1,000 × 3 독립 금고</span>
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-top:3px;">
-          🪙 크립토 밈코인($1,000) + 🎯 예측시장 괴리율($1,000) + 🏛️ RWA 켈트너·볼린저 차트 &amp; 콜/숏감마 옵션($1,000) · Gemini 3.5 Flash + 텔레그램 실시간 연동
-        </div>
+  <div class="app-wrap">
+    <!-- 상단 바 -->
+    <header class="header">
+      <div class="header-left">
+        <div class="app-title">⚡ Variational 10x 스탑헌팅 &amp; 🎯 AI 옵션 지지·저항선</div>
+        <span class="session-pill" id="sessionBadge">세션 확인 중...</span>
       </div>
-      <div class="top-actions">
-        <button class="btn-primary" onclick="runPipeline('all')" id="btnRunAll">🚀 3대 데스크 전체 스캔 실행</button>
-        <button class="btn-green" onclick="runRiskCheck()">🚨 3대 데스크 RISK 즉시 점검</button>
-        <button class="btn-blue" onclick="sendDailyReport()">📋 3대 데스크 마감 보고서</button>
-        <button class="btn-purple" onclick="testTelegram()">📱 텔레그램 알림 테스트</button>
-        <button onclick="openCloudModal()">☁️ GitHub 24시간 무인 클라우드 배포</button>
-        <button class="btn-red" onclick="resetAllDesks()">🔄 $3,000 전체 초기화</button>
+
+      <div class="header-right">
+        <div class="vault-stats">
+          <div><span>10x 금고 총자산</span><b id="vEquity">$1,000.00</b></div>
+          <div><span>가용현금</span><b id="vCash">$1,000.00</b></div>
+          <div><span>증거금</span><b id="vDeployed">$0.00</b></div>
+          <div><span>10x 누적손익</span><b id="vPnl">$0.00</b></div>
+        </div>
+        <div class="btn-group">
+          <button class="btn-primary" onclick="triggerScan()" id="btnScan">↻ 스탑헌팅 스캔</button>
+          <button onclick="openCloudModal()">☁️ GitHub 클라우드</button>
+          <button onclick="resetVault()">초기화</button>
+        </div>
       </div>
     </header>
 
-    <!-- 4대 금고 요약 카드 ($3,000 통합 + 각 $1,000 데스크 3개) -->
-    <section class="vault-grid">
-      <div class="vault-card total-card">
-        <div class="vault-head">
-          <span>💰 3대 데스크 통합 자산 (Total Vault)</span>
-          <span class="pill pill-gold">시작 $3,000.00</span>
-        </div>
-        <div class="vault-equity" id="totEquity">$3,000.00</div>
-        <div class="vault-sub">
-          <span>가용현금: <b id="totCash">$3,000.00</b></span>
-          <span>운용중: <b id="totDeployed">$0.00</b></span>
-          <span>총손익: <b id="totPnl">$0.00</b></span>
-        </div>
-      </div>
-
-      <div class="vault-card active" id="vaultCard_memecoin" onclick="switchDesk('memecoin')">
-        <div class="vault-head">
-          <span>🪙 데스크 1: 크립토 밈코인</span>
-          <span class="pill pill-pass" id="memeOpenBadge">보유 0개</span>
-        </div>
-        <div class="vault-equity" id="memeEquity">$1,000.00</div>
-        <div class="vault-sub">
-          <span>현금: <b id="memeCash">$1,000.00</b></span>
-          <span>운용: <b id="memeDeployed">$0.00</b></span>
-          <span>손익: <b id="memePnl">$0.00</b></span>
-        </div>
-      </div>
-
-      <div class="vault-card" id="vaultCard_prediction" onclick="switchDesk('prediction')">
-        <div class="vault-head">
-          <span>🎯 데스크 2: 예측시장 괴리율</span>
-          <span class="pill pill-pass" id="predOpenBadge">보유 0개</span>
-        </div>
-        <div class="vault-equity" id="predEquity">$1,000.00</div>
-        <div class="vault-sub">
-          <span>현금: <b id="predCash">$1,000.00</b></span>
-          <span>운용: <b id="predDeployed">$0.00</b></span>
-          <span>손익: <b id="predPnl">$0.00</b></span>
-        </div>
-      </div>
-
-      <div class="vault-card" id="vaultCard_rwa" onclick="switchDesk('rwa')">
-        <div class="vault-head">
-          <span>🏛️ 데스크 3: RWA 차트·옵션감마</span>
-          <span class="pill pill-purple" id="rwaOpenBadge">보유 0개</span>
-        </div>
-        <div class="vault-equity" id="rwaEquity">$1,000.00</div>
-        <div class="vault-sub">
-          <span>현금: <b id="rwaCash">$1,000.00</b></span>
-          <span>운용: <b id="rwaDeployed">$0.00</b></span>
-          <span>손익: <b id="rwaPnl">$0.00</b></span>
-        </div>
-      </div>
-    </section>
-
-    <!-- 데스크 선택 탭 -->
-    <div class="desk-tabs">
-      <button class="desk-tab active" id="tab_memecoin" onclick="switchDesk('memecoin')">
-        <div>
-          <div class="desk-tab-title">🪙 데스크 1: 크립토 밈코인 ($1,000)</div>
-          <div class="desk-tab-desc">DexScreener 속도 스캔 + Solana RPC/RugCheck 7단계 필터 + 거래량 비율 청산</div>
-        </div>
-        <span class="pill pill-gold">선택됨</span>
-      </button>
-
-      <button class="desk-tab" id="tab_prediction" onclick="switchDesk('prediction')">
-        <div>
-          <div class="desk-tab-title">🎯 데스크 2: 예측시장 괴리율 ($1,000)</div>
-          <div class="desk-tab-desc">Kalshi·Polymarket + Gemini AI 블라인드 확률 추론 괴리율(≥8%) 아비트리지</div>
-        </div>
-        <span class="pill">전환</span>
-      </button>
-
-      <button class="desk-tab" id="tab_rwa" onclick="switchDesk('rwa')">
-        <div>
-          <div class="desk-tab-title">🏛️ 데스크 3: RWA 차트·옵션감마 ($1,000)</div>
-          <div class="desk-tab-desc">tooja.me 켈트너·볼린저 스퀴즈 타점 + 콜감마(Long Gamma)·숏감마(Short Gamma)·맥스페인</div>
-        </div>
-        <span class="pill">전환</span>
-      </button>
-    </div>
-
-    <!-- 선택된 데스크의 맞춤형 7개 에이전트 역할 매트릭스 -->
-    <section class="roles-box">
-      <div class="roles-header">
-        <div>
-          <b id="deskRoleTitle" style="font-size:14px;color:var(--gold);">🪙 데스크 1: 크립토 밈코인 데스크 — 7개 에이전트 맞춤 역할</b>
-          <span id="deskRoleSubtitle" style="font-size:12px;color:var(--muted);margin-left:8px;">(카드를 클릭하면 해당 데스크 전용 프롬프트와 규칙을 확인합니다)</span>
-        </div>
-        <div style="display:flex;gap:6px;">
-          <button class="btn-primary" onclick="runCurrentDeskPipeline()" id="btnRunCurrentDesk">▶️ 현재 데스크 단독 스캔·매매 실행</button>
-          <button onclick="resetCurrentDesk()">🔄 현재 데스크($1,000)만 리셋</button>
-        </div>
-      </div>
-      <div class="roles-grid" id="rolesGrid"></div>
-    </section>
-
-    <!-- 메인 워크스페이스: 좌측 단톡방 + 보유포지션 / 우측 데스크별 전용 분석기 -->
-    <div class="workspace">
-      <!-- 좌측 컬럼: 실시간 에이전트 단톡방 & 현재 데스크 보유 포지션 -->
+    <!-- 좌·우 50:50 메인 워크스페이스 -->
+    <div class="split-grid">
+      <!-- ==================== 좌측: Variational 10x 스탑헌팅 모의매매 및 로직 ==================== -->
       <div>
+        <!-- 1. 실시간 7대 선물 스탑헌팅 모니터 -->
         <div class="card">
-          <div class="card-title">
-            <span id="chatBoxTitle">💬 데스크 실시간 에이전트 단톡방</span>
-            <div style="display:flex;gap:6px;">
-              <button onclick="quickChat('지금 이 데스크 스캔해서 타점 찾아줘')" style="padding:4px 9px;font-size:11.5px;">🔍 즉시 스캔 지시</button>
-              <button onclick="quickChat('현재 데스크 상태랑 마감 보고서 요약해줘')" style="padding:4px 9px;font-size:11.5px;">📊 브리핑 요청</button>
+          <div class="card-head">
+            <div>
+              <div class="card-title">1. Variational DEX 7대 선물 실시간 스탑헌팅 모니터 (10x 레버리지)</div>
+              <div class="card-sub">평일 미장 개장 1~1.5시간 전 급변동(골디락스 %) + 꼬리 확인 시 반대 포지션 자동 진입 · 주말 자동 중지</div>
             </div>
+            <button onclick="testTelegram()" style="font-size:11.5px;padding:5px 10px;">📱 텔레그램 알림 테스트</button>
           </div>
-          <div class="chat-log" id="chatLog"></div>
-          <form class="chat-input-row" onsubmit="sendChatMessage(event)">
-            <input type="text" id="chatInput" placeholder="CHIEF 또는 봇들에게 지시하세요 (예: NVDA 감마 분석해줘, GLD 타점 봐줘, 스캔 실행)" />
-            <button type="submit" class="btn-primary">전송</button>
-          </form>
+          <div class="table-wrap" id="stopHuntTableWrap"></div>
         </div>
 
-        <!-- 현재 선택된 데스크의 열린 모의 포지션 -->
+        <!-- 2. 10x 모의매매 기록 및 매매 로직 -->
         <div class="card">
-          <div class="card-title">
-            <span id="openPosTitle">📂 현재 데스크 열린 모의 포지션 ($1,000 금고)</span>
-            <span class="pill pill-pass" id="openPosCountBadge">0개 운용 중</span>
-          </div>
-          <div class="table-wrap" id="openPositionsContainer"></div>
-        </div>
-
-        <!-- 현재 선택된 데스크의 청산 완료 내역 -->
-        <div class="card">
-          <div class="card-title">
-            <span>📜 최근 청산(익절·손절) 기록</span>
-          </div>
-          <div class="table-wrap" id="closedPositionsContainer"></div>
-        </div>
-      </div>
-
-      <!-- 우측 컬럼: 데스크별 전용 정밀 분석판 -->
-      <div>
-        <!-- [전용 패널 A] 데스크 3: RWA & 7대 섹터 개별주 켈트너·볼린저 차트 & 옵션 콜/숏감마 실시간 분석기 -->
-        <div class="card" id="panel_rwa" style="display:none;">
-          <div class="card-title">
-            <span>🏛️ RWA &amp; 7대 섹터(우주·방산·바이오·반도체·광통신·로봇) 차트·옵션감마 스캐너</span>
-            <span class="pill pill-purple">49종목 · tooja.me 실시간 연동</span>
-          </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6;">
-            • <b>🟢 롱(LONG) 타점</b>: 흰색 채널 하단~중단 지지 + 보라 채널 스퀴즈 + 상방 맥스페인 ➔ <b>TP1(보라상단) · TP2(흰색상단/콜감마 벽) · 손절(흰색하단)</b><br>
-            • <b>🔴 숏(SHORT) 타점</b>: 흰색 채널 상단 저항 + 윗꼬리 음봉/숏감마 하방가속 + 하방 맥스페인 ➔ <b>TP1(보라하단) · TP2(흰색하단/풋감마 벽) · 손절(흰색상단)</b>
+          <div class="sub-tabs">
+            <button class="sub-tab active" id="tabBtn_pos" onclick="switchLeftTab('pos')">📂 열린 10x 포지션 (<span id="openCountTxt">0</span>)</button>
+            <button class="sub-tab" id="tabBtn_hist" onclick="switchLeftTab('hist')">📜 청산 기록 (<span id="closedCountTxt">0</span>)</button>
+            <button class="sub-tab" id="tabBtn_logic" onclick="switchLeftTab('logic')">📐 스탑헌팅 10x 매매 로직 &amp; 백테스트 기준표</button>
+            <button class="sub-tab" id="tabBtn_log" onclick="switchLeftTab('log')">🕒 봇 실행 로그</button>
           </div>
 
-          <!-- 1) 7대 섹터 선택 바 -->
-          <div style="background:#0b101b;border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-              <b style="font-size:12.5px;color:var(--gold);">📂 1단계: 섹터별 개별주 유니버스 선택 (클릭 시 해당 섹터 종목 표시)</b>
-              <div style="display:flex;gap:6px;">
-                <button class="btn-purple" onclick="scanSelectedSector()" style="padding:4px 10px;font-size:11.5px;">⚡ 선택한 섹터만 스캔·검증·매매</button>
-                <button class="btn-primary" onclick="runPipeline('rwa', 'all')" style="padding:4px 10px;font-size:11.5px;">🔥 7대 섹터(49종목) 전수 스캔·매매</button>
+          <!-- 탭 1: 열린 10x 포지션 -->
+          <div id="leftPanel_pos">
+            <div class="table-wrap" id="openPositionsWrap"></div>
+          </div>
+
+          <!-- 탭 2: 청산 기록 -->
+          <div id="leftPanel_hist" style="display:none;">
+            <div class="table-wrap" id="closedPositionsWrap"></div>
+          </div>
+
+          <!-- 탭 3: 스탑헌팅 매매 로직 및 60일 백테스트 기준표 -->
+          <div id="leftPanel_logic" style="display:none;">
+            <div class="logic-grid">
+              <div class="logic-item">
+                <b>① 진입 조건 (미장 개장 전 스탑헌팅 역추세)</b>
+                평일 직전 90분(1.5시간) 동안 기준가(Anchor) 대비 종목별 <b>적정 골디락스 %</b>만큼 급등/급락한 뒤, 볼린저 과열 및 <b>되돌림 꼬리(브레이크)</b>가 확인되면 반대 방향(급등 시 SHORT 10x / 급락 시 LONG 10x)으로 진입합니다.
+              </div>
+              <div class="logic-item">
+                <b>② 호가 체결 &amp; 10배 레버리지 고정</b>
+                Variational Omni DEX 실시간 마크가 및 매수/매도 호가(LONG=Ask, SHORT=Bid)로 체결되며, 금고($1,000)의 6~8% 증거금에 <b>10배 레버리지(10x)</b>를 적용합니다.
+              </div>
+              <div class="logic-item">
+                <b>③ 익절 / 칼손절 원칙 (손익비 ≥ 1 : 1.5)</b>
+                • <b>1차 익절(TP1)</b>: 스탑헌팅 변동폭의 55% 회귀 지점<br>
+                • <b>2차 익절(TP2)</b>: 스탑헌팅 출발 기준가(Anchor) 완전 회귀<br>
+                • <b>칼손절(SL)</b>: 스탑헌팅 고점/저점 재돌파 시 즉시 손절
+              </div>
+              <div class="logic-item">
+                <b>④ 원웨이 폭주 차단 &amp; 주말 휴장 가드</b>
+                변동폭이 위험 상한선(진짜 추세 폭발)을 넘으면 진입을 차단하며, 미국장이 쉬는 <b>주말(토·일)에는 자동으로 매매를 중지</b>합니다.
               </div>
             </div>
-            <div class="rwa-Presets" id="rwaSectorBar" style="margin-bottom:0;">
-              <button class="preset-btn active" data-sec="all" onclick="selectRwaSector('all')">🔥 전체 섹터 (49)</button>
-              <button class="preset-btn" data-sec="space" onclick="selectRwaSector('space')">🚀 우주·위성 (6)</button>
-              <button class="preset-btn" data-sec="defense" onclick="selectRwaSector('defense')">🛡️ 방산·국방AI (7)</button>
-              <button class="preset-btn" data-sec="bio" onclick="selectRwaSector('bio')">🧬 바이오·신약 (7)</button>
-              <button class="preset-btn" data-sec="semi" onclick="selectRwaSector('semi')">💾 반도체·AI칩 (8)</button>
-              <button class="preset-btn" data-sec="optical" onclick="selectRwaSector('optical')">🔦 광통신·전력 (7)</button>
-              <button class="preset-btn" data-sec="robotics" onclick="selectRwaSector('robotics')">🤖 로봇·양자 (6)</button>
-              <button class="preset-btn" data-sec="rwa_macro" onclick="selectRwaSector('rwa_macro')">🏛️ RWA·매크로 (8)</button>
+
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>종목 (Variational)</th>
+                    <th>분류</th>
+                    <th>60일 백테스트 적정 %</th>
+                    <th>원웨이 위험선 (진입금지)</th>
+                    <th>최소 꼬리</th>
+                    <th>60일 승률</th>
+                    <th>60일 10x 누적수익</th>
+                  </tr>
+                </thead>
+                <tbody id="backtestRefBody"></tbody>
+              </table>
             </div>
           </div>
 
-          <!-- 2) 선택된 섹터의 개별주 프리셋 버튼 + 직접 검색 -->
-          <div class="rwa-Presets" id="rwaPresetBar"></div>
-          <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
-            <input type="text" id="customRwaTicker" placeholder="원하는 미국 개별주 티커 입력 (예: RKLB, PLTR, LITE, SERV, LLY, TSLA)" style="flex:1;min-width:180px;background:#0a0e17;border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;" />
-            <button class="btn-blue" onclick="inspectCustomRwa()">🔍 차트+옵션감마 분석</button>
-            <button class="btn-green" onclick="manualTradeRwa('LONG')">🟢 LONG(롱) 모의진입</button>
-            <button class="btn-red" onclick="manualTradeRwa('SHORT')">🔴 SHORT(숏) 모의진입</button>
-          </div>
-
-          <div id="rwaInspectorContent">
-            <div style="padding:24px;text-align:center;color:var(--muted);">종목을 불러오는 중...</div>
-          </div>
-
-          <!-- RWA & 7대 섹터 전체 스캔 랭킹 테이블 -->
-          <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;flex-wrap:wrap;gap:6px;">
-              <b id="rwaTableTitle">📊 7대 섹터 개별주 &amp; RWA 스퀴즈·감마 검증 랭킹 (SCAN ➔ VET ➔ BOOK 결과)</b>
-              <span style="font-size:11.5px;color:var(--muted);">섹터 탭을 누르면 해당 섹터 종목만 필터링됩니다</span>
-            </div>
-            <div class="table-wrap" id="rwaUniverseTableWrap"></div>
+          <!-- 탭 4: 실행 로그 -->
+          <div id="leftPanel_log" style="display:none;">
+            <div id="botLogWrap" style="max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:6px;"></div>
           </div>
         </div>
+      </div>
 
-        <!-- [전용 패널 B] 데스크 2: 예측시장 괴리율 (Gemini AI 블라인드 확률 vs 시장 가격) 분석기 -->
-        <div class="card" id="panel_prediction" style="display:none;">
-          <div class="card-title">
-            <span>🎯 예측시장 괴리율 모니터 (Gemini 3.5 Flash 블라인드 확률 vs Kalshi·Polymarket)</span>
-            <button class="btn-green" onclick="runPipeline('prediction')" style="padding:5px 10px;font-size:11.5px;">↻ 괴리율 마켓 즉시 스캔</button>
-          </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-            • 시장 가격을 가린 채 <b>Gemini 3.5 Flash</b>가 독립 추론한 확률(내 확률)과 실제 시장 가격의 <b>괴리율(|내 확률 - 시장가격|)이 8.0% 이상</b>인 마켓을 포착해 YES/NO 컨트랙트를 $1,000 예측시장 금고에서 자동 모의 매매합니다.
-          </div>
-          <div class="table-wrap" id="predictionTableWrap"></div>
-        </div>
-
-        <!-- [전용 패널 C] 데스크 1: 크립토 밈코인 DexScreener & VET 7단계 스캠 필터 심사표 -->
-        <div class="card" id="panel_memecoin">
-          <div class="card-title">
-            <span>🛡️ 솔라나 밈코인 SCAN 속도 후보 &amp; VET 7단계 온체인 스캠 심사표</span>
-            <div style="display:flex;gap:6px;">
-              <button class="btn-blue" onclick="runPipeline('memecoin')" style="padding:5px 10px;font-size:11.5px;">↻ 덱스 신규 스캔</button>
-              <button onclick="createSampleBonk()" style="padding:5px 10px;font-size:11.5px;">🧪 $BONK 샘플 체결 테스트</button>
+      <!-- ==================== 우측: 내 전용 옵션 감마 & 지지·저항선 핵심 수치 채팅창 ==================== -->
+      <div>
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">2. 옵션 감마 &amp; 지지·저항 핵심 수치 조회</div>
+              <div class="card-sub">티커(예: MRNA, TSLA, NVDA)나 한글명(예: 모더나, 테슬라, 아이온큐)을 입력하면 <b>양/음감마 · 감마플립 · 맥스페인 · 만기일 · 지지·저항선</b>만 즉시 표시합니다</div>
             </div>
+            <button onclick="clearOptionChat()" style="font-size:11.5px;padding:4px 9px;">초기화</button>
           </div>
-          <div style="font-size:12px;color:var(--muted);margin-bottom:10px;">
-            • Solana RPC + RugCheck API를 통해 <b>1등 지갑 보유율 5% 초과, 유동성 주문액 50배 미만, 순매수 정체, 신생 페어 활력 저하</b> 등 7단계 중 하나라도 걸리면 즉시 <b>REJECT</b>하여 $1,000 시드를 지킵니다.
-          </div>
-          <div class="table-wrap" id="memecoinVetTableWrap"></div>
+
+          <div class="sr-box" id="srSummaryBox" style="display:none;"></div>
+
+          <!-- 핵심 수치 카드 채팅창 -->
+          <div class="chat-feed" id="optionChatFeed" style="height:540px;"></div>
+
+          <!-- 티커 입력창 -->
+          <form class="chat-form" onsubmit="submitOptionChat(event)">
+            <input type="text" id="optionChatInput" placeholder="종목 티커 또는 한글명 입력 (예: MRNA, 모더나, TSLA, 아이온큐, NVDA)" />
+            <button type="submit" class="btn-primary" id="btnAskAi">조회</button>
+          </form>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- 봇 상세 프롬프트 모달 -->
-  <div class="modal-backdrop" id="botModal" onclick="if(event.target===this)this.style.display='none'">
-    <div class="modal">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 id="botModalTitle" style="margin:0;color:var(--gold);"></h3>
-        <button onclick="document.getElementById('botModal').style.display='none'">닫기 ✕</button>
-      </div>
-      <pre id="botModalPrompt" style="white-space:pre-wrap;background:#0a0e17;padding:14px;border-radius:10px;border:1px solid var(--border);color:#e2e8f0;font-size:12.5px;line-height:1.6;"></pre>
-    </div>
-  </div>
-
-  <!-- GitHub 24시간 클라우드 배포 모달 -->
+  <!-- GitHub & Render 클라우드 배포 모달 -->
   <div class="modal-backdrop" id="cloudModal" onclick="if(event.target===this)this.style.display='none'">
     <div class="modal">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <h3 style="margin:0;color:var(--gold);">☁️ GitHub Actions 24시간 무인 클라우드 배포 (v3.1 · 3대 데스크 + 7대 섹터)</h3>
+        <b style="font-size:15px;">☁️ GitHub 업로드 &amp; Render 웹서버 연동</b>
         <button onclick="document.getElementById('cloudModal').style.display='none'">닫기 ✕</button>
       </div>
       <p style="font-size:12.5px;color:var(--muted);margin-top:0;">
-        컴퓨터를 끄고 주무셔도 GitHub 서버가 <b>15분마다 자동으로 깨어나</b> 크립토($1,000) · 예측시장 괴리율($1,000) · RWA &amp; 7대 섹터 개별주($1,000)를 스캔·검증·모의매매하고 휴대폰 텔레그램(<b>@dytradingdemo_bot</b>)으로 실시간 알림을 보냅니다.
+        ① 먼저 아래 버튼으로 <b>GitHub(`grok-trading-team`)</b>에 최신 v4.0 코드와 <code>render.yaml</code>을 자동 업로드합니다.<br/>
+        ② 이후 <b>Render(render.com)</b>에서 해당 GitHub 저장소만 연결하면 스마트폰·외부 PC 어디서나 접속 가능한 전용 웹 주소(<code>https://...onrender.com</code>)가 생성됩니다!
       </p>
-
-      <!-- 방법 A: 토큰 없이 1초 브라우저 코드 인증 -->
-      <div style="background:#0c1424;border:1px solid var(--gold);border-radius:10px;padding:14px;margin-bottom:14px;">
-        <div style="font-weight:800;font-size:13.5px;color:var(--gold);margin-bottom:6px;">⚡ 방법 1 (추천): 토큰 발급 없이 1초 GitHub 브라우저 로그인 &amp; 자동 배포</div>
-        <div style="font-size:12px;color:#cbd5e1;margin-bottom:10px;">
-          아래 버튼을 누르면 8자리 인증 코드가 나타나고 GitHub 인증 창이 열립니다. 코드만 입력하고 <b>Authorize</b>를 누르면 저장소 생성부터 15분 스케줄러 가동까지 100% 자동으로 끝납니다!
+      <div style="background:var(--card-sub);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;">
+        <button class="btn-primary" onclick="startGitHubDeviceLogin()" id="btnDeviceLogin" style="width:100%;">🚀 STEP 1: 1클릭 GitHub 최신 코드 업로드 (8자리 코드 인증)</button>
+        <div id="ghDeviceBox" style="margin-top:10px;display:none;background:var(--bg);padding:12px;border-radius:8px;border:1px solid var(--border);"></div>
+      </div>
+      <div style="background:var(--card-sub);border:1px solid rgba(59,130,246,0.35);border-radius:10px;padding:12px;margin-bottom:12px;font-size:12px;">
+        <div style="font-weight:800;color:#60a5fa;margin-bottom:6px;">🌐 STEP 2: Render 웹서버 연결 (이미 만든 Render가 있다면 자동 재배포됨!)</div>
+        <div style="color:var(--muted);line-height:1.55;">
+          • <b>이미 이 GitHub 저장소로 Render를 만들어 두셨다면:</b> STEP 1 업로드 즉시 Render가 자동으로 최신 버전을 감지해 1분 내로 업데이트됩니다!<br/>
+          • <b>새로 연결하시려면:</b> <a href="https://dashboard.render.com/select-repo?type=web" target="_blank" style="color:#34d399;font-weight:700;">Render Web Service 생성 페이지 열기 ↗</a> ➔ <code>grok-trading-team</code> 선택 ➔ Build Command: <code>npm install</code> / Start Command: <code>node server.js</code> / Plan: <code>Free</code> 클릭!
         </div>
-        <button class="btn-primary" onclick="startGitHubDeviceLogin()" id="btnDeviceLogin">🔑 1클릭 GitHub 인증코드 받기 &amp; 로그인 창 열기</button>
-        <div id="ghDeviceBox" style="margin-top:10px;display:none;background:#080b11;padding:12px;border-radius:8px;border:1px solid var(--border);"></div>
       </div>
-
-      <!-- 방법 B: 기존 개인 토큰 직접 입력 -->
-      <div style="display:grid;gap:10px;margin:14px 0;border-top:1px solid var(--border);padding-top:12px;">
-        <label style="font-size:12px;font-weight:700;color:var(--muted);">방법 2: GitHub 개인 토큰(ghp_...) 직접 입력</label>
-        <input type="password" id="ghTokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" style="background:#0a0e17;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;" />
-        <label style="font-size:12px;font-weight:700;color:var(--muted);">생성/업데이트할 저장소 이름</label>
-        <input type="text" id="ghRepoInput" value="grok-trading-team" style="background:#0a0e17;border:1px solid var(--border);color:var(--text);padding:10px;border-radius:8px;" />
+      <div style="display:flex;gap:8px;">
+        <input type="password" id="ghTokenInput" placeholder="또는 GitHub 토큰(ghp_...) 직접 입력" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;" />
+        <input type="hidden" id="ghRepoInput" value="grok-trading-team" />
+        <button onclick="deployCloudNow()" id="btnDeployCloud">토큰으로 업로드</button>
       </div>
-      <div id="ghDeployStatus" style="font-size:12.5px;margin-bottom:12px;color:var(--gold);"></div>
-      <div style="display:flex;justify-content:flex-end;gap:8px;">
-        <button class="btn-blue" onclick="deployCloudNow()" id="btnDeployCloud">🚀 토큰으로 업로드 &amp; 15분 타이머 가동</button>
-      </div>
+      <div id="ghDeployStatus" style="font-size:12px;margin-top:8px;color:var(--blue);"></div>
     </div>
   </div>
 
   <script>
-    let currentDesk = 'memecoin';
     let latestState = null;
-    let roleProfiles = {};
-    let rwaUniverse = [];
-    let rwaSectors = {};
-    let currentRwaSector = 'all';
-    let currentRwaSymbol = 'NVDA';
-    let currentRwaAnalysis = null;
+    let stopHuntUniverse = [];
+    let currentLeftTab = 'pos';
+    let currentOptionSymbol = null;
+    let isOptionChatPending = false;
+    let lastRenderedChatCount = -1;
     let ghDevicePollInterval = null;
 
     function fmtUsd(v) {
@@ -793,150 +569,8 @@
     }
     function fmtPnl(v) {
       const n = Number(v || 0);
-      const sign = n > 0 ? '+' : '';
-      return sign + fmtUsd(n);
+      return (n > 0 ? '+' : '') + fmtUsd(n);
     }
-
-    function switchDesk(deskId) {
-      currentDesk = deskId;
-      ['memecoin', 'prediction', 'rwa'].forEach(id => {
-        const vc = document.getElementById('vaultCard_' + id);
-        const tb = document.getElementById('tab_' + id);
-        const pn = document.getElementById('panel_' + id);
-        if (vc) vc.classList.toggle('active', id === deskId);
-        if (tb) {
-          tb.classList.toggle('active', id === deskId);
-          const pill = tb.querySelector('.pill');
-          if (pill) {
-            pill.textContent = id === deskId ? '선택됨' : '전환';
-            pill.className = id === deskId ? 'pill pill-gold' : 'pill';
-          }
-        }
-        if (pn) pn.style.display = id === deskId ? 'block' : 'none';
-      });
-      renderAll();
-      if (deskId === 'rwa' && !currentRwaAnalysis) {
-        inspectRwaSymbol(currentRwaSymbol);
-      }
-    }
-
-    async function fetchDeskState() {
-      try {
-        const res = await fetch('/api/desk/state');
-        const data = await res.json();
-        latestState = data.state;
-        roleProfiles = data.roleProfilesByDesk || {};
-        rwaUniverse = data.rwaUniverse || [];
-        rwaSectors = data.rwaSectors || {};
-        renderRwaPresetButtons();
-        renderAll();
-      } catch (err) {
-        console.error('State load error:', err);
-      }
-    }
-
-    function selectRwaSector(secId) {
-      currentRwaSector = secId;
-      document.querySelectorAll('#rwaSectorBar .preset-btn').forEach(b => {
-        b.classList.toggle('active', b.getAttribute('data-sec') === secId);
-      });
-      renderRwaPresetButtons();
-      if (latestState?.desks?.rwa) {
-        renderRwaUniverseTable(latestState.desks.rwa);
-      }
-      const list = secId === 'all' ? rwaUniverse : rwaUniverse.filter(u => u.sector === secId);
-      if (list.length > 0 && !list.some(u => u.symbol === currentRwaSymbol)) {
-        inspectRwaSymbol(list[0].symbol);
-      }
-    }
-
-    function renderRwaPresetButtons() {
-      const bar = document.getElementById('rwaPresetBar');
-      if (!bar || !rwaUniverse.length) return;
-      const list = currentRwaSector === 'all'
-        ? rwaUniverse
-        : rwaUniverse.filter(u => u.sector === currentRwaSector);
-      bar.innerHTML = list.map(u => {
-        const active = u.symbol === currentRwaSymbol ? 'active' : '';
-        return `<button class="preset-btn ${active}" onclick="inspectRwaSymbol('${u.symbol}')" title="${escapeHtml(u.name)}">${u.symbol} <span style="font-size:10px;opacity:0.75;">(${escapeHtml(u.category.replace(/^[^\s]+\s/, ''))})</span></button>`;
-      }).join('');
-    }
-
-    function scanSelectedSector() {
-      return runPipeline('rwa', currentRwaSector);
-    }
-
-    function renderAll() {
-      if (!latestState) return;
-
-      // 1) 상단 4개 금고 카드 업데이트
-      const tot = latestState.totalCombinedPortfolio || { totalEquityUsd: 3000, cashUsd: 3000, deployedUsd: 0, realizedPnlUsd: 0, unrealizedPnlUsd: 0 };
-      const totPnl = Number((tot.realizedPnlUsd + tot.unrealizedPnlUsd).toFixed(2));
-      document.getElementById('totEquity').textContent = fmtUsd(tot.totalEquityUsd);
-      document.getElementById('totCash').textContent = fmtUsd(tot.cashUsd);
-      document.getElementById('totDeployed').textContent = fmtUsd(tot.deployedUsd);
-      const totPnlEl = document.getElementById('totPnl');
-      totPnlEl.textContent = fmtPnl(totPnl);
-      totPnlEl.className = totPnl >= 0 ? 'pos-text' : 'neg-text';
-
-      const desks = latestState.desks || {};
-      for (const [key, prefix] of [['memecoin', 'meme'], ['prediction', 'pred'], ['rwa', 'rwa']]) {
-        const d = desks[key];
-        if (!d) continue;
-        const p = d.portfolio;
-        const pnl = Number((p.realizedPnlUsd + p.unrealizedPnlUsd).toFixed(2));
-        document.getElementById(prefix + 'Equity').textContent = fmtUsd(p.totalEquityUsd);
-        document.getElementById(prefix + 'Cash').textContent = fmtUsd(p.cashUsd);
-        document.getElementById(prefix + 'Deployed').textContent = fmtUsd(p.deployedUsd);
-        const pnlEl = document.getElementById(prefix + 'Pnl');
-        pnlEl.textContent = fmtPnl(pnl);
-        pnlEl.className = pnl >= 0 ? 'pos-text' : 'neg-text';
-        document.getElementById(prefix + 'OpenBadge').textContent = `보유 ${(d.openPositions || []).length}개`;
-      }
-
-      // 2) 선택된 데스크의 7개 에이전트 역할 카드 렌더링
-      const prof = roleProfiles[currentDesk];
-      if (prof) {
-        document.getElementById('deskRoleTitle').textContent = `${prof.title} — 7개 에이전트 맞춤 역할`;
-        document.getElementById('deskRoleSubtitle').textContent = prof.subtitle;
-        const botsOrder = ['CHIEF', 'SCAN', 'VET', 'BOOK', 'SIZE', 'FILLS', 'RISK'];
-        document.getElementById('rolesGrid').innerHTML = botsOrder.map(bKey => {
-          const b = prof.bots[bKey];
-          if (!b) return '';
-          return `<div class="bot-card" onclick="showBotModal('${currentDesk}', '${bKey}')">
-            <div class="bot-top">
-              <span class="bot-name" style="color:${b.color}">${b.name}</span>
-              <span class="bot-badge">${b.badge}</span>
-            </div>
-            <div class="bot-role-text">${b.role}</div>
-          </div>`;
-        }).join('');
-      }
-
-      // 3) 단톡방 메시지 렌더링 (현재 데스크 필터)
-      const msgs = (latestState.messages || []).filter(m => m.desk === currentDesk);
-      const chatLog = document.getElementById('chatLog');
-      chatLog.innerHTML = msgs.slice(-60).map(m => {
-        const timeStr = new Date(m.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-        return `<div class="msg">
-          <div class="msg-head">
-            <span class="msg-sender">${m.badge || '🤖'} ${m.sender}</span>
-            <span>${timeStr}</span>
-          </div>
-          <div class="msg-body">${escapeHtml(m.text)}</div>
-        </div>`;
-      }).join('');
-      chatLog.scrollTop = chatLog.scrollHeight;
-
-      // 4) 현재 데스크 열린 포지션 & 닫은 포지션 렌더링
-      renderDeskPositions(desks[currentDesk]);
-
-      // 5) 우측 데스크별 전용 분석 테이블 렌더링
-      renderMemecoinVetTable(desks.memecoin);
-      renderPredictionTable(desks.prediction);
-      renderRwaUniverseTable(desks.rwa);
-    }
-
     function escapeHtml(s) {
       return String(s || '')
         .replace(/&/g, '&amp;')
@@ -944,432 +578,383 @@
         .replace(/>/g, '&gt;');
     }
 
-    function showBotModal(deskId, botKey) {
-      const b = roleProfiles[deskId]?.bots?.[botKey];
-      if (!b) return;
-      document.getElementById('botModalTitle').textContent = `${b.badge} ${b.name} — ${b.role}`;
-      document.getElementById('botModalPrompt').textContent = b.prompt;
-      document.getElementById('botModal').style.display = 'grid';
+    function switchLeftTab(tab) {
+      currentLeftTab = tab;
+      ['pos', 'hist', 'logic', 'log'].forEach(t => {
+        const btn = document.getElementById('tabBtn_' + t);
+        const pnl = document.getElementById('leftPanel_' + t);
+        if (btn) btn.classList.toggle('active', t === tab);
+        if (pnl) pnl.style.display = t === tab ? 'block' : 'none';
+      });
     }
 
-    function renderDeskPositions(deskObj) {
-      if (!deskObj) return;
-      const openList = deskObj.openPositions || [];
-      const closedList = deskObj.closedPositions || [];
-      document.getElementById('openPosTitle').textContent = `📂 [${deskObj.name}] 열린 모의 포지션`;
-      document.getElementById('openPosCountBadge').textContent = `${openList.length}개 운용 중`;
+    async function fetchState() {
+      try {
+        const res = await fetch('/api/desk/state');
+        const data = await res.json();
+        latestState = data.state;
+        stopHuntUniverse = data.stopHuntUniverse || [];
+        renderHeader(data.sessionInfo);
+        renderStopHuntTable();
+        renderPositionsAndLogs();
+        renderBacktestRefTable();
+        if (!isOptionChatPending) {
+          if (latestState.lastOptionAnalysis) {
+            currentOptionSymbol = latestState.lastOptionSymbol || latestState.lastOptionAnalysis.symbol;
+            renderSrSummaryBox(latestState.lastOptionAnalysis);
+          } else {
+            document.getElementById('srSummaryBox').style.display = 'none';
+          }
+          const hist = latestState.optionChatHistory || [];
+          if (hist.length !== lastRenderedChatCount) {
+            renderOptionChat(hist);
+          }
+        }
+      } catch (e) {
+        console.error('State load error:', e);
+      }
+    }
 
-      const openWrap = document.getElementById('openPositionsContainer');
-      if (openList.length === 0) {
-        openWrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);">현재 열린 포지션이 없습니다. 상단 [현재 데스크 단독 스캔·매매 실행]을 눌러 타점을 포착하세요.</div>`;
-      } else if (currentDesk === 'rwa') {
-        openWrap.innerHTML = `<table>
-          <thead><tr><th>종목/방향</th><th>전략/감마</th><th>진입가 ➔ 현재가</th><th>TP1(보라) / TP2(흰색·감마벽)</th><th>손절라인</th><th>투자금</th><th>평가손익</th></tr></thead>
-          <tbody>${openList.map(p => {
-            const isShort = p.direction === 'SHORT';
-            const curPrice = Number(p.currentPriceUsd || p.entryPriceUsd);
-            const entPrice = Number(p.entryPriceUsd);
-            const qty = Number(p.quantity || 0);
-            const pnl = isShort ? qty * (entPrice - curPrice) : (qty * curPrice) - Number(p.dollars || 0);
-            const pct = p.dollars > 0 ? (pnl / p.dollars) * 100 : 0;
+    function renderHeader(sessionInfo) {
+      const badge = document.getElementById('sessionBadge');
+      if (sessionInfo) {
+        badge.textContent = `${sessionInfo.sessionLabel} (${sessionInfo.nyTimeStr})`;
+        badge.style.color = sessionInfo.isWeekend ? '#f59e0b' : '#34d399';
+      }
+      const p = latestState?.desks?.memecoin?.portfolio || { totalEquityUsd: 1000, cashUsd: 1000, deployedUsd: 0, realizedPnlUsd: 0, unrealizedPnlUsd: 0 };
+      const pnl = Number((p.realizedPnlUsd + p.unrealizedPnlUsd).toFixed(2));
+      document.getElementById('vEquity').textContent = fmtUsd(p.totalEquityUsd);
+      document.getElementById('vCash').textContent = fmtUsd(p.cashUsd);
+      document.getElementById('vDeployed').textContent = fmtUsd(p.deployedUsd);
+      const pnlEl = document.getElementById('vPnl');
+      pnlEl.textContent = fmtPnl(pnl);
+      pnlEl.className = pnl >= 0 ? 'text-green' : 'text-red';
+    }
+
+    function renderStopHuntTable() {
+      const wrap = document.getElementById('stopHuntTableWrap');
+      const results = latestState?.desks?.memecoin?.lastVetResults || [];
+      if (!results.length) {
+        wrap.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);">스캔 데이터를 불러오는 중입니다... 상단 [↻ 스탑헌팅 스캔]을 눌러주세요.</div>`;
+        return;
+      }
+
+      wrap.innerHTML = `<table>
+        <thead>
+          <tr>
+            <th>선물 종목</th>
+            <th>현재 마크가 (Bid / Ask)</th>
+            <th>90분 변동 (적정 기준)</th>
+            <th>꼬리 되돌림</th>
+            <th>10x 대기 포지션</th>
+            <th>회귀목표(TP2) / 손절(SL)</th>
+            <th>상태</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${results.map(r => {
+            const c = r.candidate || {};
+            const pass = r.decision === 'PASS' || r.decision === 'PASS_PARTIAL';
+            const isShort = c.direction === 'SHORT';
+            const moveVal = c.huntMovePct ?? 0;
+            let shortReason = '변동폭 대기 중';
+            if (c.isWeekend) shortReason = '⏸️ 주말 작동 중지';
+            else if (pass) shortReason = '🔥 타점 포착 (진입)';
+            else if (r.failedRule === 1) shortReason = `변동 미달 (최소 ±${c.minHuntPct}%)`;
+            else if (r.failedRule === 2) shortReason = `원웨이 추세 위험 (≥${c.dangerTrendPct}%)`;
+            else if (r.failedRule === 3) shortReason = '밴드 과열/스윕 대기';
+            else if (r.failedRule === 4) shortReason = `꼬리 대기 (<${c.minWickPct}%)`;
+            else if (r.failedRule === 5) shortReason = '손익비 미달 (<1.5)';
+
             return `<tr>
-              <td><b>$${p.symbol}</b> <span class="pill ${isShort ? 'pill-reject' : 'pill-pass'}">${isShort ? '🔴 SHORT' : '🟢 LONG'}</span><br><span style="font-size:10.5px;color:var(--muted);">${p.category || ''}</span></td>
-              <td><span class="pill pill-purple">${p.gammaRegime === 'LONG_GAMMA' ? '🟢 콜감마' : '🔴 숏감마'}</span><br><span style="font-size:11px;">${p.setupName}</span></td>
-              <td>$${p.entryPriceUsd} ➔ <b>$${p.currentPriceUsd}</b></td>
-              <td style="color:#c084fc;">TP1 $${p.tp1PriceUsd}<br><span style="color:#f1f5f9;">TP2 $${p.tp2PriceUsd}</span></td>
-              <td style="color:var(--red);">$${p.stopPriceUsd}</td>
-              <td>$${p.dollars}</td>
-              <td class="${pnl >= 0 ? 'pos-text' : 'neg-text'}">${fmtPnl(pnl)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)</td>
+              <td>
+                <b>$${r.symbol}</b>
+                <div style="font-size:11px;color:var(--muted);">60d 승률 ${c.btWinRate ?? 60}% (${c.btPnl10x || '+15%'})</div>
+              </td>
+              <td>
+                <b>$${c.markPriceUsd ?? c.priceUsd ?? '-'}</b>
+                <div style="font-size:11px;color:var(--muted);">${c.bidPriceUsd ?? '-'} / ${c.askPriceUsd ?? '-'}</div>
+              </td>
+              <td class="${moveVal >= 0 ? 'text-green' : 'text-red'}">
+                <b>${moveVal >= 0 ? '+' : ''}${moveVal}%</b>
+                <div style="font-size:11px;color:var(--muted);">기준 ±${c.minHuntPct}%~${c.maxHuntPct}%</div>
+              </td>
+              <td>
+                <b>${c.wickReversalPct ?? 0}%</b>
+                <div style="font-size:11px;color:var(--muted);">최소 ${c.minWickPct}%</div>
+              </td>
+              <td>
+                <span class="badge ${isShort ? 'badge-short' : 'badge-long'}">${isShort ? 'SHORT 10x' : 'LONG 10x'}</span>
+              </td>
+              <td>
+                <span>TP2 <b>$${c.tp2PriceUsd ?? '-'}</b></span>
+                <div style="font-size:11px;color:var(--muted);">SL $${c.stopPriceUsd ?? '-'} (1:${c.rrRatio ?? '-'})</div>
+              </td>
+              <td>
+                <span class="badge ${pass ? 'badge-long' : 'badge-wait'}">${shortReason}</span>
+              </td>
             </tr>`;
-          }).join('')}</tbody>
-        </table>`;
-      } else if (currentDesk === 'prediction') {
-        openWrap.innerHTML = `<table>
-          <thead><tr><th>마켓 질문</th><th>포지션</th><th>진입단가 ➔ 현재가</th><th>내 확률(괴리율)</th><th>수렴익절 / 손절</th><th>투자금</th><th>평가손익</th></tr></thead>
-          <tbody>${openList.map(p => {
-            const curVal = Number(p.quantity || 0) * Number(p.currentPriceUsd || p.entryPriceUsd);
-            const pnl = curVal - Number(p.dollars || 0);
-            const pct = p.dollars > 0 ? (pnl / p.dollars) * 100 : 0;
-            return `<tr>
-              <td><b>[${p.source}]</b> ${escapeHtml(p.question.slice(0, 46))}...</td>
-              <td><span class="pill ${p.side === 'YES' ? 'pill-pass' : 'pill-reject'}">${p.side}</span></td>
-              <td>$${p.entryPriceUsd} ➔ <b>$${p.currentPriceUsd}</b></td>
-              <td>${(p.myProb * 100).toFixed(1)}% <span class="pill pill-gold">괴리 ${p.edgePct}%</span></td>
-              <td>🎯 $${p.targetPriceUsd} / 🚨 $${p.stopPriceUsd}</td>
-              <td>$${p.dollars}</td>
-              <td class="${pnl >= 0 ? 'pos-text' : 'neg-text'}">${fmtPnl(pnl)} (${pct >= 0 ? '+' : ''}${pct.toFixed(1)}%)</td>
-            </tr>`;
-          }).join('')}</tbody>
-        </table>`;
+          }).join('')}
+        </tbody>
+      </table>`;
+    }
+
+    function renderPositionsAndLogs() {
+      const desk = latestState?.desks?.memecoin || {};
+      const openList = desk.openPositions || [];
+      const closedList = desk.closedPositions || [];
+      const logs = latestState?.logs || [];
+
+      document.getElementById('openCountTxt').textContent = openList.length;
+      document.getElementById('closedCountTxt').textContent = closedList.length;
+
+      const openWrap = document.getElementById('openPositionsWrap');
+      if (!openList.length) {
+        openWrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);">현재 열린 10x 포지션이 없습니다. 평일 미장 개장 전 스탑헌팅 조건 충족 시 자동 진입합니다.</div>`;
       } else {
         openWrap.innerHTML = `<table>
-          <thead><tr><th>코인</th><th>계약주소</th><th>진입가 ➔ 현재가</th><th>크기($)</th><th>슬리피지</th><th>평가손익</th></tr></thead>
-          <tbody>${openList.map(p => {
-            const curVal = Number(p.quantity || 0) * Number(p.currentPriceUsd || p.entryPriceUsd);
-            const pnl = curVal - Number(p.dollars || 0);
-            const pct = p.dollars > 0 ? (pnl / p.dollars) * 100 : 0;
-            return `<tr>
-              <td><b>$${p.symbol}</b></td>
-              <td style="font-family:monospace;font-size:11px;">${p.contract.slice(0, 6)}...${p.contract.slice(-4)}</td>
-              <td>$${p.entryPriceUsd} ➔ <b>$${p.currentPriceUsd}</b></td>
-              <td>$${p.dollars}</td>
-              <td>${p.estimatedSlippagePct}%</td>
-              <td class="${pnl >= 0 ? 'pos-text' : 'neg-text'}">${fmtPnl(pnl)} (${pct >= 0 ? '+' : ''}${pct.toFixed(2)}%)</td>
-            </tr>`;
-          }).join('')}</tbody>
+          <thead>
+            <tr>
+              <th>종목 / 방향</th>
+              <th>포착 변동</th>
+              <th>진입가 ➔ 현재가</th>
+              <th>TP1 / TP2(출발점)</th>
+              <th>칼손절(SL)</th>
+              <th>증거금 (10x 규모)</th>
+              <th>10x 평가손익 (ROE)</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${openList.map(p => {
+              const isShort = p.direction === 'SHORT';
+              const lev = Number(p.leverage || 10);
+              const curP = Number(p.currentPriceUsd || p.entryPriceUsd);
+              const entP = Number(p.entryPriceUsd);
+              const qty = Number(p.quantity || 0);
+              const fee = Number(p.feeUsd || 0);
+              const diff = isShort ? (entP - curP) : (curP - entP);
+              const pnl = (qty * diff) - fee;
+              const roe = p.dollars > 0 ? (pnl / p.dollars) * 100 : 0;
+              const notional = Number(p.notionalUsd || p.dollars * lev).toFixed(0);
+              return `<tr>
+                <td><b>$${p.symbol}</b> <span class="badge ${isShort ? 'badge-short' : 'badge-long'}">${isShort ? 'SHORT' : 'LONG'} ${lev}x</span></td>
+                <td>90분 ${p.huntMovePct >= 0 ? '+' : ''}${p.huntMovePct}% (꼬리 ${p.wickReversalPct}%)</td>
+                <td>$${p.entryPriceUsd} ➔ <b>$${p.currentPriceUsd}</b></td>
+                <td>$${p.tp1PriceUsd} / <b class="text-green">$${p.tp2PriceUsd}</b></td>
+                <td class="text-red">$${p.stopPriceUsd}</td>
+                <td><b>$${p.dollars}</b> <span class="text-muted">($${notional})</span></td>
+                <td class="${pnl >= 0 ? 'text-green' : 'text-red'}">${fmtPnl(pnl)} (${roe >= 0 ? '+' : ''}${roe.toFixed(2)}%)</td>
+              </tr>`;
+            }).join('')}
+          </tbody>
         </table>`;
       }
 
-      const closedWrap = document.getElementById('closedPositionsContainer');
-      if (closedList.length === 0) {
-        closedWrap.innerHTML = `<div style="padding:14px;text-align:center;color:var(--muted);">아직 청산된 포지션이 없습니다.</div>`;
+      const closedWrap = document.getElementById('closedPositionsWrap');
+      if (!closedList.length) {
+        closedWrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);">아직 청산된 기록이 없습니다.</div>`;
       } else {
         closedWrap.innerHTML = `<table>
-          <thead><tr><th>대상</th><th>투자금</th><th>실현손익</th><th>발동 규칙</th></tr></thead>
-          <tbody>${closedList.slice(0, 8).map(c => `<tr>
-            <td><b>${escapeHtml(c.symbol || c.question?.slice(0, 28) || 'POS')}</b></td>
-            <td>$${c.dollars}</td>
-            <td class="${c.pnlUsd >= 0 ? 'pos-text' : 'neg-text'}">${fmtPnl(c.pnlUsd)} (${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct}%)</td>
-            <td style="font-size:11px;color:var(--muted);">${escapeHtml(c.closeRule)}</td>
-          </tr>`).join('')}</tbody>
+          <thead>
+            <tr>
+              <th>종목 / 방향</th>
+              <th>진입가 ➔ 청산가</th>
+              <th>증거금</th>
+              <th>10x 실현손익 (ROE)</th>
+              <th>청산 사유</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${closedList.slice(0, 15).map(c => `<tr>
+              <td><b>$${escapeHtml(c.symbol)}</b> <span class="badge ${c.direction === 'SHORT' ? 'badge-short' : 'badge-long'}">${c.direction || 'LONG'} 10x</span></td>
+              <td>$${c.entryPriceUsd} ➔ <b>$${c.exitPriceUsd}</b></td>
+              <td>$${c.dollars}</td>
+              <td class="${c.pnlUsd >= 0 ? 'text-green' : 'text-red'}">${fmtPnl(c.pnlUsd)} (${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct}%)</td>
+              <td style="font-size:11.5px;color:var(--muted);">${escapeHtml(c.closeRule)}</td>
+            </tr>`).join('')}
+          </tbody>
         </table>`;
       }
+
+      const logWrap = document.getElementById('botLogWrap');
+      logWrap.innerHTML = logs.slice(0, 25).map(l => {
+        const t = new Date(l.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        return `<div style="background:var(--card-sub);border:1px solid var(--border);border-radius:7px;padding:7px 10px;font-size:12px;">
+          <span class="text-muted">[${t}]</span> ${escapeHtml(l.text)}
+        </div>`;
+      }).join('');
     }
 
-    function renderMemecoinVetTable(memeDesk) {
-      const wrap = document.getElementById('memecoinVetTableWrap');
-      const results = memeDesk?.lastVetResults || latestState?.lastVetResults || [];
-      if (!results.length) {
-        wrap.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);">아직 스캔 기록이 없습니다. [↻ 덱스 신규 스캔] 버튼을 눌러보세요.</div>`;
-        return;
-      }
-      wrap.innerHTML = `<table>
-        <thead><tr><th>종목</th><th>판정</th><th>속도점수</th><th>유동성</th><th>1h 변동</th><th>심사 사유</th></tr></thead>
-        <tbody>${results.map(r => {
-          const c = r.candidate || {};
-          const pass = r.decision === 'PASS' || r.decision === 'PASS_PARTIAL';
-          return `<tr>
-            <td><b>$${r.symbol}</b></td>
-            <td><span class="pill ${pass ? 'pill-pass' : 'pill-reject'}">${r.decision}</span></td>
-            <td>${c.velocityScore ?? '-'}</td>
-            <td>$${(c.liquidityUsd || 0).toLocaleString()}</td>
-            <td class="${(c.priceChangeH1 || 0) >= 0 ? 'pos-text' : 'neg-text'}">${c.priceChangeH1 >= 0 ? '+' : ''}${c.priceChangeH1 || 0}%</td>
-            <td style="font-size:11.5px;">${escapeHtml(r.reason)}</td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table>`;
+    function renderBacktestRefTable() {
+      const tbody = document.getElementById('backtestRefBody');
+      if (!tbody || !stopHuntUniverse.length) return;
+      tbody.innerHTML = stopHuntUniverse.map(u => `<tr>
+        <td><b>$${u.symbol}</b></td>
+        <td class="text-muted">${escapeHtml(u.tier)}</td>
+        <td><b>±${u.minHuntPct}% ~ ±${u.maxHuntPct}%</b></td>
+        <td class="text-red">±${u.dangerTrendPct}% 이상</td>
+        <td>${u.minWickPct}% 이상</td>
+        <td class="text-green">${u.btWinRate}% (${u.btTrades}회)</td>
+        <td><b>${u.btPnl10x}</b></td>
+      </tr>`).join('');
     }
 
-    function renderPredictionTable(predDesk) {
-      const wrap = document.getElementById('predictionTableWrap');
-      const evals = predDesk?.lastEvaluatedMarkets || [];
-      if (!evals.length) {
-        wrap.innerHTML = `<div style="padding:20px;text-align:center;color:var(--muted);">[↻ 괴리율 마켓 즉시 스캔] 버튼을 누르면 Kalshi·Polymarket 실시간 질문에 대해 Gemini 3.5 Flash가 블라인드 확률을 추론하고 괴리율을 계산합니다.</div>`;
-        return;
-      }
-      wrap.innerHTML = `<table>
-        <thead><tr><th>출처</th><th>예측시장 질문</th><th>추천방향</th><th>내 확률(AI) vs 시장가</th><th>괴리율(Edge)</th><th>AI 추론 근거</th></tr></thead>
-        <tbody>${evals.map(m => `<tr>
-          <td><span class="pill pill-purple">${m.source}</span></td>
-          <td style="max-width:260px;"><b>${escapeHtml(m.question)}</b></td>
-          <td><span class="pill ${m.side === 'YES' ? 'pill-pass' : 'pill-reject'}">${m.side}</span></td>
-          <td><b>${(m.myProb * 100).toFixed(1)}%</b> vs ${(m.marketPrice * 100).toFixed(1)}%</td>
-          <td><span class="pill ${m.actionable ? 'pill-gold' : ''}">${m.edgePct}% ${m.actionable ? '🔥 진입' : ''}</span></td>
-          <td style="font-size:11.5px;color:#cbd5e1;">${escapeHtml(m.reasoning)}</td>
-        </tr>`).join('')}</tbody>
-      </table>`;
+    function renderSrSummaryBox(d) {
+      const box = document.getElementById('srSummaryBox');
+      if (box) box.style.display = 'none';
     }
 
-    function renderRwaUniverseTable(rwaDesk) {
-      const wrap = document.getElementById('rwaUniverseTableWrap');
-      const allList = rwaDesk?.lastAnalyses || [];
-      const list = currentRwaSector === 'all'
-        ? allList
-        : allList.filter(a => a.sector === currentRwaSector);
+    function renderOptionChat(history) {
+      lastRenderedChatCount = history.length;
+      const feed = document.getElementById('optionChatFeed');
+      feed.innerHTML = history.map(m => {
+        const isUser = m.role === 'user';
+        const t = new Date(m.timestamp).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+        const symLabel = m.symbol ? ` · $${m.symbol}` : '';
 
-      const secLabel = rwaSectors[currentRwaSector]?.label || '전 섹터 통합';
-      const titleEl = document.getElementById('rwaTableTitle');
-      if (titleEl) {
-        titleEl.textContent = `📊 [${secLabel}] 스퀴즈 & 감마 검증 랭킹 (${list.length}종목 표시 중)`;
-      }
+        if (!isUser && m.card) {
+          const c = m.card;
+          const isPos = Boolean(c.isPositiveGamma);
+          const gammaBg = isPos ? 'rgba(16, 185, 129, 0.18)' : 'rgba(244, 63, 94, 0.18)';
+          const gammaBorder = isPos ? 'rgba(16, 185, 129, 0.55)' : 'rgba(244, 63, 94, 0.55)';
+          const gammaColor = isPos ? '#34d399' : '#fb7185';
+          const dteTxt = c.dte != null && c.dte > 0 ? ` (D-${c.dte})` : '';
 
-      if (!list.length) {
-        wrap.innerHTML = `<div style="padding:18px;text-align:center;color:var(--muted);">[🔥 7대 섹터(49종목) 전수 스캔·매매] 또는 [⚡ 선택한 섹터만 스캔·검증·매매] 버튼을 누르면 우주·방산·바이오·반도체·광통신·로봇·RWA 종목들의 켈트너·볼린저 채널 및 콜/숏감마를 일괄 스캔합니다.</div>`;
-        return;
-      }
-      wrap.innerHTML = `<table>
-        <thead><tr><th>섹터/티커</th><th>타점 방향</th><th>현재가</th><th>1H 채널위치 / 스퀴즈</th><th>감마 레짐 (Net GEX)</th><th>콜벽 / 풋벽 / 맥스페인</th><th>TP1(보라) / TP2(흰색)</th><th>점수</th><th>분석</th></tr></thead>
-        <tbody>${list.map(a => {
-          const isShort = a.tradeSetup?.direction === 'SHORT';
-          return `<tr>
-          <td><b>$${a.symbol}</b><br><span style="font-size:10px;color:var(--muted);">${a.category}</span></td>
-          <td><span class="pill ${isShort ? 'pill-reject' : 'pill-pass'}">${isShort ? '🔴 SHORT' : '🟢 LONG'}</span></td>
-          <td><b>$${a.spot}</b></td>
-          <td>${a.chart.channelPos1hPct}% ${a.chart.purpleInsideWhite1h ? '<span class="pill pill-purple">스퀴즈</span>' : ''}</td>
-          <td><span class="pill ${a.options.gammaRegime === 'LONG_GAMMA' ? 'pill-pass' : 'pill-reject'}">${a.options.gammaRegime === 'LONG_GAMMA' ? '🟢 콜감마' : '🔴 숏감마'} (${a.options.netGexM}M)</span></td>
-          <td>C:$${a.options.callWall} / P:$${a.options.putWall}<br><span style="color:var(--gold);">MP:$${a.options.maxPain}</span></td>
-          <td>$${a.tradeSetup.tp1Price} / $${a.tradeSetup.tp2Price}</td>
-          <td><b>${a.tradeSetup.score}점</b></td>
-          <td><button onclick="inspectRwaSymbol('${a.symbol}')" style="padding:3px 8px;font-size:11px;">상세보기</button></td>
-        </tr>`;
-        }).join('')}</tbody>
-      </table>`;
-    }
+          return `<div class="chat-bubble assistant" style="padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:12px;">
+              <div>
+                <b style="font-size:17px;color:#fff;">$${escapeHtml(c.symbol)}</b>
+                <span style="font-size:12px;color:var(--muted);margin-left:6px;">${escapeHtml(c.name || '')}</span>
+                <span style="font-size:16px;font-weight:800;color:#60a5fa;margin-left:10px;">현재가 $${c.spot}</span>
+              </div>
+              <div style="background:${gammaBg};border:1px solid ${gammaBorder};color:${gammaColor};padding:5px 11px;border-radius:8px;font-weight:800;font-size:13px;">
+                ${isPos ? '🟢 양감마 (+GEX)' : '🔴 음감마 (-GEX)'} · ${escapeHtml(c.netGexText || '')}
+              </div>
+            </div>
 
-    async function inspectRwaSymbol(sym) {
-      currentRwaSymbol = sym.toUpperCase().trim();
-      document.querySelectorAll('#rwaPresetBar .preset-btn').forEach(b => {
-        b.classList.toggle('active', b.textContent.startsWith(currentRwaSymbol));
-      });
-      const box = document.getElementById('rwaInspectorContent');
-      box.innerHTML = `<div style="padding:24px;text-align:center;color:var(--gold);">⏳ <b>$${currentRwaSymbol}</b>의 tooja.me/chart 이중 채널(1H·10m) 및 tooja.me/options 콜감마·숏감마 체인을 실시간 분석 중입니다...</div>`;
-      try {
-        const res = await fetch('/api/rwa/analyze?symbol=' + encodeURIComponent(currentRwaSymbol));
-        const d = await res.json();
-        if (!d.ok) {
-          box.innerHTML = `<div style="padding:18px;color:var(--red);">분석 실패: ${escapeHtml(d.error)}</div>`;
-          return;
+            <!-- 감마플립 · 맥스페인가 · 만기일 -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+              <div style="background:#0b101b;border:1px solid rgba(168,85,247,0.4);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:#c084fc;font-weight:700;">감마플립 (Gamma Flip)</div>
+                <div style="font-size:16px;font-weight:800;color:#e9d5ff;margin-top:3px;">$${c.gammaFlip}</div>
+              </div>
+              <div style="background:#0b101b;border:1px solid rgba(59,130,246,0.45);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:#60a5fa;font-weight:700;">맥스페인가 (Max Pain)</div>
+                <div style="font-size:16px;font-weight:800;color:#93c5fd;margin-top:3px;">$${c.maxPain}</div>
+              </div>
+              <div style="background:#0b101b;border:1px solid var(--border);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:var(--muted);font-weight:700;">만기일 (Expiry)</div>
+                <div style="font-size:14.5px;font-weight:800;color:#f8fafc;margin-top:4px;">${escapeHtml(c.expiry)}${escapeHtml(dteTxt)}</div>
+              </div>
+            </div>
+
+            <!-- 유의미한 저항선(빨강) & 지지선(초록) -->
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;">
+              <div style="background:rgba(244,63,94,0.1);border:1px solid rgba(244,63,94,0.4);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:#fda4af;font-weight:700;">2차 저항 (콜벽)</div>
+                <div style="font-size:15.5px;font-weight:800;color:#fb7185;margin-top:3px;">$${c.r2}</div>
+              </div>
+              <div style="background:rgba(244,63,94,0.06);border:1px solid rgba(244,63,94,0.28);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:#fda4af;font-weight:700;">1차 저항</div>
+                <div style="font-size:15.5px;font-weight:800;color:#fb7185;margin-top:3px;">$${c.r1}</div>
+              </div>
+              <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.28);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:#6ee7b7;font-weight:700;">1차 지지</div>
+                <div style="font-size:15.5px;font-weight:800;color:#34d399;margin-top:3px;">$${c.s1}</div>
+              </div>
+              <div style="background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.4);border-radius:8px;padding:9px;text-align:center;">
+                <div style="font-size:11px;color:#6ee7b7;font-weight:700;">2차 지지 (풋벽)</div>
+                <div style="font-size:15.5px;font-weight:800;color:#34d399;margin-top:3px;">$${c.s2}</div>
+              </div>
+            </div>
+          </div>`;
         }
-        currentRwaAnalysis = d;
-        renderRwaInspector(d);
-      } catch (e) {
-        box.innerHTML = `<div style="padding:18px;color:var(--red);">네트워크 오류: ${escapeHtml(e.message)}</div>`;
-      }
+
+        return `<div class="chat-bubble ${isUser ? 'user' : 'assistant'}">
+          <div class="chat-meta">
+            <b>${isUser ? `나${symLabel}` : `옵션 수치${symLabel}`}</b>
+            <span>${t}</span>
+          </div>
+          <div>${escapeHtml(m.text)}</div>
+        </div>`;
+      }).join('');
+      feed.scrollTop = feed.scrollHeight;
     }
 
-    function inspectCustomRwa() {
-      const val = document.getElementById('customRwaTicker').value.trim();
-      if (val) inspectRwaSymbol(val);
-    }
-
-    function renderRwaInspector(d) {
-      const box = document.getElementById('rwaInspectorContent');
-      const wLo = d.chart.white1hLower;
-      const wHi = d.chart.white1hUpper;
-      const wSpan = Math.max(0.01, wHi - wLo);
-      const pLeft = Math.max(0, Math.min(95, ((d.chart.purple1hLower - wLo) / wSpan) * 100));
-      const pRight = Math.max(5, Math.min(100, ((d.chart.purple1hUpper - wLo) / wSpan) * 100));
-      const pWidth = Math.max(4, pRight - pLeft);
-      const spotPos = Math.max(1, Math.min(99, d.chart.channelPos1hPct));
-
-      const strikes = d.options.strikeMap || [];
-      const maxGex = Math.max(1, ...strikes.map(s => Math.max(s.callGexK, s.putGexK)));
-
-      box.innerHTML = `
-        <div style="background:#0c1322;border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:10px;">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;">
-            <div>
-              <span style="font-size:20px;font-weight:800;color:var(--gold);">$${d.symbol}</span>
-              <span style="font-size:13px;color:var(--muted);margin-left:6px;">${escapeHtml(d.name)}</span>
-              <span style="font-size:18px;font-weight:800;margin-left:10px;">현재가 $${d.spot}</span>
-              <span class="pill ${d.tradeSetup.direction === 'SHORT' ? 'pill-reject' : 'pill-pass'}" style="margin-left:8px;font-size:12px;">
-                ${d.tradeSetup.direction === 'SHORT' ? '🔴 추천: SHORT(숏)' : '🟢 추천: LONG(롱)'}
-              </span>
-            </div>
-            <div>
-              <span class="pill ${d.options.gammaRegime === 'LONG_GAMMA' ? 'pill-pass' : 'pill-reject'}" style="font-size:12px;padding:4px 10px;">
-                ${escapeHtml(d.options.gammaRegimeLabel)}
-              </span>
-            </div>
-          </div>
-          <div style="margin-top:8px;font-size:12.5px;color:#e2e8f0;">
-            🎯 <b>통합 시그널 (${d.tradeSetup.score}점 / 손익비 ${d.tradeSetup.rrRatio}:1)</b>: <span style="color:var(--gold);font-weight:700;">${escapeHtml(d.tradeSetup.setupName)}</span>
-            <br><span style="color:var(--muted);font-size:11.5px;">근거: ${escapeHtml(d.tradeSetup.summaryReason)}</span>
-          </div>
-        </div>
-
-        <div class="rwa-inspector-grid">
-          <!-- 좌: 켈트너(흰색) + 볼린저(보라색) 채널 박스 -->
-          <div class="channel-box">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <b>📈 1. 차트 이중채널 (흰색 켈트너 + 보라 볼린저)</b>
-              <span class="pill ${d.chart.purpleInsideWhite1h ? 'pill-purple' : ''}">${d.chart.purpleInsideWhite1h ? '🔥 꿈틀꿈틀 스퀴즈 포착!' : '일반 채널 진행'}</span>
-            </div>
-
-            <div class="band-bar" title="흰색 광역 채널 내부의 보라색 채널 및 현재가(노란선) 위치">
-              <div class="band-purple" style="left:${pLeft}%;width:${pWidth}%;"></div>
-              <div class="band-spot" style="left:${spotPos}%;"></div>
-            </div>
-            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:10px;">
-              <span>흰색하단 $${d.chart.white1hLower}</span>
-              <span style="color:#c084fc;">보라채널 $${d.chart.purple1hLower} ~ $${d.chart.purple1hUpper}</span>
-              <span>흰색상단 $${d.chart.white1hUpper}</span>
-            </div>
-
-            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;text-align:center;background:#111a2e;padding:8px;border-radius:8px;">
-              <div>
-                <div style="font-size:10.5px;color:var(--muted);">1차 익절 (${d.tradeSetup.direction === 'SHORT' ? '보라하단' : '보라상단'})</div>
-                <div style="font-size:14px;font-weight:800;color:#c084fc;">$${d.tradeSetup.tp1Price}</div>
-              </div>
-              <div>
-                <div style="font-size:10.5px;color:var(--muted);">2차 익절 (${d.tradeSetup.direction === 'SHORT' ? '흰색하단/풋벽' : '흰색상단/콜벽'})</div>
-                <div style="font-size:14px;font-weight:800;color:var(--green);">$${d.tradeSetup.tp2Price}</div>
-              </div>
-              <div>
-                <div style="font-size:10.5px;color:var(--muted);">손절 라인 (${d.tradeSetup.direction === 'SHORT' ? '흰색상단' : '흰색하단'})</div>
-                <div style="font-size:14px;font-weight:800;color:var(--red);">$${d.tradeSetup.stopPrice}</div>
-              </div>
-            </div>
-            <div style="font-size:11.5px;color:var(--muted);margin-top:8px;">
-              • 10분봉(10m) 교차검증: 보라($${d.chart.purple10mLower}~$${d.chart.purple10mUpper}) / 흰색($${d.chart.white10mLower}~$${d.chart.white10mUpper})
-            </div>
-          </div>
-
-          <!-- 우: 옵션 콜감마 vs 숏감마 & 맥스페인 박스 -->
-          <div class="channel-box">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <b>⚡ 2. 옵션 콜감마(Call Γ) · 숏감마(Put Γ) · 맥스페인</b>
-              <span style="font-size:11px;color:var(--muted);">만기 ${d.options.expiry}</span>
-            </div>
-            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;text-align:center;background:#111a2e;padding:7px;border-radius:8px;margin-bottom:8px;">
-              <div>
-                <div style="font-size:10px;color:var(--muted);">콜감마 벽</div>
-                <div style="font-size:13px;font-weight:800;color:var(--green);">$${d.options.callWall}</div>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--muted);">풋감마 벽</div>
-                <div style="font-size:13px;font-weight:800;color:var(--red);">$${d.options.putWall}</div>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--muted);">감마 플립</div>
-                <div style="font-size:13px;font-weight:800;color:var(--blue);">$${d.options.gammaFlip}</div>
-              </div>
-              <div>
-                <div style="font-size:10px;color:var(--muted);">맥스페인(기관)</div>
-                <div style="font-size:13px;font-weight:800;color:var(--gold);">$${d.options.maxPain}</div>
-              </div>
-            </div>
-
-            <div style="font-size:10.5px;color:var(--muted);display:flex;justify-content:space-between;margin-bottom:4px;">
-              <span>◀ 풋/숏감마 (Put GEX)</span>
-              <span>행사가</span>
-              <span>콜감마 (Call GEX) ▶</span>
-            </div>
-            ${strikes.map(s => {
-              const pw = Math.min(100, (s.putGexK / maxGex) * 100);
-              const cw = Math.min(100, (s.callGexK / maxGex) * 100);
-              const isMp = Math.abs(s.strike - d.options.maxPain) < 0.6;
-              return `<div class="gex-row">
-                <div class="gex-bar-wrap"><div class="gex-bar-put" style="width:${pw.toFixed(1)}%"></div></div>
-                <div style="text-align:center;font-weight:700;color:${isMp ? 'var(--gold)' : '#cbd5e1'};">$${s.strike}${isMp ? '★' : ''}</div>
-                <div class="gex-bar-wrap"><div class="gex-bar-call" style="width:${cw.toFixed(1)}%"></div></div>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    async function manualTradeRwa(direction = null) {
-      const btn = event.target;
+    async function submitOptionChat(e) {
+      e.preventDefault();
+      const input = document.getElementById('optionChatInput');
+      const text = input.value.trim();
+      if (!text || isOptionChatPending) return;
+      isOptionChatPending = true;
+      const btn = document.getElementById('btnAskAi');
       btn.disabled = true;
+      btn.textContent = '조회 중...';
+      input.value = '';
+
+      const feed = document.getElementById('optionChatFeed');
+      const nowStr = new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' });
+      feed.insertAdjacentHTML('beforeend', `
+        <div class="chat-bubble user">
+          <div class="chat-meta"><b>나</b><span>${nowStr}</span></div>
+          <div>${escapeHtml(text)}</div>
+        </div>
+        <div class="chat-bubble assistant" id="pendingAiBubble">
+          <div style="color:#60a5fa;font-size:12.5px;">⏳ 실시간 옵션 수치(감마·감마플립·맥스페인·지지저항) 조회 중...</div>
+        </div>
+      `);
+      feed.scrollTop = feed.scrollHeight;
+
       try {
-        const res = await fetch('/api/rwa/trade', {
+        const res = await fetch('/api/options-ai/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ symbol: currentRwaSymbol, direction })
+          body: JSON.stringify({ text })
         });
         const out = await res.json();
-        if (!out.ok) {
-          alert(out.error || '모의 체결 실패');
-        } else {
-          switchDesk('rwa');
-          await fetchDeskState();
+        if (out.history) {
+          renderOptionChat(out.history);
         }
+      } catch (err) {
+        const pend = document.getElementById('pendingAiBubble');
+        if (pend) pend.innerHTML = `<div style="color:#f43f5e;">❌ 오류: ${escapeHtml(err.message)}</div>`;
+      } finally {
+        isOptionChatPending = false;
+        btn.disabled = false;
+        btn.textContent = '조회';
+      }
+    }
+
+    async function clearOptionChat() {
+      const res = await fetch('/api/options-ai/clear', { method: 'POST' });
+      const out = await res.json();
+      document.getElementById('srSummaryBox').style.display = 'none';
+      if (out.history) renderOptionChat(out.history);
+    }
+
+    async function triggerScan() {
+      const btn = document.getElementById('btnScan');
+      btn.disabled = true;
+      btn.textContent = '스캔 중...';
+      try {
+        await fetch('/api/desk/run-pipeline', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        await fetchState();
       } finally {
         btn.disabled = false;
+        btn.textContent = '↻ 스탑헌팅 스캔';
       }
-    }
-
-    async function runPipeline(desk, sector = 'all') {
-      const btn = document.getElementById('btnRunAll');
-      const curBtn = document.getElementById('btnRunCurrentDesk');
-      if (btn) btn.disabled = true;
-      if (curBtn) curBtn.disabled = true;
-      try {
-        await fetch('/api/desk/run-pipeline', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ desk, sector })
-        });
-        await fetchDeskState();
-      } finally {
-        if (btn) btn.disabled = false;
-        if (curBtn) curBtn.disabled = false;
-      }
-    }
-
-    function runCurrentDeskPipeline() {
-      return runPipeline(currentDesk);
-    }
-
-    async function runRiskCheck() {
-      await fetch('/api/desk/run-risk', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      await fetchDeskState();
-    }
-
-    async function sendDailyReport() {
-      await fetch('/api/desk/daily-report', { method: 'POST' });
-      await fetchDeskState();
     }
 
     async function testTelegram() {
       const res = await fetch('/api/desk/telegram-test', { method: 'POST' });
       const out = await res.json();
-      await fetchDeskState();
-      if (out.ok) alert('휴대폰 텔레그램(@dytradingdemo_bot)으로 3대 데스크 상태 알림을 발송했습니다!');
+      if (out.ok) alert('텔레그램(@dytradingdemo_bot)으로 테스트 알림을 발송했습니다.');
     }
 
-    async function createSampleBonk() {
-      await fetch('/api/desk/sample-position', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
-      await fetchDeskState();
-    }
-
-    async function resetCurrentDesk() {
-      if (!confirm(`현재 선택된 [${currentDesk}] 데스크 금고를 깨끗한 $1,000.00로 초기화할까요?`)) return;
-      await fetch('/api/desk/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ desk: currentDesk })
-      });
-      await fetchDeskState();
-    }
-
-    async function resetAllDesks() {
-      if (!confirm('3대 데스크 전체 금고($1,000 × 3 = 총 $3,000.00)를 모두 깨끗하게 초기화할까요?')) return;
-      await fetch('/api/desk/reset', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({})
-      });
-      await fetchDeskState();
-    }
-
-    async function sendChatMessage(e) {
-      e.preventDefault();
-      const input = document.getElementById('chatInput');
-      const text = input.value.trim();
-      if (!text) return;
-      input.value = '';
-      await fetch('/api/desk/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ desk: currentDesk, text })
-      });
-      await fetchDeskState();
-    }
-
-    async function quickChat(text) {
-      await fetch('/api/desk/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ desk: currentDesk, text })
-      });
-      await fetchDeskState();
+    async function resetVault() {
+      if (!confirm('10x 스탑헌팅 금고를 $1,000.00로 초기화할까요?')) return;
+      await fetch('/api/desk/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      await fetchState();
     }
 
     function openCloudModal() {
@@ -1382,7 +967,7 @@
       const btn = document.getElementById('btnDeviceLogin');
       btn.disabled = true;
       box.style.display = 'block';
-      box.innerHTML = '⏳ GitHub 1회용 디바이스 인증 코드를 발급받는 중...';
+      box.innerHTML = '⏳ GitHub 8자리 코드 발급 중...';
       try {
         const res = await fetch('/api/desk/github-device-start', {
           method: 'POST',
@@ -1397,9 +982,9 @@
         }
         window.open(out.verificationUri, '_blank');
         box.innerHTML = `
-          <div style="font-size:13px;margin-bottom:6px;">1️⃣ 방금 열린 <a href="${out.verificationUri}" target="_blank" style="color:#38bdf8;font-weight:800;">${out.verificationUri}</a> 창에 아래 8자리 코드를 복사해 붙여넣고 <b>Authorize</b>를 눌러주세요:</div>
-          <div style="font-size:24px;font-weight:900;letter-spacing:3px;color:var(--gold);background:#111a2e;padding:10px;text-align:center;border-radius:8px;margin:8px 0;">${out.userCode}</div>
-          <div id="ghDevicePollStatus" style="font-size:12px;color:#34d399;">🔄 브라우저에서 Authorize 버튼을 누르시면 자동으로 감지하여 배포를 완료합니다... (대기 중)</div>
+          <div style="font-size:12px;margin-bottom:6px;">열린 <a href="${out.verificationUri}" target="_blank" style="color:#60a5fa;font-weight:700;">${out.verificationUri}</a> 창에 아래 코드를 입력하고 <b>Authorize</b>를 누르세요:</div>
+          <div style="font-size:22px;font-weight:800;letter-spacing:3px;color:#fff;background:var(--card-sub);padding:8px;text-align:center;border-radius:8px;margin:6px 0;">${out.userCode}</div>
+          <div id="ghDevicePollStatus" style="font-size:11.5px;color:#34d399;">🔄 Authorize 대기 중...</div>
         `;
         if (ghDevicePollInterval) clearInterval(ghDevicePollInterval);
         ghDevicePollInterval = setInterval(async () => {
@@ -1409,21 +994,20 @@
           const statusLine = document.getElementById('ghDevicePollStatus');
           if (!statusLine) return;
           if (sess.status === 'DEPLOYING') {
-            statusLine.textContent = '🚀 GitHub 인증 완료! 저장소 생성 및 v3.1 파일 8개 클라우드 업로드 중...';
+            statusLine.textContent = '🚀 인증 완료! GitHub Actions에 최신 v4.0 코드 업로드 중...';
           } else if (sess.status === 'DEPLOYED' && sess.deployResult) {
             clearInterval(ghDevicePollInterval);
-            statusLine.innerHTML = `✅ <b>24시간 무인 클라우드 배포 완료!</b> <a href="${sess.deployResult.actionsUrl}" target="_blank" style="color:#38bdf8;font-weight:800;">GitHub Actions 가동 확인하기 (${sess.deployResult.repoUrl})</a>`;
+            statusLine.innerHTML = `✅ <b>배포 완료!</b> <a href="${sess.deployResult.actionsUrl}" target="_blank" style="color:#60a5fa;font-weight:700;">GitHub Actions 확인</a>`;
             btn.disabled = false;
-            await fetchDeskState();
           } else if (sess.status === 'ERROR') {
             clearInterval(ghDevicePollInterval);
-            statusLine.style.color = '#f87171';
-            statusLine.textContent = `❌ 오류: ${sess.error}`;
+            statusLine.style.color = '#f43f5e';
+            statusLine.textContent = `❌ ${sess.error}`;
             btn.disabled = false;
           }
         }, 3000);
       } catch (e) {
-        box.innerHTML = `❌ 네트워크 오류: ${escapeHtml(e.message)}`;
+        box.innerHTML = `❌ 오류: ${escapeHtml(e.message)}`;
         btn.disabled = false;
       }
     }
@@ -1434,11 +1018,11 @@
       const statusEl = document.getElementById('ghDeployStatus');
       const btn = document.getElementById('btnDeployCloud');
       if (!token) {
-        statusEl.textContent = '⚠️ GitHub 토큰(ghp_...)을 입력해 주세요.';
+        statusEl.textContent = '토큰을 입력하거나 위 1클릭 인증 버튼을 눌러주세요.';
         return;
       }
       btn.disabled = true;
-      statusEl.textContent = '⏳ GitHub 클라우드 저장소에 v3.0 3대 데스크 파일 업로드 및 스케줄러 가동 중...';
+      statusEl.textContent = '업로드 중...';
       try {
         const res = await fetch('/api/desk/github-deploy', {
           method: 'POST',
@@ -1446,19 +1030,16 @@
           body: JSON.stringify({ githubToken: token, repoName: repo, isPrivate: true })
         });
         const out = await res.json();
-        if (out.ok) {
-          statusEl.innerHTML = `✅ 배포 성공! <a href="${out.actionsUrl}" target="_blank" style="color:#38bdf8;">GitHub Actions 바로가기 (${out.repoUrl})</a>`;
-          await fetchDeskState();
-        } else {
-          statusEl.textContent = `❌ 오류: ${out.error}`;
-        }
+        statusEl.innerHTML = out.ok
+          ? `✅ 배포 완료! <a href="${out.actionsUrl}" target="_blank" style="color:#60a5fa;">GitHub Actions 바로가기</a>`
+          : `❌ 오류: ${escapeHtml(out.error)}`;
       } finally {
         btn.disabled = false;
       }
     }
 
-    fetchDeskState();
-    setInterval(fetchDeskState, 8000);
+    fetchState();
+    setInterval(fetchState, 8000);
   </script>
 </body>
 </html>
