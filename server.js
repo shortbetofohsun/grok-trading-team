@@ -688,12 +688,6 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
     uploaded.push(relPath);
   }
 
-  await fetchJson(`https://api.github.com/repos/${owner}/${repoName}/actions/workflows/trading-cron.yml/dispatches`, {
-    method: 'POST',
-    headers: ghHeaders,
-    body: JSON.stringify({ ref: defaultBranch })
-  });
-
   const repoUrl = `https://github.com/${owner}/${repoName}`;
   const actionsUrl = `https://github.com/${owner}/${repoName}/actions`;
   saveLocalGhAuth({ githubToken: token, repoName, repoUrl, actionsUrl });
