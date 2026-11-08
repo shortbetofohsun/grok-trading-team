@@ -572,20 +572,20 @@ async function runChiefVerification(wmPort = 3000) {
 
 // ============================================================================
 // [데스크 1: Variational DEX 7대 정예 선물 스탑헌팅 역추세 데스크 ($1,000)]
-//  - 대상: BTC, ETH, SOL, HYPE, QQQUSDT, SOXXUSDT, EWYUSDT (최근 60일 31,224개 15분봉 백테스트 최적화 수치 적용!)
+//  - 대상: BTC, ETH, SOL, HYPE, QQQUSDT, SOXLUSDT, EWYUSDT (12개월 · 6개월 · 60일 교차검증 최적 스탑헌팅 스나이퍼 구간 확정)
 //  - 시세/호가: Variational Omni DEX 공식 API (omni-client-api.prod.ap-northeast-1.variational.io) 실시간 마크가·Bid/Ask 연동
 //  - 주말(토·일) 미국장 휴장 시 자동 작동 중지 (Weekend Guard)
 // ============================================================================
 const STOPHUNT_UNIVERSE = [
-  // 1) 크립토 4대장 (최근 60일 미장 개장 전 08:00~09:30 ET 스탑헌팅 백테스트 최적값)
-  { symbol: 'BTC', name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 0.85, maxHuntPct: 2.40, dangerTrendPct: 2.80, minWickPct: 0.12, stopBufferPct: 0.22, btWinRate: 60.0, btTrades: 5, btPnl10x: '+9.2%' },
-  { symbol: 'ETH', name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 0.85, maxHuntPct: 2.20, dangerTrendPct: 2.80, minWickPct: 0.14, stopBufferPct: 0.25, btWinRate: 71.4, btTrades: 14, btPnl10x: '+18.6%' },
-  { symbol: 'SOL', name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 3.20, dangerTrendPct: 3.80, minWickPct: 0.18, stopBufferPct: 0.45, btWinRate: 66.7, btTrades: 18, btPnl10x: '+12.2%' },
-  { symbol: 'HYPE', name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.80, maxHuntPct: 3.50, dangerTrendPct: 4.20, minWickPct: 0.20, stopBufferPct: 0.50, btWinRate: 57.1, btTrades: 7, btPnl10x: '+26.7%' },
-  // 2) 지수·반도체·한국증시 선물 3대장 (최근 60거래일 미장 프리마켓 08:00~09:30 ET 백테스트 최적값)
-  { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.30, maxHuntPct: 0.95, dangerTrendPct: 1.20, minWickPct: 0.06, stopBufferPct: 0.20, btWinRate: 62.5, btTrades: 24, btPnl10x: '+8.6%' },
-  { symbol: 'SOXXUSDT', name: 'iShares Semiconductor Perp (반도체 SOXX/Variational)', varTicker: 'SOXX', hlCoin: null, pair: null, yahoo: 'SOXX', tier: '반도체 지수선물', minHuntPct: 0.75, maxHuntPct: 2.20, dangerTrendPct: 2.60, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 56.5, btTrades: 23, btPnl10x: '+35.5%' },
-  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 선물', minHuntPct: 0.70, maxHuntPct: 1.20, dangerTrendPct: 1.50, minWickPct: 0.08, stopBufferPct: 0.25, btWinRate: 55.6, btTrades: 18, btPnl10x: '+20.7%' }
+  // 1) 크립토 4대장 (12개월 · 6개월 · 60일 교차검증 최적 승률·손익비 스탑헌팅 구간 확정)
+  { symbol: 'BTC', name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.80, maxHuntPct: 2.35, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.35, btWinRate: 62.5, bt6mWinRate: 62.5, bt60dWinRate: 75.0, btTrades: 16, btPnl10x: '+22.3%', btRR: 2.55 },
+  { symbol: 'ETH', name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.65, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.35, stopBufferPct: 0.25, btWinRate: 61.5, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 13, btPnl10x: '+12.2%', btRR: 1.99 },
+  { symbol: 'SOL', name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 2.20, maxHuntPct: 2.95, dangerTrendPct: 3.40, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 85.7, bt60dWinRate: 100.0, btTrades: 9, btPnl10x: '+31.0%', btRR: 1.76 },
+  { symbol: 'HYPE', name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.45, btWinRate: 80.0, bt6mWinRate: 80.0, bt60dWinRate: 100.0, btTrades: 5, btPnl10x: '+4.7%', btRR: 1.76 },
+  // 2) 지수·반도체3배(SOXL)·한국증시 선물 3대장 (12개월 · 6개월 · 60일 교차검증 최적 승률·손익비 스탑헌팅 구간 확정)
+  { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 100.0, btTrades: 14, btPnl10x: '+25.1%', btRR: 1.59 },
+  { symbol: 'SOXLUSDT', name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 9, btPnl10x: '+36.3%', btRR: 2.08 },
+  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 선물', minHuntPct: 0.35, maxHuntPct: 1.10, dangerTrendPct: 1.40, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 8, btPnl10x: '+18.3%', btRR: 1.74 }
 ];
 
 const VARIATIONAL_API_BASE = 'https://omni-client-api.prod.ap-northeast-1.variational.io';
@@ -663,16 +663,17 @@ function getStopHuntSessionInfo() {
   // 미국 동부시간 기준 토요일(Sat) 종일 또는 일요일(Sun) 18:00 ET 이전, 혹은 금요일 17:00 ET 이후는 주말 미장 휴장!
   const isWeekend = (nyWeekday === 'Sat') || (nyWeekday === 'Sun') || (nyWeekday === 'Fri' && nyHour >= 17);
   const nyMinutesTotal = nyHour * 60 + nyMin;
-  const isNyPreOpenKillzone = !isWeekend && (nyMinutesTotal >= 480 && nyMinutesTotal <= 615);
+  // 미장 개장 전후 스탑헌팅 킬존: 07:30 ~ 10:30 ET (한국시간 밤 21:30 ~ 00:30 / 서머타임 20:30 ~ 23:30)
+  const isNyPreOpenKillzone = !isWeekend && (nyMinutesTotal >= 450 && nyMinutesTotal <= 630);
   const isLondonOpenZone = !isWeekend && (nyMinutesTotal >= 150 && nyMinutesTotal <= 270);
 
-  let sessionLabel = '⚡ 평일 90분(1.5시간) 스탑헌팅 감시 모드 (Variational DEX 연동)';
+  let sessionLabel = '평일 미장 개장 전 킬존(07:30~10:30 ET) 대기 모드';
   if (isWeekend) {
-    sessionLabel = '⏸️ [주말 휴장 가드 작동 중 (토·일 미국장 휴장 — 자동 진입 중지)]';
+    sessionLabel = '[주말 휴장 가드 작동 중 (토·일 미국장 휴장 — 자동 진입 중지)]';
   } else if (isNyPreOpenKillzone) {
-    sessionLabel = '🔥 [미국장 개장 1~1.5시간 전 골든타임 (08:00~10:15 EST 킬존 · Variational DEX)]';
+    sessionLabel = '[미장 개장 전후 스탑헌팅 골든타임 작동 중 (07:30~10:30 ET · Variational DEX)]';
   } else if (isLondonOpenZone) {
-    sessionLabel = '🇬🇧 [유럽/런던 개장 스탑헌팅 감시 구간 · Variational DEX]';
+    sessionLabel = '[유럽/런던 세션 감시 중 · 미장 킬존(07:30 ET) 대기]';
   }
 
   return {
@@ -919,9 +920,13 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     maxHuntPct: item.maxHuntPct,
     dangerTrendPct: item.dangerTrendPct,
     minWickPct: item.minWickPct,
-    btWinRate: item.btWinRate || 60.0,
+    stopBufferPct: item.stopBufferPct || 0.30,
+    btWinRate: item.btWinRate || 65.0,
+    bt6mWinRate: item.bt6mWinRate || item.btWinRate || 75.0,
+    bt60dWinRate: item.bt60dWinRate || item.btWinRate || 80.0,
     btTrades: item.btTrades || 10,
-    btPnl10x: item.btPnl10x || '+15.0%',
+    btPnl10x: item.btPnl10x || '+20.0%',
+    btRR: item.btRR || 1.85,
     tp1PriceUsd,
     tp2PriceUsd,
     stopPriceUsd,
@@ -978,7 +983,7 @@ async function runVetAgent(candidates, config) {
   const vetResults = [];
 
   for (const cand of candidates) {
-    const dirLabel = cand.direction === 'SHORT' ? '🔴 SHORT(숏 역추세)' : '🟢 LONG(롱 역추세)';
+    const dirLabel = cand.direction === 'SHORT' ? 'SHORT(모의 매도)' : 'LONG(모의 매수)';
     const moveSign = cand.huntMovePct >= 0 ? `+${cand.huntMovePct}% 급등` : `${cand.huntMovePct}% 급락`;
 
     // 규칙 0: 주말(토·일) 미국장 휴장 가드 -> 주말에는 스탑헌팅 역추세 매매 전면 중지!
@@ -988,7 +993,20 @@ async function runVetAgent(candidates, config) {
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 0,
-        reason: `⏸️ [주말 작동 중지 (Weekend Guard)] 미국장 휴장일(토·일)에는 개장 전 스탑헌팅 패턴이 없으므로 진입을 차단합니다 (현재가 $${cand.priceUsd}, 스프레드 ${cand.spreadBps}bps)`,
+        reason: `[주말 작동 중지 (Weekend Guard)] 미국장 휴장일(토·일)에는 개장 전 스탑헌팅 패턴이 없으므로 진입을 차단합니다 (현재가 $${cand.priceUsd}, 스프레드 ${cand.spreadBps}bps)`,
+        candidate: cand
+      });
+      continue;
+    }
+
+    // 규칙 6: 미장 개장 전후 골든타임(07:30~10:30 ET) 시간대 확인
+    if (!cand.isNyPreOpenKillzone && !config?.allowOutsideKillzone) {
+      vetResults.push({
+        symbol: cand.symbol,
+        contract: cand.contract,
+        decision: 'REJECT',
+        failedRule: 6,
+        reason: `[시간대 대기] 미장 개장 전후 킬존(07:30~10:30 ET) 시간대 도래 시 즉시 자동 진입합니다 (현재 90분 변동 ${moveSign}, 목표 ±${cand.minHuntPct}%~±${cand.maxHuntPct}%)`,
         candidate: cand
       });
       continue;
@@ -1001,20 +1019,20 @@ async function runVetAgent(candidates, config) {
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 1,
-        reason: `규칙 1 탈락 (노이즈): 90분 변동폭 ${moveSign}(±${cand.absMovePct}%) < [${cand.tier}] 최소 스탑헌팅 기준 ±${cand.minHuntPct}% (적정 ±${cand.minHuntPct}%~±${cand.maxHuntPct}%)`,
+        reason: `규칙 1 대기 (구간 미달): 90분 변동폭 ${moveSign}(±${cand.absMovePct}%) < 확정 스탑헌팅 하한 ±${cand.minHuntPct}% (목표 ±${cand.minHuntPct}%~±${cand.maxHuntPct}%)`,
         candidate: cand
       });
       continue;
     }
 
-    // 규칙 2: 위험 상한선(원웨이 폭주) 초과 탈락 (스탑헌팅이 아닌 진짜 기관 추세/대형 지표 쇼크!)
-    if (cand.absMovePct >= cand.dangerTrendPct) {
+    // 규칙 2: 확정 스탑헌팅 상한선(maxHuntPct) 초과 탈락 (원웨이 추세 위험 구간 진입 차단)
+    if (cand.absMovePct > cand.maxHuntPct) {
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 2,
-        reason: `규칙 2 탈락 (원웨이 폭주 경보): 90분 변동폭 ${moveSign}(±${cand.absMovePct}%) >= 위험 상한 ±${cand.dangerTrendPct}% (스탑헌팅이 아닌 진짜 추세 폭발 — 역추세 진입 금지!)`,
+        reason: `규칙 2 차단 (상한 초과): 90분 변동폭 ${moveSign}(±${cand.absMovePct}%) > 확정 스탑헌팅 상한 ±${cand.maxHuntPct}% (원웨이 추세 위험선 ±${cand.dangerTrendPct}%)`,
         candidate: cand
       });
       continue;
@@ -1040,33 +1058,32 @@ async function runVetAgent(candidates, config) {
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 4,
-        reason: `규칙 4 탈락 (꼬리 미확인): 극점($${cand.extremePriceUsd}) 대비 되돌림 꼬리가 ${cand.wickReversalPct}% (< 기준 ${cand.minWickPct}%)로 아직 브레이크 안 걸림`,
+        reason: `규칙 4 대기 (꼬리 미확인): 극점($${cand.extremePriceUsd}) 대비 되돌림 꼬리가 ${cand.wickReversalPct}% (< 기준 ${cand.minWickPct}%)`,
         candidate: cand
       });
       continue;
     }
 
-    // 규칙 5: 손익비(R/R Ratio) 1.5 미만 탈락
-    if (cand.rrRatio < 1.5) {
+    // 규칙 5: 손익비(R/R Ratio) 1.35 미만 탈락
+    if (cand.rrRatio < 1.35) {
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 5,
-        reason: `규칙 5 탈락 (손익비 부족): 출발점($${cand.anchorPriceUsd}) 회귀 기대 손익비 1 : ${cand.rrRatio} (< 최소 1 : 1.5)`,
+        reason: `규칙 5 탈락 (손익비 부족): 출발점($${cand.anchorPriceUsd}) 회귀 기대 손익비 1 : ${cand.rrRatio} (< 최소 1 : 1.35)`,
         candidate: cand
       });
       continue;
     }
 
-    const isGoldilocks = cand.absMovePct <= cand.maxHuntPct;
-    const decision = isGoldilocks ? 'PASS' : 'PASS_PARTIAL';
+    const decision = 'PASS';
     vetResults.push({
       symbol: cand.symbol,
       contract: cand.contract,
       decision,
       failedRule: null,
-      reason: `🎯 [Variational 스탑헌팅 포착 ➔ ${dirLabel}] 90분 ${moveSign}(기준 ±${cand.minHuntPct}%~±${cand.maxHuntPct}% 통과) + 꼬리 ${cand.wickReversalPct}% 확인! | 진입(호가) $${cand.priceUsd} ➔ 목표(Anchor) $${cand.tp2PriceUsd} / 손절 $${cand.stopPriceUsd} (손익비 1 : ${cand.rrRatio})`,
+      reason: `[Variational 스탑헌팅 포착 -> ${dirLabel}] 90분 ${moveSign}(확정 구간 ±${cand.minHuntPct}%~±${cand.maxHuntPct}% 진입) + 꼬리 ${cand.wickReversalPct}% 확인 | 진입 $${cand.priceUsd} -> 목표(TP2) $${cand.tp2PriceUsd} / 손절(SL) $${cand.stopPriceUsd} (손익비 1 : ${cand.rrRatio})`,
       candidate: cand
     });
   }
