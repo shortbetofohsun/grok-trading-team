@@ -30,11 +30,30 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 const GH_LOCAL_AUTH_FILE = path.join(DATA_DIR, '.gh_local_auth.json');
 
 const DEFAULT_TG_B64 = 'ODgxMDAzMTEzNzpBQUdyZ3JPZXB5SlJ6TE42OXpqbm1lV0RKQmlfWFY0Tkxidw==';
+const DEFAULT_ALERT_TG_B64 = 'OTI3NzQxNjk2NTpBQUhiMjd1LVdvTVNRbU55VHJqWjhUTTh5S3RhZy1zNlh4TQ==';
 const DEFAULT_GM_B64 = 'QVEuQWI4Uk42THE1YUNscXNIVlkxbDMxUDIzREJ1eUNxSXFRZkFHeW5FMElCbUhPSjIzMkE=';
 
 const DEFAULT_GEMINI_KEY = process.env.GEMINI_API_KEY || Buffer.from(DEFAULT_GM_B64, 'base64').toString('utf-8');
 const DEFAULT_TELEGRAM_TOKEN = process.env.TELEGRAM_BOT_TOKEN || Buffer.from(DEFAULT_TG_B64, 'base64').toString('utf-8');
+const DEFAULT_ALERT_BOT_TOKEN = process.env.ALERT_BOT_TOKEN || Buffer.from(DEFAULT_ALERT_TG_B64, 'base64').toString('utf-8');
 const DEFAULT_TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8417795671';
+
+const DEFAULT_PRICE_ALERT_TARGETS = {
+  QQQ: {
+    symbol: 'QQQ',
+    name: '나스닥 100 (QQQ)',
+    target_price: 670.0,
+    condition: 'gte',
+    enabled: true
+  },
+  NFLX: {
+    symbol: 'NFLX',
+    name: '넷플릭스 (NFLX)',
+    target_price: 55.0,
+    condition: 'lte',
+    enabled: true
+  }
+};
 
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
@@ -55,7 +74,7 @@ function createVaultPortfolio(startingUsd = 1000.00) {
 function getDefaultState() {
   const nowIso = new Date().toISOString();
   return {
-    version: '4.0.0',
+    version: '4.1.0',
     createdAt: nowIso,
     wmPort: 3000,
     config: {
@@ -72,6 +91,16 @@ function getDefaultState() {
       telegramBotUsername: '@dytradingdemo_bot',
       telegramEnabled: true,
       lastTelegramSentAt: null
+    },
+    priceAlerts: {
+      chat_id: DEFAULT_TELEGRAM_CHAT_ID,
+      chat_user: '도윤 이 (@shortbetofohsun)',
+      bot_username: 'Alert_123455_bot',
+      cooldown_minutes: 10,
+      rearm_mode: 'cross_again',
+      sound_enabled: true,
+      targets: JSON.parse(JSON.stringify(DEFAULT_PRICE_ALERT_TARGETS)),
+      logs: []
     },
     desks: {
       memecoin: {
@@ -102,7 +131,7 @@ function getDefaultState() {
         id: 'log_init',
         type: 'INFO',
         timestamp: nowIso,
-        text: '⚡ Variational DEX 7대 선물 10x 스탑헌팅 모의매매 봇($1,000 금고) 가동 완료 (주말 휴장 가드 · 60일 백테스트 최적 % 적용)'
+        text: 'Variational DEX 통합 터미널 가동 완료 (지정가 텔레그램 알리미 · 10x 스탑헌팅 봇 · 옵션 지지저항 분석)'
       }
     ],
     lastOptionSymbol: null,
@@ -125,6 +154,21 @@ if (fs.existsSync(STATE_FILE)) {
     const loaded = JSON.parse(fs.readFileSync(STATE_FILE, 'utf-8'));
     if (loaded && loaded.desks?.memecoin) {
       const def = getDefaultState();
+      const loadedAlerts = loaded.priceAlerts || {};
+      const mergedTargets = {
+        ...JSON.parse(JSON.stringify(DEFAULT_PRICE_ALERT_TARGETS)),
+        ...(loadedAlerts.targets || {})
+      };
+      // 기존 QQQUSDT / NFLXUSDT 키가 있으면 QQQ / NFLX로 정규화
+      for (const k of Object.keys(mergedTargets)) {
+        const clean = k.toUpperCase().replace(/USDT$/, '');
+        if (clean !== k) {
+          if (!mergedTargets[clean]) {
+            mergedTargets[clean] = { ...mergedTargets[k], symbol: clean };
+          }
+          delete mergedTargets[k];
+        }
+      }
       state = {
         ...def,
         ...loaded,
@@ -134,6 +178,15 @@ if (fs.existsSync(STATE_FILE)) {
           geminiApiKey: loaded.integrations?.geminiApiKey || DEFAULT_GEMINI_KEY,
           telegramToken: loaded.integrations?.telegramToken || DEFAULT_TELEGRAM_TOKEN,
           telegramChatId: loaded.integrations?.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID
+        },
+        priceAlerts: {
+          ...def.priceAlerts,
+          ...loadedAlerts,
+          chat_id: loadedAlerts.chat_id || DEFAULT_TELEGRAM_CHAT_ID,
+          chat_user: loadedAlerts.chat_user || '도윤 이 (@shortbetofohsun)',
+          bot_username: loadedAlerts.bot_username || 'Alert_123455_bot',
+          targets: mergedTargets,
+          logs: Array.isArray(loadedAlerts.logs) ? loadedAlerts.logs : []
         },
         desks: {
           memecoin: {
@@ -760,8 +813,211 @@ async function startGitHubDeviceFlow(repoName = 'grok-trading-team', isPrivate =
 }
 
 // ============================================================================
-// 4. 백그라운드 타이머 (5분 10x 포지션 점검 / 15분 스탑헌팅 스캔)
+// 4. Variational DEX 전 종목(588개) 실시간 지정가 텔레그램 알리미 엔진
 // ============================================================================
+let variationalCatalog = []; // [{ ticker, name, markPrice, bidPrice, askPrice, volume24h }]
+const variationalRuntime = {}; // ticker -> { current_price, bid_price, ask_price, high_24h, low_24h, open_price, price_change_pct, volume_24h, last_updated, api_status, price_history, last_alert_time, last_price_state, alert_count }
+
+function getOrInitVarSymbolState(sym) {
+  if (!variationalRuntime[sym]) {
+    variationalRuntime[sym] = {
+      current_price: 0,
+      bid_price: 0,
+      ask_price: 0,
+      high_24h: 0,
+      low_24h: 0,
+      open_price: 0,
+      price_change_pct: 0,
+      volume_24h: 0,
+      last_updated: null,
+      api_status: 'Variational 연결 대기 중',
+      price_history: [],
+      last_alert_time: 0,
+      last_price_state: null,
+      alert_count: 0
+    };
+  }
+  return variationalRuntime[sym];
+}
+
+async function sendPriceAlertTelegram(htmlText) {
+  const pa = state.priceAlerts || {};
+  const chatId = String(pa.chat_id || state.integrations?.telegramChatId || DEFAULT_TELEGRAM_CHAT_ID).trim();
+  if (!chatId) return { ok: false, error: 'Chat ID 미설정' };
+
+  // 1순위: @Alert_123455_bot (기존 알리미 봇), 2순위: @dytradingdemo_bot 백업
+  const tokens = [DEFAULT_ALERT_BOT_TOKEN, state.integrations?.telegramToken || DEFAULT_TELEGRAM_TOKEN].filter(Boolean);
+  let lastErr = '발송 실패';
+  for (const tk of tokens) {
+    const res = await fetchJson(`https://api.telegram.org/bot${tk}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: htmlText,
+        parse_mode: 'HTML',
+        disable_web_page_preview: true
+      })
+    }, 8000);
+    if (res.ok && res.data?.ok) {
+      return { ok: true, message: '텔레그램 전송 완료' };
+    }
+    lastErr = res.data?.description || `HTTP ${res.status}`;
+  }
+  return { ok: false, error: lastErr };
+}
+
+let varPollBusy = false;
+async function pollVariationalPriceAlerts() {
+  if (varPollBusy) return;
+  varPollBusy = true;
+  try {
+    const res = await fetchJson('https://omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats', {}, 7000);
+    if (!res.ok || !Array.isArray(res.data?.listings)) return;
+
+    const now = new Date();
+    const timeStr = now.toTimeString().slice(0, 8);
+    const dateTimeStr = now.toISOString().replace('T', ' ').slice(0, 19);
+    const nowSec = Date.now() / 1000;
+
+    const mapByTicker = new Map();
+    const cat = [];
+    for (const item of res.data.listings) {
+      const tk = String(item.ticker || '').toUpperCase().trim();
+      const mp = Number(item.mark_price || 0);
+      if (!tk || mp <= 0) continue;
+      const bid = Number(item.quotes?.base?.bid || mp);
+      const ask = Number(item.quotes?.base?.ask || mp);
+      const vol = Number(item.volume_24h || 0);
+      const entry = {
+        ticker: tk,
+        name: item.name || tk,
+        markPrice: mp,
+        bidPrice: bid,
+        askPrice: ask,
+        volume24h: vol
+      };
+      mapByTicker.set(tk, entry);
+      cat.push(entry);
+    }
+    cat.sort((a, b) => b.volume24h - a.volume24h);
+    variationalCatalog = cat;
+
+    if (!state.priceAlerts) state.priceAlerts = getDefaultState().priceAlerts;
+    const targets = state.priceAlerts.targets || {};
+    const rearmMode = state.priceAlerts.rearm_mode || 'cross_again';
+    const cooldownSec = Number(state.priceAlerts.cooldown_minutes || 10) * 60;
+    let stateDirty = false;
+
+    for (const [rawKey, tConf] of Object.entries(targets)) {
+      const sym = rawKey.toUpperCase().replace(/USDT$/, '');
+      const live = mapByTicker.get(sym);
+      const sState = getOrInitVarSymbolState(sym);
+
+      if (!live) {
+        sState.api_status = 'Variational 미상장 티커';
+        continue;
+      }
+
+      const curP = live.markPrice;
+      if (!sState.open_price) sState.open_price = curP;
+      if (!sState.high_24h || curP > sState.high_24h) sState.high_24h = Math.max(curP, live.askPrice);
+      if (!sState.low_24h || curP < sState.low_24h) sState.low_24h = Math.min(curP, live.bidPrice);
+
+      sState.current_price = curP;
+      sState.bid_price = live.bidPrice;
+      sState.ask_price = live.askPrice;
+      sState.volume_24h = live.volume24h;
+      sState.price_change_pct = sState.open_price > 0 ? ((curP - sState.open_price) / sState.open_price) * 100 : 0;
+      sState.last_updated = timeStr;
+      sState.api_status = '정상 연결 (Variational DEX)';
+
+      sState.price_history.push({ time: timeStr, price: curP });
+      if (sState.price_history.length > 40) {
+        sState.price_history = sState.price_history.slice(-40);
+      }
+
+      if (!tConf.enabled) continue;
+
+      const targetP = Number(tConf.target_price || 0);
+      if (targetP <= 0) continue;
+      const cond = tConf.condition === 'lte' ? 'lte' : 'gte';
+      const assetName = tConf.name || live.name || sym;
+
+      const isMet = cond === 'gte' ? (curP >= targetP) : (curP <= targetP);
+      const currentSide = isMet ? 'met' : 'unmet';
+
+      let shouldFire = false;
+      let triggerReason = '';
+
+      if (isMet) {
+        if (rearmMode === 'cross_again') {
+          if (sState.last_price_state !== 'met') {
+            shouldFire = true;
+            triggerReason = `목표가 $${targetP.toFixed(2)} ${cond === 'gte' ? '이상 돌파' : '이하 도달'} 감지`;
+          }
+        } else {
+          if ((nowSec - sState.last_alert_time) >= cooldownSec) {
+            shouldFire = true;
+            triggerReason = `목표가 조건 유지 중 (${state.priceAlerts.cooldown_minutes}분 주기 알림)`;
+          }
+        }
+      }
+
+      sState.last_price_state = currentSide;
+
+      if (shouldFire) {
+        sState.last_alert_time = nowSec;
+        sState.alert_count += 1;
+
+        const diff = curP - targetP;
+        const diffStr = diff >= 0 ? `+$${diff.toFixed(2)}` : `-$${Math.abs(diff).toFixed(2)}`;
+        const pctDiff = targetP > 0 ? ((curP - targetP) / targetP) * 100 : 0;
+        const condStr = cond === 'gte' ? '이상 돌파 (>=)' : '이하 도달 (<=)';
+
+        const msg = [
+          `<b>[Variational ${assetName} (${sym}) 목표가 도달 알림]</b>`,
+          ``,
+          `• <b>설정 목표가:</b> $${targetP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} (${condStr})`,
+          `• <b>현재 마크가:</b> $${curP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} (${diffStr}, ${pctDiff >= 0 ? '+' : ''}${pctDiff.toFixed(2)}%)`,
+          `• <b>호가 (Bid / Ask):</b> $${live.bidPrice.toFixed(2)} / $${live.askPrice.toFixed(2)}`,
+          `• <b>도달 시각:</b> ${dateTimeStr}`,
+          `• <b>사유:</b> ${triggerReason}`
+        ].join('\n');
+
+        const tgRes = await sendPriceAlertTelegram(msg);
+        if (!Array.isArray(state.priceAlerts.logs)) state.priceAlerts.logs = [];
+        state.priceAlerts.logs.unshift({
+          id: Date.now(),
+          symbol: sym,
+          name: assetName,
+          timestamp: dateTimeStr,
+          price: Number(curP.toFixed(4)),
+          target: targetP,
+          condition: cond,
+          success: tgRes.ok,
+          detail: tgRes.ok ? '텔레그램 전송 완료' : tgRes.error
+        });
+        if (state.priceAlerts.logs.length > 100) {
+          state.priceAlerts.logs = state.priceAlerts.logs.slice(0, 100);
+        }
+        stateDirty = true;
+      }
+    }
+
+    if (stateDirty) saveState();
+  } catch {
+    // ignore transient poll error
+  } finally {
+    varPollBusy = false;
+  }
+}
+
+// 3초 주기 Variational DEX 지정가 감시 루프
+setInterval(pollVariationalPriceAlerts, 3000);
+setTimeout(pollVariationalPriceAlerts, 500);
+
+// 5분 10x 포지션 점검 / 15분 스탑헌팅 스캔
 setInterval(async () => {
   if (state.routines.risk5mEnabled) {
     await executeStopHuntRiskCheck('5분 자동 점검');
@@ -900,7 +1156,169 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { ok: true, session: githubDeviceSession });
   }
 
-  // 10) 정적 파일 서빙
+  // 10) Variational DEX 지정가 텔레그램 알리미 API
+  if (pathname === '/api/price-alerts/status' && req.method === 'GET') {
+    if (!state.priceAlerts) state.priceAlerts = getDefaultState().priceAlerts;
+    const pa = state.priceAlerts;
+    const resSymbols = {};
+    for (const [sym, tConf] of Object.entries(pa.targets || {})) {
+      const cleanSym = sym.toUpperCase().replace(/USDT$/, '');
+      const sState = getOrInitVarSymbolState(cleanSym);
+      const curr = Number(sState.current_price || 0);
+      const target = Number(tConf.target_price || 0);
+      const cond = tConf.condition === 'lte' ? 'lte' : 'gte';
+      const dist = target - curr;
+      const distPct = target > 0 ? (dist / target) * 100 : 0;
+
+      resSymbols[cleanSym] = {
+        symbol: cleanSym,
+        name: tConf.name || cleanSym,
+        target_price: target,
+        condition: cond,
+        enabled: Boolean(tConf.enabled ?? true),
+        current_price: curr,
+        bid_price: Number(sState.bid_price || curr),
+        ask_price: Number(sState.ask_price || curr),
+        distance: dist,
+        distance_pct: distPct,
+        high_24h: Number(sState.high_24h || curr),
+        low_24h: Number(sState.low_24h || curr),
+        price_change_pct: Number(sState.price_change_pct || 0),
+        volume_24h: Number(sState.volume_24h || 0),
+        last_updated: sState.last_updated,
+        api_status: sState.api_status,
+        alert_count: sState.alert_count,
+        price_history: sState.price_history
+      };
+    }
+
+    return sendJson(res, 200, {
+      ok: true,
+      symbols: resSymbols,
+      chat_id: pa.chat_id || DEFAULT_TELEGRAM_CHAT_ID,
+      chat_user: pa.chat_user || '도윤 이 (@shortbetofohsun)',
+      bot_username: pa.bot_username || 'Alert_123455_bot',
+      cooldown_minutes: pa.cooldown_minutes || 10,
+      rearm_mode: pa.rearm_mode || 'cross_again',
+      sound_enabled: Boolean(pa.sound_enabled ?? true),
+      total_alert_count: (pa.logs || []).length,
+      total_listings_count: variationalCatalog.length,
+      logs: (pa.logs || []).slice(0, 30)
+    });
+  }
+
+  if (pathname === '/api/price-alerts/listings' && req.method === 'GET') {
+    const q = (parsedUrl.searchParams.get('q') || '').trim().toUpperCase();
+    let list = variationalCatalog;
+    if (q) {
+      list = list.filter(item =>
+        item.ticker.toUpperCase().includes(q) ||
+        String(item.name || '').toUpperCase().includes(q)
+      );
+    }
+    return sendJson(res, 200, {
+      ok: true,
+      total: variationalCatalog.length,
+      listings: list.slice(0, 120)
+    });
+  }
+
+  if (pathname === '/api/price-alerts/target' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const rawSym = String(body.symbol || '').toUpperCase().trim().replace(/^\$/, '').replace(/USDT$/, '');
+    if (!rawSym) {
+      return sendJson(res, 400, { ok: false, error: '유효한 종목 티커를 입력해 주세요.' });
+    }
+    const targetPrice = Number(body.target_price);
+    if (!Number.isFinite(targetPrice) || targetPrice <= 0) {
+      return sendJson(res, 400, { ok: false, error: '유효한 목표가($)를 입력해 주세요.' });
+    }
+    const foundMeta = variationalCatalog.find(x => x.ticker === rawSym);
+    const existing = state.priceAlerts.targets[rawSym] || {};
+    const cond = body.condition === 'lte' ? 'lte' : 'gte';
+    const enabled = body.enabled !== undefined ? Boolean(body.enabled) : true;
+
+    state.priceAlerts.targets[rawSym] = {
+      symbol: rawSym,
+      name: body.name || existing.name || foundMeta?.name || rawSym,
+      target_price: targetPrice,
+      condition: cond,
+      enabled
+    };
+
+    // 저장 즉시 감시 상태 재장전 (조건 충족 시 바로 알림 발송되도록)
+    const sState = getOrInitVarSymbolState(rawSym);
+    sState.last_price_state = null;
+    saveState();
+    setTimeout(pollVariationalPriceAlerts, 50);
+
+    return sendJson(res, 200, {
+      ok: true,
+      target: state.priceAlerts.targets[rawSym]
+    });
+  }
+
+  if (pathname === '/api/price-alerts/delete' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const rawSym = String(body.symbol || '').toUpperCase().trim().replace(/USDT$/, '');
+    if (rawSym && state.priceAlerts?.targets?.[rawSym]) {
+      delete state.priceAlerts.targets[rawSym];
+      saveState();
+    }
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (pathname === '/api/price-alerts/reset-state' && req.method === 'POST') {
+    for (const s of Object.values(variationalRuntime)) {
+      s.last_price_state = null;
+      s.last_alert_time = 0;
+    }
+    return sendJson(res, 200, {
+      ok: true,
+      message: '모든 종목의 지정가 감시 상태가 초기화되었습니다. 조건 충족 시 즉시 재발송됩니다.'
+    });
+  }
+
+  if (pathname === '/api/price-alerts/test-telegram' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const sym = String(body.symbol || 'QQQ').toUpperCase().trim().replace(/USDT$/, '');
+    const tConf = state.priceAlerts?.targets?.[sym] || { symbol: sym, name: sym, target_price: 0, condition: 'gte' };
+    const sState = getOrInitVarSymbolState(sym);
+    const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
+    const condStr = tConf.condition === 'lte' ? '이하 도달 (<=)' : '이상 돌파 (>=)';
+
+    const msg = [
+      `<b>[텔레그램 지정가 알림 테스트 — ${tConf.name} (${sym})]</b>`,
+      ``,
+      `Variational DEX 실시간 지정가 알림 봇이 정상 연동되어 감시 중입니다.`,
+      `• <b>현재 ${sym} 마크가:</b> $${Number(sState.current_price || 0).toFixed(2)}`,
+      `• <b>설정 목표가:</b> $${Number(tConf.target_price || 0).toFixed(2)} (${condStr})`,
+      `• <b>발송 시각:</b> ${nowStr}`
+    ].join('\n');
+
+    const tgOut = await sendPriceAlertTelegram(msg);
+    return sendJson(res, 200, tgOut);
+  }
+
+  if (pathname === '/api/price-alerts/clear-logs' && req.method === 'POST') {
+    if (state.priceAlerts) state.priceAlerts.logs = [];
+    saveState();
+    return sendJson(res, 200, { ok: true });
+  }
+
+  if (pathname === '/api/price-alerts/config' && req.method === 'POST') {
+    const body = await parseBody(req);
+    if (!state.priceAlerts) state.priceAlerts = getDefaultState().priceAlerts;
+    if (body.chat_id !== undefined) state.priceAlerts.chat_id = String(body.chat_id).trim();
+    if (body.chat_user !== undefined) state.priceAlerts.chat_user = String(body.chat_user).trim();
+    if (body.cooldown_minutes !== undefined) state.priceAlerts.cooldown_minutes = Number(body.cooldown_minutes) || 10;
+    if (body.rearm_mode !== undefined) state.priceAlerts.rearm_mode = String(body.rearm_mode);
+    if (body.sound_enabled !== undefined) state.priceAlerts.sound_enabled = Boolean(body.sound_enabled);
+    saveState();
+    return sendJson(res, 200, { ok: true, config: state.priceAlerts });
+  }
+
+  // 11) 정적 파일 서빙
   let filePath = pathname === '/' ? path.join(PUBLIC_DIR, 'index.html') : path.join(PUBLIC_DIR, pathname);
   if (fs.existsSync(filePath) && fs.statSync(filePath).isFile()) {
     const ext = path.extname(filePath).toLowerCase();
