@@ -544,7 +544,7 @@ function saveLocalGhAuth(data) {
   }
 }
 
-async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPrivate = true) {
+async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPrivate = false) {
   const localAuth = loadLocalGhAuth();
   const token = String(githubToken || state.integrations?.githubToken || localAuth.githubToken || '').trim();
   if (!token) {
@@ -581,6 +581,16 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
       return { ok: false, error: `저장소 생성 실패: ${repoRes.data?.message || repoRes.status}` };
     }
     await new Promise(r => setTimeout(r, 1800));
+  } else if (repoRes.data?.private === true && !isPrivate) {
+    // 기존에 Private으로 생성된 저장소를 Render 연동을 위해 자동으로 Public(공개)으로 전환
+    const patchRes = await fetchJson(`https://api.github.com/repos/${owner}/${repoName}`, {
+      method: 'PATCH',
+      headers: ghHeaders,
+      body: JSON.stringify({ private: false })
+    });
+    if (patchRes.ok) {
+      repoRes = patchRes;
+    }
   }
 
   const defaultBranch = repoRes.data?.default_branch || 'main';
@@ -659,7 +669,7 @@ let githubDeviceSession = {
 };
 let devicePollTimer = null;
 
-async function startGitHubDeviceFlow(repoName = 'grok-trading-team', isPrivate = true) {
+async function startGitHubDeviceFlow(repoName = 'grok-trading-team', isPrivate = false) {
   if (devicePollTimer) {
     clearTimeout(devicePollTimer);
     devicePollTimer = null;
@@ -873,16 +883,16 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, tgOut);
   }
 
-  // 9) GitHub 클라우드 배포 API
+  // 9) GitHub 클라우드 배포 API (Render 연동을 위해 기본 Public 전환)
   if (pathname === '/api/desk/github-deploy' && req.method === 'POST') {
     const body = await parseBody(req);
-    const out = await deployToGitHub(body.githubToken, body.repoName || 'grok-trading-team', body.isPrivate !== false);
+    const out = await deployToGitHub(body.githubToken, body.repoName || 'grok-trading-team', Boolean(body.isPrivate));
     return sendJson(res, 200, out);
   }
 
   if (pathname === '/api/desk/github-device-start' && req.method === 'POST') {
     const body = await parseBody(req);
-    const out = await startGitHubDeviceFlow(body.repoName || 'grok-trading-team', body.isPrivate !== false);
+    const out = await startGitHubDeviceFlow(body.repoName || 'grok-trading-team', Boolean(body.isPrivate));
     return sendJson(res, 200, out);
   }
 
