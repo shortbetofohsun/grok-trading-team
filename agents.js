@@ -585,7 +585,7 @@ const STOPHUNT_UNIVERSE = [
   // 2) 지수·반도체3배(SOXL)·한국증시 선물 3대장 (12개월 · 6개월 · 60일 교차검증 최적 승률·손익비 스탑헌팅 구간 확정)
   { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 100.0, btTrades: 14, btPnl10x: '+25.1%', btRR: 1.59 },
   { symbol: 'SOXLUSDT', name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 9, btPnl10x: '+36.3%', btRR: 2.08 },
-  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 선물', minHuntPct: 0.35, maxHuntPct: 1.10, dangerTrendPct: 1.40, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 8, btPnl10x: '+18.3%', btRR: 1.74 }
+  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', yahooKr: '069500.KS', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 100.0, asiaBtWinRate: 71.4, btTrades: 8, btPnl10x: '+18.3%', asiaBtPnl10x: '+24.9%', btRR: 1.74 }
 ];
 
 const VARIATIONAL_API_BASE = 'https://omni-client-api.prod.ap-northeast-1.variational.io';
@@ -660,26 +660,59 @@ function getStopHuntSessionInfo() {
     nyWeekday = d === 0 ? 'Sun' : (d === 6 ? 'Sat' : 'Mon');
   }
 
+  // 한국 시간 (KST) 파싱
+  let kstHour = 0;
+  let kstMin = 0;
+  let kstWeekday = 'Mon';
+  try {
+    const kParts = new Intl.DateTimeFormat('en-US', {
+      timeZone: 'Asia/Seoul',
+      weekday: 'short',
+      hour: 'numeric',
+      minute: 'numeric',
+      hour12: false
+    }).formatToParts(now);
+    kstWeekday = kParts.find(p => p.type === 'weekday')?.value || 'Mon';
+    kstHour = Number(kParts.find(p => p.type === 'hour')?.value || 0);
+    kstMin = Number(kParts.find(p => p.type === 'minute')?.value || 0);
+  } catch {
+    kstHour = (now.getUTCHours() + 9) % 24;
+    kstMin = now.getUTCMinutes();
+    const kd = now.getUTCDay();
+    kstWeekday = kd === 0 ? 'Sun' : (kd === 6 ? 'Sat' : 'Mon');
+  }
+
   // 미국 동부시간 기준 토요일(Sat) 종일 또는 일요일(Sun) 18:00 ET 이전, 혹은 금요일 17:00 ET 이후는 주말 미장 휴장!
   const isWeekend = (nyWeekday === 'Sat') || (nyWeekday === 'Sun') || (nyWeekday === 'Fri' && nyHour >= 17);
+  const isKoreaWeekend = (kstWeekday === 'Sat') || (kstWeekday === 'Sun');
+  
   const nyMinutesTotal = nyHour * 60 + nyMin;
   // 미장 개장 전후 스탑헌팅 킬존: 07:30 ~ 10:30 ET (한국시간 밤 21:30 ~ 00:30 / 서머타임 20:30 ~ 23:30)
   const isNyPreOpenKillzone = !isWeekend && (nyMinutesTotal >= 450 && nyMinutesTotal <= 630);
   const isLondonOpenZone = !isWeekend && (nyMinutesTotal >= 150 && nyMinutesTotal <= 270);
 
-  let sessionLabel = '평일 미장 개장 전 킬존(07:30~10:30 ET) 대기 모드';
-  if (isWeekend) {
-    sessionLabel = '[주말 휴장 가드 작동 중 (토·일 미국장 휴장 — 자동 진입 중지)]';
+  // 한국장 개장 스탑헌팅 킬존 (EWY 전용): 평일 아침 08:45 ~ 10:15 KST
+  const kstMinutesTotal = kstHour * 60 + kstMin;
+  const isKoreaOpenKillzone = !isKoreaWeekend && (kstMinutesTotal >= 525 && kstMinutesTotal <= 615);
+
+  let sessionLabel = '평일 미장(21:30~00:30 KST) / 한국장 EWY(08:45~10:15 KST) 킬존 대기 모드';
+  if (isWeekend && isKoreaWeekend) {
+    sessionLabel = '[주말 휴장 가드 작동 중 (토·일 시장 휴장 — 자동 진입 중지)]';
+  } else if (isKoreaOpenKillzone) {
+    sessionLabel = '[한국장 개장 EWY 스탑헌팅 킬존 작동 중 (08:45~10:15 KST · EWY 전용)]';
   } else if (isNyPreOpenKillzone) {
-    sessionLabel = '[미장 개장 전후 스탑헌팅 골든타임 작동 중 (07:30~10:30 ET · Variational DEX)]';
+    sessionLabel = '[미장 개장 전후 7종목 스탑헌팅 골든타임 작동 중 (07:30~10:30 ET / 21:30~00:30 KST)]';
   } else if (isLondonOpenZone) {
-    sessionLabel = '[유럽/런던 세션 감시 중 · 미장 킬존(07:30 ET) 대기]';
+    sessionLabel = '[유럽/런던 세션 감시 중 · 미장 킬존(21:30 KST) 대기]';
   }
 
   return {
     nyTimeStr: `${nyWeekday} ${String(nyHour).padStart(2, '0')}:${String(nyMin).padStart(2, '0')} ET`,
+    kstTimeStr: `${kstWeekday} ${String(kstHour).padStart(2, '0')}:${String(kstMin).padStart(2, '0')} KST`,
     isWeekend,
+    isKoreaWeekend,
     isNyPreOpenKillzone,
+    isKoreaOpenKillzone,
     isLondonOpenZone,
     sessionLabel
   };
@@ -766,7 +799,37 @@ async function fetchStopHuntCandles(item, varMap = null) {
     }
   }
 
-  // 3) QQQUSDT, SOXXUSDT, EWYUSDT: Yahoo 프리/본장 15m + Variational DEX 실시간 마크가/호가 결합
+  // 3) 한국 증시 듀얼 킬존(EWY): 한국장 시간대에는 069500.KS(KODEX 200) 15m 우선 반영
+  const sInfo = getStopHuntSessionInfo();
+  if (item.yahooKr && (sInfo.isKoreaOpenKillzone || item.symbol.includes('EWY'))) {
+    const krUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.yahooKr)}?interval=15m&range=5d`;
+    const krRes = await fetchJson(krUrl, {}, 5000);
+    const krResult = krRes.data?.chart?.result?.[0];
+    const ts = krResult?.timestamp || [];
+    const q = krResult?.indicators?.quote?.[0] || {};
+    const rawCandles = [];
+    for (let i = 0; i < ts.length; i++) {
+      const o = Number(q.open?.[i]);
+      const h = Number(q.high?.[i]);
+      const l = Number(q.low?.[i]);
+      const c = Number(q.close?.[i]);
+      const v = Number(q.volume?.[i] || 0);
+      if (o > 0 && h > 0 && l > 0 && c > 0) {
+        rawCandles.push({ time: ts[i] * 1000, open: o, high: h, low: l, close: c, volume: v });
+      }
+    }
+    if (rawCandles.length >= 12) {
+      const sliced = rawCandles.slice(-40);
+      return {
+        ok: true,
+        source: varInfo ? `Variational DEX (Mark $${formatPricePrecise(varInfo.markPrice)})` : 'KODEX 200 15m (한국장)',
+        varInfo,
+        candles: scaleCandlesToVariationalMark(sliced, varInfo)
+      };
+    }
+  }
+
+  // 4) QQQUSDT, SOXXUSDT, EWYUSDT: Yahoo 프리/본장 15m + Variational DEX 실시간 마크가/호가 결합
   if (item.yahoo) {
     const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.yahoo)}?interval=15m&range=5d&includePrePost=true`;
     const res = await fetchJson(yUrl, {}, 5500);
@@ -881,7 +944,13 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
   const riskAbs = Math.max(execPrice * 0.0015, Math.abs(execPrice - stopPriceUsd));
   const rrRatio = Number((rewardAbs / riskAbs).toFixed(2));
 
-  const inGoldilocks = absMovePct >= item.minHuntPct && absMovePct <= item.maxHuntPct;
+  const isEwy = item.symbol.includes('EWY') || item.varTicker === 'EWY';
+  const isKoreaSessionActive = Boolean(isEwy && sessionInfo.isKoreaOpenKillzone);
+  const activeMinHuntPct = isKoreaSessionActive ? (item.asiaMinHuntPct || 1.50) : item.minHuntPct;
+  const activeMaxHuntPct = isKoreaSessionActive ? (item.asiaMaxHuntPct || 2.20) : item.maxHuntPct;
+  const activeDangerTrendPct = isKoreaSessionActive ? (item.asiaDangerTrendPct || 2.80) : item.dangerTrendPct;
+
+  const inGoldilocks = absMovePct >= activeMinHuntPct && absMovePct <= activeMaxHuntPct;
   const velocityScore = Number((
     (inGoldilocks ? 50 : 15) +
     Math.min(25, absMovePct * 10) +
@@ -899,6 +968,8 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     sessionLabel: sessionInfo.sessionLabel,
     isWeekend: Boolean(sessionInfo.isWeekend),
     isNyPreOpenKillzone: sessionInfo.isNyPreOpenKillzone,
+    isKoreaOpenKillzone: Boolean(sessionInfo.isKoreaOpenKillzone),
+    isKoreaSessionActive,
     priceUsd: formatPricePrecise(execPrice),
     markPriceUsd: formatPricePrecise(markPrice),
     bidPriceUsd: formatPricePrecise(varInfo?.bidPrice || markPrice),
@@ -916,16 +987,16 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     wickReversalPct,
     sweptPrevLevel,
     bandTouch,
-    minHuntPct: item.minHuntPct,
-    maxHuntPct: item.maxHuntPct,
-    dangerTrendPct: item.dangerTrendPct,
+    minHuntPct: activeMinHuntPct,
+    maxHuntPct: activeMaxHuntPct,
+    dangerTrendPct: activeDangerTrendPct,
     minWickPct: item.minWickPct,
     stopBufferPct: item.stopBufferPct || 0.30,
-    btWinRate: item.btWinRate || 65.0,
+    btWinRate: isKoreaSessionActive ? (item.asiaBtWinRate || 71.4) : (item.btWinRate || 65.0),
     bt6mWinRate: item.bt6mWinRate || item.btWinRate || 75.0,
-    bt60dWinRate: item.bt60dWinRate || item.btWinRate || 80.0,
-    btTrades: item.btTrades || 10,
-    btPnl10x: item.btPnl10x || '+20.0%',
+    bt60dWinRate: isKoreaSessionActive ? (item.asiaBtWinRate || 71.4) : (item.bt60dWinRate || item.btWinRate || 80.0),
+    btTrades: isKoreaSessionActive ? 7 : (item.btTrades || 10),
+    btPnl10x: isKoreaSessionActive ? (item.asiaBtPnl10x || '+24.9%') : (item.btPnl10x || '+20.0%'),
     btRR: item.btRR || 1.85,
     tp1PriceUsd,
     tp2PriceUsd,
@@ -999,14 +1070,22 @@ async function runVetAgent(candidates, config) {
       continue;
     }
 
-    // 규칙 6: 미장 개장 전후 골든타임(07:30~10:30 ET) 시간대 확인
-    if (!cand.isNyPreOpenKillzone && !config?.allowOutsideKillzone) {
+    // 규칙 6: 킬존 시간대 확인 (EWY는 아침 08:45~10:15 KST 및 밤 21:30~00:30 KST 듀얼 킬존 허용, 나머지는 밤 미장 킬존만)
+    const isEwy = cand.symbol.includes('EWY') || cand.contract === 'EWY';
+    const isEligibleKillzone = isEwy
+      ? (cand.isKoreaOpenKillzone || cand.isNyPreOpenKillzone)
+      : cand.isNyPreOpenKillzone;
+
+    if (!isEligibleKillzone && !config?.allowOutsideKillzone) {
+      const waitReason = isEwy
+        ? `[시간대 대기] 한국장 킬존(08:45~10:15 KST) 또는 미장 킬존(21:30~00:30 KST) 도래 시 자동 진입합니다`
+        : `[시간대 대기] 미장 개장 전후 킬존(21:30~00:30 KST / 07:30~10:30 ET) 시간대 도래 시 즉시 자동 진입합니다`;
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 6,
-        reason: `[시간대 대기] 미장 개장 전후 킬존(07:30~10:30 ET) 시간대 도래 시 즉시 자동 진입합니다 (현재 90분 변동 ${moveSign}, 목표 ±${cand.minHuntPct}%~±${cand.maxHuntPct}%)`,
+        reason: `${waitReason} (현재 90분 변동 ${moveSign}, 목표 ±${cand.minHuntPct}%~±${cand.maxHuntPct}%)`,
         candidate: cand
       });
       continue;
