@@ -1247,12 +1247,14 @@ async function pollVariationalPriceAlerts() {
 setInterval(pollVariationalPriceAlerts, 3000);
 setTimeout(pollVariationalPriceAlerts, 500);
 
-// 미장 개장 전후 스탑헌팅 킬존(07:30~10:30 ET) 1분 주기 정밀 타점 감시 루프
+// 미장 개장 전후(07:30~10:30 ET) & 한국장 개장(08:45~10:15 KST, EWY 전용) 1분 주기 정밀 타점 감시 루프
 setInterval(async () => {
   try {
     const sInfo = getStopHuntSessionInfo();
-    if (sInfo.isNyPreOpenKillzone && state.routines.scan15mEnabled) {
-      await executeStopHuntScan('킬존 1분 자동스캔');
+    const isKillzone = sInfo.isNyPreOpenKillzone || sInfo.isKoreaOpenKillzone;
+    if (isKillzone && state.routines.scan15mEnabled) {
+      const scanLabel = sInfo.isKoreaOpenKillzone ? '한국장 EWY 킬존 1분 자동스캔' : '미장 킬존 1분 자동스캔';
+      await executeStopHuntScan(scanLabel);
     }
   } catch {}
 }, 60 * 1000);
