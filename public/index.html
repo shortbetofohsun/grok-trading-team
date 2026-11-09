@@ -483,6 +483,7 @@
     let varCatalog = [];
     let alertCharts = {};
     let lastAlertPrices = {};
+    let latestAlertSymbols = {};
     let renderedAlertSymbolsKey = '';
 
     function fmtUsd(v) {
@@ -821,6 +822,66 @@
               </div>
             </div>
 
+            <!-- Indicators Strip (20일 이평 & 일봉/주봉 볼린저 밴드) -->
+            <div class="p-3 rounded-xl bg-binanceDark/90 border border-binanceBorder/80 space-y-2.5 my-3">
+              <div class="flex items-center justify-between text-[11px] font-bold text-gray-300 border-b border-binanceBorder/60 pb-1.5">
+                <span class="flex items-center gap-1.5">
+                  <i class="fa-solid fa-chart-line text-binanceYellow"></i>
+                  20일선 &amp; 일봉/주봉 볼밴 실시간 지표
+                </span>
+                <span id="card_${sym}_indStatus" class="text-[10px] text-gray-400 mono">계산 중</span>
+              </div>
+
+              <!-- Daily Bands (일봉) -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-[11px] text-gray-400">
+                  <span class="font-medium text-gray-300">일봉 (20, 2):</span>
+                  <div class="flex items-center gap-1.5 mono text-[11px]">
+                    <button type="button" onclick="setTargetFromIndicator('${sym}', 'daily_lower')" title="클릭 시 목표가에 입력" class="px-1.5 py-0.5 rounded bg-binanceCard hover:bg-binanceBorder border border-binanceBorder text-binanceGreen hover:underline">
+                      하단 <span id="card_${sym}_dLower">$---</span>
+                    </button>
+                    <button type="button" onclick="setTargetFromIndicator('${sym}', 'daily_sma')" title="클릭 시 목표가에 입력" class="px-1.5 py-0.5 rounded bg-binanceCard hover:bg-binanceBorder border border-binanceBorder text-binanceYellow font-bold hover:underline">
+                      20일선 <span id="card_${sym}_dSma">$---</span>
+                    </button>
+                    <button type="button" onclick="setTargetFromIndicator('${sym}', 'daily_upper')" title="클릭 시 목표가에 입력" class="px-1.5 py-0.5 rounded bg-binanceCard hover:bg-binanceBorder border border-binanceBorder text-binanceRed hover:underline">
+                      상단 <span id="card_${sym}_dUpper">$---</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Weekly Bands (주봉) -->
+              <div class="space-y-1">
+                <div class="flex items-center justify-between text-[11px] text-gray-400">
+                  <span class="font-medium text-gray-300">주봉 (20, 2):</span>
+                  <div class="flex items-center gap-1.5 mono text-[11px]">
+                    <button type="button" onclick="setTargetFromIndicator('${sym}', 'weekly_lower')" title="클릭 시 목표가에 입력" class="px-1.5 py-0.5 rounded bg-binanceCard hover:bg-binanceBorder border border-binanceBorder text-binanceGreen hover:underline">
+                      하단 <span id="card_${sym}_wLower">$---</span>
+                    </button>
+                    <button type="button" onclick="setTargetFromIndicator('${sym}', 'weekly_sma')" title="클릭 시 목표가에 입력" class="px-1.5 py-0.5 rounded bg-binanceCard hover:bg-binanceBorder border border-binanceBorder text-binanceYellow font-bold hover:underline">
+                      20주선 <span id="card_${sym}_wSma">$---</span>
+                    </button>
+                    <button type="button" onclick="setTargetFromIndicator('${sym}', 'weekly_upper')" title="클릭 시 목표가에 입력" class="px-1.5 py-0.5 rounded bg-binanceCard hover:bg-binanceBorder border border-binanceBorder text-binanceRed hover:underline">
+                      상단 <span id="card_${sym}_wUpper">$---</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Indicator Alert Toggles -->
+              <div class="pt-2 border-t border-binanceBorder/60 flex flex-wrap gap-1.5 text-[10px]">
+                <button type="button" id="card_${sym}_btn_ma20" onclick="toggleIndicatorAlert('${sym}', 'ma20_daily')" class="flex-1 py-1 px-1.5 rounded bg-binanceDark hover:bg-binanceBorder border border-binanceBorder text-gray-300 transition text-center font-semibold">
+                  20일선 닿을때 알림
+                </button>
+                <button type="button" id="card_${sym}_btn_bb_daily" onclick="toggleIndicatorAlertPair('${sym}', 'bb_daily')" class="flex-1 py-1 px-1.5 rounded bg-binanceDark hover:bg-binanceBorder border border-binanceBorder text-gray-300 transition text-center font-semibold">
+                  일봉볼밴 상/하단 알림
+                </button>
+                <button type="button" id="card_${sym}_btn_bb_weekly" onclick="toggleIndicatorAlertPair('${sym}', 'bb_weekly')" class="flex-1 py-1 px-1.5 rounded bg-binanceDark hover:bg-binanceBorder border border-binanceBorder text-gray-300 transition text-center font-semibold">
+                  주봉볼밴 상/하단 알림
+                </button>
+              </div>
+            </div>
+
             <!-- Sparkline Chart -->
             <div class="h-24 w-full mb-3">
               <canvas id="chart_${sym}"></canvas>
@@ -941,6 +1002,129 @@
         chartObj.data.datasets[0].data = sData.price_history.map(x => x.price);
         chartObj.update();
       }
+
+      // 20일 이평 & 볼린저 밴드 실시간 지표 수치 렌더링
+      const indVal = sData.indicator_values;
+      const indConf = sData.indicators || {};
+      const indStatusEl = document.getElementById(`card_${sym}_indStatus`);
+
+      if (indVal && indVal.daily) {
+        if (indStatusEl) indStatusEl.textContent = '실시간 계산됨';
+        const d = indVal.daily;
+        const w = indVal.weekly;
+
+        const dLowerEl = document.getElementById(`card_${sym}_dLower`);
+        const dSmaEl = document.getElementById(`card_${sym}_dSma`);
+        const dUpperEl = document.getElementById(`card_${sym}_dUpper`);
+        if (dLowerEl) dLowerEl.textContent = `$${fmtPrice(d.lower)}`;
+        if (dSmaEl) dSmaEl.textContent = `$${fmtPrice(d.sma20)}`;
+        if (dUpperEl) dUpperEl.textContent = `$${fmtPrice(d.upper)}`;
+
+        const wLowerEl = document.getElementById(`card_${sym}_wLower`);
+        const wSmaEl = document.getElementById(`card_${sym}_wSma`);
+        const wUpperEl = document.getElementById(`card_${sym}_wUpper`);
+        if (wLowerEl) wLowerEl.textContent = `$${fmtPrice(w?.lower)}`;
+        if (wSmaEl) wSmaEl.textContent = `$${fmtPrice(w?.sma20)}`;
+        if (wUpperEl) wUpperEl.textContent = `$${fmtPrice(w?.upper)}`;
+      }
+
+      // 지표 알림 토글 버튼 활성/비활성 스타일 동기화
+      const btnMa20 = document.getElementById(`card_${sym}_btn_ma20`);
+      if (btnMa20) {
+        const on = Boolean(indConf.ma20_daily);
+        btnMa20.className = on
+          ? 'flex-1 py-1 px-1.5 rounded bg-binanceYellow/20 text-binanceYellow border border-binanceYellow/50 transition text-center font-bold'
+          : 'flex-1 py-1 px-1.5 rounded bg-binanceDark text-gray-400 border border-binanceBorder hover:text-white transition text-center font-semibold';
+      }
+
+      const btnBbDaily = document.getElementById(`card_${sym}_btn_bb_daily`);
+      if (btnBbDaily) {
+        const on = Boolean(indConf.bb_daily_upper || indConf.bb_daily_lower);
+        btnBbDaily.className = on
+          ? 'flex-1 py-1 px-1.5 rounded bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/50 transition text-center font-bold'
+          : 'flex-1 py-1 px-1.5 rounded bg-binanceDark text-gray-400 border border-binanceBorder hover:text-white transition text-center font-semibold';
+      }
+
+      const btnBbWeekly = document.getElementById(`card_${sym}_btn_bb_weekly`);
+      if (btnBbWeekly) {
+        const on = Boolean(indConf.bb_weekly_upper || indConf.bb_weekly_lower);
+        btnBbWeekly.className = on
+          ? 'flex-1 py-1 px-1.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/50 transition text-center font-bold'
+          : 'flex-1 py-1 px-1.5 rounded bg-binanceDark text-gray-400 border border-binanceBorder hover:text-white transition text-center font-semibold';
+      }
+    }
+
+    async function toggleIndicatorAlert(symbol, key) {
+      const symData = latestAlertSymbols?.[symbol];
+      const curVal = Boolean(symData?.indicators?.[key]);
+      const nextVal = !curVal;
+      try {
+        const res = await fetch('/api/price-alerts/indicator-toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol, key, enabled: nextVal })
+        });
+        const out = await res.json();
+        if (out.ok) {
+          showToast(`${symbol} 20일선 알림이 ${nextVal ? '활성화' : '해제'}되었습니다.`, nextVal ? 'success' : 'info');
+          await updatePriceAlertStatus();
+        }
+      } catch {
+        showToast('지표 알림 설정 변경 실패', 'error');
+      }
+    }
+
+    async function toggleIndicatorAlertPair(symbol, pairPrefix) {
+      const symData = latestAlertSymbols?.[symbol];
+      const ind = symData?.indicators || {};
+      let keys = [];
+      if (pairPrefix === 'bb_daily') keys = ['bb_daily_upper', 'bb_daily_lower'];
+      if (pairPrefix === 'bb_weekly') keys = ['bb_weekly_upper', 'bb_weekly_lower'];
+      const currentlyOn = keys.some(k => ind[k]);
+      const nextVal = !currentlyOn;
+
+      try {
+        for (const k of keys) {
+          await fetch('/api/price-alerts/indicator-toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ symbol, key: k, enabled: nextVal })
+          });
+        }
+        const label = pairPrefix === 'bb_daily' ? '일봉 볼밴 상/하단' : '주봉 볼밴 상/하단';
+        showToast(`${symbol} ${label} 알림이 ${nextVal ? '활성화' : '해제'}되었습니다.`, nextVal ? 'success' : 'info');
+        await updatePriceAlertStatus();
+      } catch {
+        showToast('지표 알림 설정 변경 실패', 'error');
+      }
+    }
+
+    function setTargetFromIndicator(symbol, field) {
+      const symData = latestAlertSymbols?.[symbol];
+      const indVal = symData?.indicator_values;
+      if (!indVal) return showToast('아직 지표 수치가 계산 중입니다. 잠시 후 다시 눌러주세요.', 'warning');
+
+      let targetVal = 0;
+      let label = '';
+      if (field === 'daily_lower') { targetVal = indVal.daily?.lower; label = '일봉 볼밴 하단'; }
+      if (field === 'daily_sma') { targetVal = indVal.daily?.sma20; label = '일봉 20일선'; }
+      if (field === 'daily_upper') { targetVal = indVal.daily?.upper; label = '일봉 볼밴 상단'; }
+      if (field === 'weekly_lower') { targetVal = indVal.weekly?.lower; label = '주봉 볼밴 하단'; }
+      if (field === 'weekly_sma') { targetVal = indVal.weekly?.sma20; label = '주봉 20주선'; }
+      if (field === 'weekly_upper') { targetVal = indVal.weekly?.upper; label = '주봉 볼밴 상단'; }
+
+      if (!targetVal || targetVal <= 0) return showToast('유효한 지표 값이 없습니다.', 'warning');
+
+      const inp = document.getElementById(`card_${symbol}_input`);
+      const condSelect = document.getElementById(`card_${symbol}_cond`);
+      if (inp) inp.value = targetVal;
+      if (condSelect) {
+        const curP = Number(symData.current_price || 0);
+        if (field.includes('lower')) condSelect.value = 'lte';
+        else if (field.includes('upper')) condSelect.value = 'gte';
+        else condSelect.value = curP >= targetVal ? 'lte' : 'gte';
+      }
+      showToast(`${symbol} 목표가에 ${label} ($${fmtPrice(targetVal)}) 수치가 입력되었습니다. [저장]을 눌러주세요.`, 'info');
     }
 
     function setPreset(symbol, val) {
@@ -1052,6 +1236,7 @@
         const data = await res.json();
 
         const symbols = data.symbols || {};
+        latestAlertSymbols = symbols;
         ensureAlertCardsStructure(symbols);
         const keys = Object.keys(symbols);
         keys.forEach(sym => updateSingleAlertCard(sym, symbols[sym]));
