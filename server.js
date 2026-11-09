@@ -23,6 +23,10 @@ const {
   analyzeRwaTicker,
   askOptionSupportResistanceAI
 } = require('./agents');
+const {
+  getOrFetchIndicators,
+  checkIndicatorTouches
+} = require('./indicators');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'desk_state.json');
@@ -44,14 +48,28 @@ const DEFAULT_PRICE_ALERT_TARGETS = {
     name: '나스닥 100 (QQQ)',
     target_price: 670.0,
     condition: 'gte',
-    enabled: true
+    enabled: true,
+    indicators: {
+      ma20_daily: true,
+      bb_daily_upper: true,
+      bb_daily_lower: true,
+      bb_weekly_upper: true,
+      bb_weekly_lower: true
+    }
   },
   NFLX: {
     symbol: 'NFLX',
     name: '넷플릭스 (NFLX)',
     target_price: 55.0,
     condition: 'lte',
-    enabled: true
+    enabled: true,
+    indicators: {
+      ma20_daily: true,
+      bb_daily_upper: true,
+      bb_daily_lower: true,
+      bb_weekly_upper: true,
+      bb_weekly_lower: true
+    }
   }
 };
 
@@ -167,6 +185,18 @@ if (fs.existsSync(STATE_FILE)) {
             mergedTargets[clean] = { ...mergedTargets[k], symbol: clean };
           }
           delete mergedTargets[k];
+        }
+      }
+      // indicators 필드가 없으면 기본 활성화 설정 주입
+      for (const k of Object.keys(mergedTargets)) {
+        if (!mergedTargets[k].indicators) {
+          mergedTargets[k].indicators = {
+            ma20_daily: true,
+            bb_daily_upper: true,
+            bb_daily_lower: true,
+            bb_weekly_upper: true,
+            bb_weekly_lower: true
+          };
         }
       }
       state = {
@@ -737,6 +767,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
     'package.json',
     'render.yaml',
     'agents.js',
+    'indicators.js',
     'cloud-runner.js',
     'server.js',
     'public/index.html',
@@ -1085,6 +1116,55 @@ async function pollVariationalPriceAlerts() {
         sState.price_history = sState.price_history.slice(-40);
       }
 
+      // [실시간 20일 이평선(SMA 20) 및 일봉/주봉 볼린저 밴드 비동기 캐싱 & 터치 감시]
+      if (tConf.indicators) {
+        try {
+          const indObj = await getOrFetchIndicators(sym, curP);
+          sState.indicators = indObj;
+          const prevPrice = Number(sState.prev_price || curP);
+          const touches = checkIndicatorTouches(sym, tConf, curP, prevPrice, indObj, sState);
+          sState.prev_price = curP;
+
+          for (const trig of touches) {
+            sState.alert_count += 1;
+            const perf = getStopHuntPerformanceSummary();
+            const diffSign = trig.diffUsd >= 0 ? '+' : '';
+            const msg = [
+              `<b>[Variational ${assetName} (${sym}) 지표 도달 알림]</b>`,
+              ``,
+              `• <b>도달 지표:</b> <b>${trig.name}</b> (${trig.role})`,
+              `• <b>지표 기준가:</b> $${trig.linePrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })}`,
+              `• <b>현재 마크가:</b> $${curP.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 4 })} (${diffSign}$${trig.diffUsd}, 오차 ${trig.distPct}%)`,
+              `• <b>도달 형태:</b> ${trig.touchType}`,
+              `• <b>일봉 볼밴:</b> 하단 $${trig.daily?.lower ?? '-'} · 20일선 $${trig.daily?.sma20 ?? '-'} · 상단 $${trig.daily?.upper ?? '-'}`,
+              `• <b>주봉 볼밴:</b> 하단 $${trig.weekly?.lower ?? '-'} · 20주선 $${trig.weekly?.sma20 ?? '-'} · 상단 $${trig.weekly?.upper ?? '-'}`,
+              `• <b>도달 시각:</b> ${dateTimeStr}`,
+              perf.footerHtml
+            ].join('\n');
+
+            const tgRes = await sendPriceAlertTelegram(msg);
+            if (!Array.isArray(state.priceAlerts.logs)) state.priceAlerts.logs = [];
+            state.priceAlerts.logs.unshift({
+              id: Date.now() + Math.floor(Math.random() * 1000),
+              symbol: sym,
+              name: `${assetName} [${trig.category}]`,
+              timestamp: dateTimeStr,
+              price: Number(curP.toFixed(4)),
+              target: trig.linePrice,
+              condition: trig.category,
+              success: tgRes.ok,
+              detail: tgRes.ok ? `[${trig.name}] 텔레그램 전송 완료 (${trig.touchType})` : tgRes.error
+            });
+            if (state.priceAlerts.logs.length > 100) {
+              state.priceAlerts.logs = state.priceAlerts.logs.slice(0, 100);
+            }
+            stateDirty = true;
+          }
+        } catch (indErr) {
+          // ignore transient indicator fetch error
+        }
+      }
+
       if (!tConf.enabled) continue;
 
       const targetP = Number(tConf.target_price || 0);
@@ -1340,6 +1420,14 @@ const server = http.createServer(async (req, res) => {
         target_price: target,
         condition: cond,
         enabled: Boolean(tConf.enabled ?? true),
+        indicators: tConf.indicators || {
+          ma20_daily: true,
+          bb_daily_upper: true,
+          bb_daily_lower: true,
+          bb_weekly_upper: true,
+          bb_weekly_lower: true
+        },
+        indicator_values: sState.indicators || null,
         current_price: curr,
         bid_price: Number(sState.bid_price || curr),
         ask_price: Number(sState.ask_price || curr),
@@ -1407,7 +1495,14 @@ const server = http.createServer(async (req, res) => {
       name: body.name || existing.name || foundMeta?.name || rawSym,
       target_price: targetPrice,
       condition: cond,
-      enabled
+      enabled,
+      indicators: body.indicators || existing.indicators || {
+        ma20_daily: true,
+        bb_daily_upper: true,
+        bb_daily_lower: true,
+        bb_weekly_upper: true,
+        bb_weekly_lower: true
+      }
     };
 
     // 저장 즉시 감시 상태 재장전 (조건 충족 시 바로 알림 발송되도록)
@@ -1420,6 +1515,27 @@ const server = http.createServer(async (req, res) => {
       ok: true,
       target: state.priceAlerts.targets[rawSym]
     });
+  }
+
+  if (pathname === '/api/price-alerts/indicator-toggle' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const rawSym = String(body.symbol || '').toUpperCase().trim().replace(/USDT$/, '');
+    const key = String(body.key || '').trim();
+    if (rawSym && state.priceAlerts?.targets?.[rawSym] && key) {
+      if (!state.priceAlerts.targets[rawSym].indicators) {
+        state.priceAlerts.targets[rawSym].indicators = {
+          ma20_daily: true,
+          bb_daily_upper: true,
+          bb_daily_lower: true,
+          bb_weekly_upper: true,
+          bb_weekly_lower: true
+        };
+      }
+      state.priceAlerts.targets[rawSym].indicators[key] = Boolean(body.enabled);
+      saveState();
+      return sendJson(res, 200, { ok: true, indicators: state.priceAlerts.targets[rawSym].indicators });
+    }
+    return sendJson(res, 400, { ok: false, error: '잘못된 지표 토글 요청입니다.' });
   }
 
   if (pathname === '/api/price-alerts/delete' && req.method === 'POST') {
@@ -1451,13 +1567,24 @@ const server = http.createServer(async (req, res) => {
     const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
     const condStr = tConf.condition === 'lte' ? '이하 도달 (<=)' : '이상 돌파 (>=)';
 
+    let ind = sState.indicators;
+    if (!ind) {
+      try { ind = await getOrFetchIndicators(sym, Number(sState.current_price || 0)); } catch {}
+    }
+
+    const dStr = ind?.daily ? `하단 $${ind.daily.lower} · 20일선 $${ind.daily.sma20} · 상단 $${ind.daily.upper}` : '계산 중';
+    const wStr = ind?.weekly ? `하단 $${ind.weekly.lower} · 20주선 $${ind.weekly.sma20} · 상단 $${ind.weekly.upper}` : '계산 중';
+
     const perf = getStopHuntPerformanceSummary();
     const msg = [
-      `<b>[텔레그램 지정가 알림 테스트 — ${tConf.name} (${sym})]</b>`,
+      `<b>[텔레그램 지정가 & 지표 알림 테스트 — ${tConf.name} (${sym})]</b>`,
       ``,
-      `Variational DEX 실시간 지정가 알림 봇이 정상 연동되어 감시 중입니다.`,
+      `Variational DEX 실시간 지정가 & 20일선/볼밴 알림 봇이 정상 연동되어 감시 중입니다.`,
       `• <b>현재 ${sym} 마크가:</b> $${Number(sState.current_price || 0).toFixed(2)}`,
       `• <b>설정 목표가:</b> $${Number(tConf.target_price || 0).toFixed(2)} (${condStr})`,
+      `• <b>일봉 볼밴 (20, 2):</b> ${dStr}`,
+      `• <b>주봉 볼밴 (20, 2):</b> ${wStr}`,
+      `• <b>감시 중인 지표:</b> 20일선(${tConf.indicators?.ma20_daily ? 'ON' : 'OFF'}) · 일봉볼밴(${tConf.indicators?.bb_daily_upper || tConf.indicators?.bb_daily_lower ? 'ON' : 'OFF'}) · 주봉볼밴(${tConf.indicators?.bb_weekly_upper || tConf.indicators?.bb_weekly_lower ? 'ON' : 'OFF'})`,
       `• <b>발송 시각:</b> ${nowStr}`,
       perf.footerHtml
     ].join('\n');
