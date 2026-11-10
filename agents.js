@@ -585,7 +585,7 @@ const STOPHUNT_UNIVERSE = [
   // 2) 지수·반도체3배(SOXL)·한국증시 선물 3대장 (12개월 · 6개월 · 60일 교차검증 최적 승률·손익비 스탑헌팅 구간 확정)
   { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 100.0, btTrades: 14, btPnl10x: '+25.1%', btRR: 1.59 },
   { symbol: 'SOXLUSDT', name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 9, btPnl10x: '+36.3%', btRR: 2.08 },
-  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', yahooKr: '069500.KS', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 100.0, asiaBtWinRate: 71.4, btTrades: 8, btPnl10x: '+18.3%', asiaBtPnl10x: '+24.9%', btRR: 1.74 }
+  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 100.0, asiaBtWinRate: 71.4, btTrades: 8, btPnl10x: '+18.3%', asiaBtPnl10x: '+24.9%', btRR: 1.74 }
 ];
 
 const VARIATIONAL_API_BASE = 'https://omni-client-api.prod.ap-northeast-1.variational.io';
@@ -799,37 +799,7 @@ async function fetchStopHuntCandles(item, varMap = null) {
     }
   }
 
-  // 3) 한국 증시 듀얼 킬존(EWY): 한국장 시간대에는 069500.KS(KODEX 200) 15m 우선 반영
-  const sInfo = getStopHuntSessionInfo();
-  if (item.yahooKr && (sInfo.isKoreaOpenKillzone || item.symbol.includes('EWY'))) {
-    const krUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.yahooKr)}?interval=15m&range=5d`;
-    const krRes = await fetchJson(krUrl, {}, 5000);
-    const krResult = krRes.data?.chart?.result?.[0];
-    const ts = krResult?.timestamp || [];
-    const q = krResult?.indicators?.quote?.[0] || {};
-    const rawCandles = [];
-    for (let i = 0; i < ts.length; i++) {
-      const o = Number(q.open?.[i]);
-      const h = Number(q.high?.[i]);
-      const l = Number(q.low?.[i]);
-      const c = Number(q.close?.[i]);
-      const v = Number(q.volume?.[i] || 0);
-      if (o > 0 && h > 0 && l > 0 && c > 0) {
-        rawCandles.push({ time: ts[i] * 1000, open: o, high: h, low: l, close: c, volume: v });
-      }
-    }
-    if (rawCandles.length >= 12) {
-      const sliced = rawCandles.slice(-40);
-      return {
-        ok: true,
-        source: varInfo ? `Variational DEX (Mark $${formatPricePrecise(varInfo.markPrice)})` : 'KODEX 200 15m (한국장)',
-        varInfo,
-        candles: scaleCandlesToVariationalMark(sliced, varInfo)
-      };
-    }
-  }
-
-  // 4) QQQUSDT, SOXXUSDT, EWYUSDT: Yahoo 프리/본장 15m + Variational DEX 실시간 마크가/호가 결합
+  // 3) QQQUSDT, SOXLUSDT, EWYUSDT: Yahoo 프리/본장 15m + Variational DEX 실시간 마크가/호가 결합
   if (item.yahoo) {
     const yUrl = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(item.yahoo)}?interval=15m&range=5d&includePrePost=true`;
     const res = await fetchJson(yUrl, {}, 5500);
@@ -880,8 +850,14 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
   const priorWindow = candles.slice(Math.max(0, n - windowSize - 20), n - windowSize);
 
   const anchorPrice = huntWindow[0].open; // 1시간 30분 전 출발 기준가 (Anchor Price)
-  const windowHigh = Math.max(...huntWindow.map(c => c.high), markPrice);
-  const windowLow = Math.min(...huntWindow.map(c => c.low), markPrice);
+  let windowHigh = Math.max(...huntWindow.map(c => c.high));
+  let windowLow = Math.min(...huntWindow.map(c => c.low));
+
+  // markPrice와 anchorPrice의 괴리가 25% 이내일 때만 markPrice를 고/저점 비교에 포함 (단위 불일치 방어)
+  if (anchorPrice > 0 && Math.abs(markPrice - anchorPrice) / anchorPrice < 0.25) {
+    windowHigh = Math.max(windowHigh, markPrice);
+    windowLow = Math.min(windowLow, markPrice);
+  }
 
   const prevHigh = priorWindow.length ? Math.max(...priorWindow.map(c => c.high)) : windowHigh;
   const prevLow = priorWindow.length ? Math.min(...priorWindow.map(c => c.low)) : windowLow;
