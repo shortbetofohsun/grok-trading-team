@@ -905,20 +905,31 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
   let tp2PriceUsd = 0;
 
   if (direction === 'SHORT') {
-    stopPriceUsd = formatPricePrecise(windowHigh * (1 + item.stopBufferPct / 100));
+    const highBound = Math.max(windowHigh, markPrice, execPrice);
+    stopPriceUsd = formatPricePrecise(highBound * (1 + item.stopBufferPct / 100));
+    if (stopPriceUsd <= execPrice) {
+      stopPriceUsd = formatPricePrecise(execPrice * (1 + Math.max(0.002, (item.stopBufferPct || 0.25) / 100)));
+    }
     const targetAnchor = Math.min(anchorPrice, execPrice * 0.992);
     tp2PriceUsd = formatPricePrecise(Math.min(anchorPrice, (anchorPrice + bbMid) / 2, targetAnchor));
     tp1PriceUsd = formatPricePrecise(execPrice - (execPrice - tp2PriceUsd) * 0.55);
   } else {
-    stopPriceUsd = formatPricePrecise(windowLow * (1 - item.stopBufferPct / 100));
+    const lowBound = Math.min(windowLow, markPrice, execPrice);
+    stopPriceUsd = formatPricePrecise(lowBound * (1 - item.stopBufferPct / 100));
+    if (stopPriceUsd >= execPrice) {
+      stopPriceUsd = formatPricePrecise(execPrice * (1 - Math.max(0.002, (item.stopBufferPct || 0.25) / 100)));
+    }
     const targetAnchor = Math.max(anchorPrice, execPrice * 1.008);
     tp2PriceUsd = formatPricePrecise(Math.max(anchorPrice, (anchorPrice + bbMid) / 2, targetAnchor));
     tp1PriceUsd = formatPricePrecise(execPrice + (tp2PriceUsd - execPrice) * 0.55);
   }
 
-  const rewardAbs = Math.abs(tp2PriceUsd - execPrice);
-  const riskAbs = Math.max(execPrice * 0.0015, Math.abs(execPrice - stopPriceUsd));
-  const rrRatio = Number((rewardAbs / riskAbs).toFixed(2));
+  const signedReward = direction === 'LONG' ? (tp2PriceUsd - execPrice) : (execPrice - tp2PriceUsd);
+  const signedRisk = direction === 'LONG' ? (execPrice - stopPriceUsd) : (stopPriceUsd - execPrice);
+  const validLevels = signedRisk > 0 && signedReward > 0
+    && (direction === 'LONG' ? (tp1PriceUsd > execPrice && tp2PriceUsd >= tp1PriceUsd) : (tp1PriceUsd < execPrice && tp2PriceUsd <= tp1PriceUsd));
+  const riskAbs = Math.max(execPrice * 0.0015, Math.max(0, signedRisk));
+  const rrRatio = validLevels ? Number((signedReward / riskAbs).toFixed(2)) : 0;
 
   const isEwy = item.symbol.includes('EWY') || item.varTicker === 'EWY';
   const isKoreaSessionActive = Boolean(isEwy && sessionInfo.isKoreaOpenKillzone);
@@ -978,6 +989,7 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     tp2PriceUsd,
     stopPriceUsd,
     rrRatio,
+    invalidLevels: !validLevels,
     liquidityUsd: varInfo?.volume24h || 5000000,
     priceChangeH1: huntMovePct,
     priceChangeM5: wickReversalPct,
@@ -1119,14 +1131,20 @@ async function runVetAgent(candidates, config) {
       continue;
     }
 
-    // 규칙 5: 손익비(R/R Ratio) 1.35 미만 탈락
-    if (cand.rrRatio < 1.35) {
+    // 규칙 5: SL/TP 방향 정합성 및 손익비(R/R Ratio) 1.35 미만 탈락
+    const isSlSideValid = cand.direction === 'LONG'
+      ? (cand.stopPriceUsd > 0 && cand.stopPriceUsd < cand.priceUsd)
+      : (cand.stopPriceUsd > cand.priceUsd);
+    if (cand.invalidLevels || !isSlSideValid || cand.rrRatio < 1.35) {
+      const ruleReason = (cand.invalidLevels || !isSlSideValid)
+        ? `규칙 5 탈락 (SL/TP 방향 역전): 진입 $${cand.priceUsd} 대비 SL $${cand.stopPriceUsd} / TP2 $${cand.tp2PriceUsd} 설정 불일치`
+        : `규칙 5 탈락 (손익비 부족): 출발점($${cand.anchorPriceUsd}) 회귀 기대 손익비 1 : ${cand.rrRatio} (< 최소 1 : 1.35)`;
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 5,
-        reason: `규칙 5 탈락 (손익비 부족): 출발점($${cand.anchorPriceUsd}) 회귀 기대 손익비 1 : ${cand.rrRatio} (< 최소 1 : 1.35)`,
+        reason: ruleReason,
         candidate: cand
       });
       continue;
@@ -2600,6 +2618,7 @@ module.exports = {
   DEFAULT_GEMINI_KEY,
   STOPHUNT_UNIVERSE,
   getStopHuntSessionInfo,
+  analyzeStopHuntCandidate,
   RWA_SECTORS,
   RWA_UNIVERSE,
   ROLE_PROFILES_BY_DESK,

@@ -235,6 +235,10 @@ if (fs.existsSync(STATE_FILE)) {
         state.desks.memecoin.portfolio = createVaultPortfolio(1000.00);
         state.desks.memecoin.openPositions = [];
         state.desks.memecoin.closedPositions = [];
+      } else {
+        if (reconcileStopHuntDeskLedger(state.desks.memecoin)) {
+          recomputePortfolio();
+        }
       }
     }
   } catch {
@@ -273,6 +277,36 @@ function addLog(type, text) {
   }
   saveState();
   return item;
+}
+
+function reconcileStopHuntDeskLedger(desk) {
+  if (!desk || !desk.portfolio) return false;
+  const closed = Array.isArray(desk.closedPositions) ? desk.closedPositions : [];
+  const open = Array.isArray(desk.openPositions) ? desk.openPositions : [];
+  const seenIds = new Set();
+  const dedupClosed = [];
+  let hadDup = false;
+  for (const item of closed) {
+    if (item?.id && seenIds.has(item.id)) {
+      hadDup = true;
+      continue;
+    }
+    if (item?.id) seenIds.add(item.id);
+    dedupClosed.push(item);
+  }
+  const filteredOpen = open.filter(pos => !pos?.id || !seenIds.has(pos.id));
+  if (filteredOpen.length !== open.length) hadDup = true;
+  if (!hadDup) return false;
+
+  desk.closedPositions = dedupClosed;
+  desk.openPositions = filteredOpen;
+  desk.stats.closedCount = dedupClosed.length;
+  const startBal = Number(desk.portfolio.startingBalanceUsd || 1000.00);
+  const realized = Number(dedupClosed.reduce((s, c) => s + Number(c.pnlUsd || 0), 0).toFixed(2));
+  const openDeployed = Number(filteredOpen.reduce((s, p) => s + Number(p.dollars || 0), 0).toFixed(2));
+  desk.portfolio.realizedPnlUsd = realized;
+  desk.portfolio.cashUsd = Number((startBal + realized - openDeployed).toFixed(2));
+  return true;
 }
 
 function recomputePortfolio() {
@@ -375,53 +409,68 @@ function recordStopHuntTelegramLog(symbol, actionLabel, price, target, condition
   saveState();
 }
 
+const closingPosIds = new Set();
+
 async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, triggerSource = '실시간 TP/SL 감시') {
   const desk = state.desks.memecoin;
-  desk.stats.closedCount += 1;
-  const isShort = pos.direction === 'SHORT';
-  const curP = Number(exitPriceUsd || pos.currentPriceUsd || pos.entryPriceUsd);
-  const priceDiff = isShort ? (pos.entryPriceUsd - curP) : (curP - pos.entryPriceUsd);
-  const rawPnl = pos.quantity * priceDiff;
-  const entryFee = Number(pos.feeUsd || 0);
-  const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.25);
-  const netProceeds = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
-  const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
-  const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
+  if (!pos || !pos.id) return null;
+  if (closingPosIds.has(pos.id) || desk.closedPositions.some(c => c.id === pos.id)) {
+    desk.openPositions = desk.openPositions.filter(p => p.id !== pos.id);
+    recomputePortfolio();
+    return null;
+  }
+  closingPosIds.add(pos.id);
+  desk.openPositions = desk.openPositions.filter(p => p.id !== pos.id);
 
-  desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd + netProceeds).toFixed(2));
-  desk.portfolio.realizedPnlUsd = Number((desk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
+  try {
+    const isShort = pos.direction === 'SHORT';
+    const curP = Number(exitPriceUsd || pos.currentPriceUsd || pos.entryPriceUsd);
+    const priceDiff = isShort ? (pos.entryPriceUsd - curP) : (curP - pos.entryPriceUsd);
+    const rawPnl = pos.quantity * priceDiff;
+    const entryFee = Number(pos.feeUsd || 0);
+    const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.25);
+    const netProceeds = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
+    const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
+    const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
 
-  const closedItem = {
-    ...pos,
-    currentPriceUsd: curP,
-    exitPriceUsd: curP,
-    netProceedsUsd: netProceeds,
-    pnlUsd,
-    pnlPct,
-    closedAt: new Date().toISOString(),
-    closeRule: closeReason
-  };
-  desk.closedPositions.unshift(closedItem);
+    desk.stats.closedCount = (desk.stats.closedCount || 0) + 1;
+    desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd + netProceeds).toFixed(2));
+    desk.portfolio.realizedPnlUsd = Number((desk.portfolio.realizedPnlUsd + pnlUsd).toFixed(2));
 
-  const perf = getStopHuntPerformanceSummary();
-  const isProfit = pnlUsd >= 0;
-  const exitTitle = isProfit ? '익절(TP) 체결 완료' : '손절(SL) 체결 완료';
-  const sideKo = isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)';
+    const closedItem = {
+      ...pos,
+      currentPriceUsd: curP,
+      exitPriceUsd: curP,
+      netProceedsUsd: netProceeds,
+      pnlUsd,
+      pnlPct,
+      closedAt: new Date().toISOString(),
+      closeRule: closeReason
+    };
+    desk.closedPositions.unshift(closedItem);
 
-  const closeHtml = [
-    `<b>[Variational 10x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
-    ``,
-    `• <b>포지션:</b> ${sideKo}`,
-    `• <b>체결 가격:</b> 진입 $${pos.entryPriceUsd} ➔ 청산 $${curP}`,
-    `• <b>실현 손익:</b> ${pnlUsd >= 0 ? '+' : '-'}$${Math.abs(pnlUsd).toFixed(2)} (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
-    `• <b>청산 사유:</b> ${closeReason} (${triggerSource})`,
-    perf.footerHtml
-  ].join('\n');
+    const perf = getStopHuntPerformanceSummary();
+    const isProfit = pnlUsd >= 0;
+    const exitTitle = isProfit ? '익절(TP) 체결 완료' : '손절(SL) 체결 완료';
+    const sideKo = isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)';
 
-  addLog('EXIT', `[스탑헌팅 ${exitTitle}] $${pos.symbol} (${sideKo}) 진입 $${pos.entryPriceUsd} -> 청산 $${curP} | 실현손익 ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct}%) | ${perf.footerPlain}`);
-  const tgOut = await sendTelegramNotification(closeHtml, true);
-  recordStopHuntTelegramLog(pos.symbol, exitTitle, curP, isProfit ? pos.tp2PriceUsd : pos.stopPriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
-  return closedItem;
+    const closeHtml = [
+      `<b>[Variational 10x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
+      ``,
+      `• <b>포지션:</b> ${sideKo}`,
+      `• <b>체결 가격:</b> 진입 $${pos.entryPriceUsd} ➔ 청산 $${curP}`,
+      `• <b>실현 손익:</b> ${pnlUsd >= 0 ? '+' : '-'}$${Math.abs(pnlUsd).toFixed(2)} (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
+      `• <b>청산 사유:</b> ${closeReason} (${triggerSource})`,
+      perf.footerHtml
+    ].join('\n');
+
+    addLog('EXIT', `[스탑헌팅 ${exitTitle}] $${pos.symbol} (${sideKo}) 진입 $${pos.entryPriceUsd} -> 청산 $${curP} | 실현손익 ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct}%) | ${perf.footerPlain}`);
+    const tgOut = await sendTelegramNotification(closeHtml, true);
+    recordStopHuntTelegramLog(pos.symbol, exitTitle, curP, isProfit ? pos.tp2PriceUsd : pos.stopPriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
+    return closedItem;
+  } finally {
+    closingPosIds.delete(pos.id);
+  }
 }
 
 // ============================================================================
@@ -499,32 +548,40 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
   }
 }
 
+let riskCheckRunning = false;
 async function executeStopHuntRiskCheck(triggerSource = '5분 리스크 점검') {
-  state.routines.lastRiskAt = new Date().toISOString();
-  const desk = state.desks.memecoin;
-  let checked = 0;
-  let closed = 0;
+  if (riskCheckRunning) return { ok: false, checked: 0, closed: 0, skipped: true };
+  riskCheckRunning = true;
+  try {
+    state.routines.lastRiskAt = new Date().toISOString();
+    const desk = state.desks.memecoin;
+    let checked = 0;
+    let closed = 0;
 
-  if (desk.openPositions.length > 0) {
-    const remaining = [];
-    for (const pos of desk.openPositions) {
+    const snapshot = [...desk.openPositions];
+    for (const pos of snapshot) {
+      if (!pos || !pos.id || closingPosIds.has(pos.id) || !desk.openPositions.some(p => p.id === pos.id)) {
+        continue;
+      }
       checked += 1;
       const check = await checkContractRiskLive(pos.contract || pos.symbol, pos);
+      if (closingPosIds.has(pos.id) || !desk.openPositions.some(p => p.id === pos.id)) {
+        continue;
+      }
       if (check.reachable && check.priceUsd > 0) {
         pos.currentPriceUsd = check.priceUsd;
       }
       if (check.action === 'CLOSE') {
-        closed += 1;
-        await settleAndNotifyStopHuntPosition(pos, pos.currentPriceUsd, check.reason, triggerSource);
-      } else {
-        remaining.push(pos);
+        const closedItem = await settleAndNotifyStopHuntPosition(pos, pos.currentPriceUsd, check.reason, triggerSource);
+        if (closedItem) closed += 1;
       }
     }
-    desk.openPositions = remaining;
-  }
 
-  recomputePortfolio();
-  return { ok: true, checked, closed };
+    recomputePortfolio();
+    return { ok: true, checked, closed };
+  } finally {
+    riskCheckRunning = false;
+  }
 }
 
 // ============================================================================
@@ -1015,18 +1072,19 @@ async function pollVariationalPriceAlerts() {
     // [실시간 3초 주기 스탑헌팅 10x 열린 포지션 익절(TP1/TP2) · 손절(SL) 감시 및 텔레그램 발송]
     const desk = state.desks?.memecoin;
     if (desk && Array.isArray(desk.openPositions) && desk.openPositions.length > 0) {
-      const remainingPos = [];
       let posChanged = false;
-      for (const pos of desk.openPositions) {
+      const snapshot = [...desk.openPositions];
+      for (const pos of snapshot) {
+        if (!pos || !pos.id || closingPosIds.has(pos.id) || !desk.openPositions.some(p => p.id === pos.id)) {
+          continue;
+        }
         const cleanTicker = String(pos.contract || pos.symbol || '').toUpperCase().replace(/USDT$/, '');
         const live = mapByTicker.get(cleanTicker);
         if (!live || live.markPrice <= 0) {
-          remainingPos.push(pos);
           continue;
         }
         const isShort = pos.direction === 'SHORT';
-        // 청산 기준가: 숏 청산(매수환매) 시 Ask/Mark, 롱 청산(매도전매) 시 Bid/Mark
-        const curP = Number(live.markPrice.toFixed(4));
+        const curP = live.markPrice >= 1 ? Number(live.markPrice.toFixed(4)) : Number(live.markPrice.toFixed(5));
         if (pos.currentPriceUsd !== curP) {
           pos.currentPriceUsd = curP;
           posChanged = true;
@@ -1072,12 +1130,9 @@ async function pollVariationalPriceAlerts() {
         if (shouldClose) {
           posChanged = true;
           await settleAndNotifyStopHuntPosition(pos, curP, closeReason, '실시간 3초 TP/SL 감시');
-        } else {
-          remainingPos.push(pos);
         }
       }
       if (posChanged) {
-        desk.openPositions = remainingPos;
         recomputePortfolio();
       }
     }
@@ -1657,15 +1712,10 @@ function startServer(port = 3000) {
       }, 1000);
     }
 
-    // 평일 10분 주기 자동 스탑헌팅 스캔 & 포지션 리스크 점검 (Render 서버에서도 상시 가동)
-    setInterval(async () => {
+    // Render 무료 서버 슬립(15분 절전) 방지용 자체 헬스체크 핑 (중복 스캔/점검은 상단 5분/15분 루프 전담)
+    setInterval(() => {
       try {
         const sInfo = getStopHuntSessionInfo();
-        if (!sInfo.isWeekend) {
-          await executeStopHuntRiskCheck('10분 자동점검');
-          await executeStopHuntScan('10분 자동스캔');
-        }
-        // Render 무료 서버 슬립(15분 절전) 방지용 자체 헬스체크 핑
         if (process.env.RENDER_EXTERNAL_URL && !sInfo.isWeekend) {
           fetchJson(`${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/healthz`, {}, 5000).catch(() => {});
         }
