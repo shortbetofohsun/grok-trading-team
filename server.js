@@ -503,6 +503,14 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
     for (const passedItem of vetOut.passed) {
       const c = passedItem.candidate;
       if (desk.openPositions.some(p => p.symbol === c.symbol)) continue;
+      // 동일 종목 직전 청산이 손절(SL)인 경우 60분간 재진입 쿨다운 (원웨이 장세 연속 손절 루프 차단)
+      const recentSlForSymbol = (desk.closedPositions || []).find(
+        p => p.symbol === c.symbol && Number(p.pnlUsd) < 0 && p.closedAt && (Date.now() - new Date(p.closedAt).getTime() < 60 * 60 * 1000)
+      );
+      if (recentSlForSymbol) {
+        console.log(`[StopHunt Cooldown] ${c.symbol} 직전 손절 후 60분 쿨다운 중 — 재진입 스킵`);
+        continue;
+      }
       const capPct = passedItem.decision === 'PASS' ? 0.08 : 0.06;
       const sizeRes = runSizeAgent(passedItem, desk.portfolio, state.config, capPct);
 

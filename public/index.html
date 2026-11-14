@@ -1369,7 +1369,11 @@
             else if (r.failedRule === 1) shortReason = `구간 미달 (<±${c.minHuntPct}%)`;
             else if (r.failedRule === 2) shortReason = `구간 상한 초과 (>±${c.maxHuntPct}%)`;
             else if (r.failedRule === 3) shortReason = '밴드 스윕 대기';
-            else if (r.failedRule === 4) shortReason = `꼬리 대기 (<${c.minWickPct}%)`;
+            else if (r.failedRule === 4) {
+              if ((c.bbConsec90Bars || 0) > 3) shortReason = `원웨이 차단 (${c.bbConsec90Bars}봉)`;
+              else if ((c.bbCurrentPctB ?? 50) >= 80) shortReason = `%B<80% 복귀대기 (${c.bbCurrentPctB}%)`;
+              else shortReason = `꼬리 대기 (<${c.minWickPct}%)`;
+            }
             else if (r.failedRule === 5) shortReason = '손익비 미달';
 
             return `<tr class="hover:bg-binanceCard/40 transition">
@@ -1387,7 +1391,7 @@
               </td>
               <td class="py-2.5 px-3 mono">
                 <b class="text-gray-200">${c.wickReversalPct ?? 0}%</b>
-                <div class="text-[10px] text-gray-500">최소 ${c.minWickPct}%</div>
+                <div class="text-[10px] text-gray-500">최소 ${c.minWickPct}% · %B ${c.bbCurrentPctB ?? '-'}% (${c.bbConsec90Bars ?? 0}봉)</div>
               </td>
               <td class="py-2.5 px-3">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold mono ${isShort ? 'bg-binanceRed/20 text-binanceRed border border-binanceRed/30' : 'bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/30'}">

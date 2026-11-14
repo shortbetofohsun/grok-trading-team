@@ -577,15 +577,15 @@ async function runChiefVerification(wmPort = 3000) {
 //  - 주말(토·일) 미국장 휴장 시 자동 작동 중지 (Weekend Guard)
 // ============================================================================
 const STOPHUNT_UNIVERSE = [
-  // 1) 크립토 4대장 (12개월 · 6개월 · 60일 교차검증 최적 승률·손익비 스탑헌팅 구간 확정)
-  { symbol: 'BTC', name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.80, maxHuntPct: 2.35, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.35, btWinRate: 62.5, bt6mWinRate: 62.5, bt60dWinRate: 75.0, btTrades: 16, btPnl10x: '+22.3%', btRR: 2.55 },
-  { symbol: 'ETH', name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.65, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.35, stopBufferPct: 0.25, btWinRate: 61.5, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 13, btPnl10x: '+12.2%', btRR: 1.99 },
-  { symbol: 'SOL', name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 2.20, maxHuntPct: 2.95, dangerTrendPct: 3.40, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 85.7, bt60dWinRate: 100.0, btTrades: 9, btPnl10x: '+31.0%', btRR: 1.76 },
-  { symbol: 'HYPE', name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.45, btWinRate: 80.0, bt6mWinRate: 80.0, bt60dWinRate: 100.0, btTrades: 5, btPnl10x: '+4.7%', btRR: 1.76 },
-  // 2) 지수·반도체3배(SOXL)·한국증시 선물 3대장 (12개월 · 6개월 · 60일 교차검증 최적 승률·손익비 스탑헌팅 구간 확정)
-  { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 100.0, btTrades: 14, btPnl10x: '+25.1%', btRR: 1.59 },
-  { symbol: 'SOXLUSDT', name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 100.0, btTrades: 9, btPnl10x: '+36.3%', btRR: 2.08 },
-  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 100.0, asiaBtWinRate: 71.4, btTrades: 8, btPnl10x: '+18.3%', asiaBtPnl10x: '+24.9%', btRR: 1.74 }
+  // 1) 크립토 4대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 퀀트 필터 60일 백테스트 확정)
+  { symbol: 'BTC', name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.05, maxHuntPct: 2.15, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+5.5%', btRR: 1.55 },
+  { symbol: 'ETH', name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.15, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.20, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 9, btPnl10x: '+21.8%', btRR: 1.68 },
+  { symbol: 'SOL', name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 1.40, maxHuntPct: 2.65, dangerTrendPct: 3.40, minWickPct: 0.25, stopBufferPct: 0.30, btWinRate: 77.8, bt6mWinRate: 85.7, bt60dWinRate: 100.0, btTrades: 2, btPnl10x: '+17.8%', btRR: 1.73 },
+  { symbol: 'HYPE', name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.45, btWinRate: 80.0, bt6mWinRate: 80.0, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+8.1%', btRR: 1.78 },
+  // 2) 지수·반도체3배(SOXL)·한국증시 선물 3대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 퀀트 필터 60일 백테스트 확정)
+  { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 70.0, btTrades: 10, btPnl10x: '+16.4%', btRR: 1.55 },
+  { symbol: 'SOXLUSDT', name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 75.0, btTrades: 4, btPnl10x: '+42.6%', btRR: 2.70 },
+  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 66.7, asiaBtWinRate: 71.4, btTrades: 36, btPnl10x: '+51.3%', asiaBtPnl10x: '+24.9%', btRR: 1.76 }
 ];
 
 const VARIATIONAL_API_BASE = 'https://omni-client-api.prod.ap-northeast-1.variational.io';
@@ -893,13 +893,57 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     ? Number((((windowHigh - markPrice) / windowHigh) * 100).toFixed(2))
     : Number((((markPrice - windowLow) / windowLow) * 100).toFixed(2));
 
-  // 5) 직전 세션 고/저점 스윕(Liquidity Sweep) 및 볼린저 밴드 터치 여부
+  // 5) 직전 세션 고/저점 스윕(Liquidity Sweep) 및 볼린저 밴드 %B 퀀트 휩쏘 필터 계산
   const sweptPrevLevel = isUpHunt ? (windowHigh >= prevHigh * 0.999) : (windowLow <= prevLow * 1.001);
-  const bandTouch = isUpHunt
-    ? (windowHigh >= bbMid + (bbUpper - bbMid) * 0.78)
-    : (windowLow <= bbMid - (bbMid - bbLower) * 0.78);
+  let curConsec90 = 0;
+  let bbConsec90Bars = 0;
+  let bbTotal90Bars = 0;
+  const extPctBs = [];
 
-  // 6) 반대 포지션 진입 시 손절가(SL) · 1차 익절(TP1) · 2차 익절(TP2 = 출발 기준가 Anchor 회귀) 산출
+  for (let k = 0; k < huntWindow.length; k++) {
+    const c = huntWindow[k];
+    const idx = (n - windowSize) + k;
+    let barLower = bbLower;
+    let barUpper = bbUpper;
+    if (idx >= 19) {
+      const subSlice = candles.slice(idx - 19, idx + 1);
+      const subMid = subSlice.reduce((s, x) => s + x.close, 0) / subSlice.length;
+      const subVar = subSlice.reduce((s, x) => s + Math.pow(x.close - subMid, 2), 0) / subSlice.length;
+      const subStd = Math.sqrt(subVar) || (subMid * 0.004);
+      barUpper = subMid + 2.0 * subStd;
+      barLower = subMid - 2.0 * subStd;
+    }
+    const barRange = Math.max(barUpper - barLower, bbMid * 0.001, 1e-9);
+    const pctBClose = (c.close - barLower) / barRange;
+    const pctBHigh = (c.high - barLower) / barRange;
+    const pctBLow = (c.low - barLower) / barRange;
+    const dirClosePctB = isUpHunt ? pctBClose : (1 - pctBClose);
+    const dirExtPctB = isUpHunt ? pctBHigh : (1 - pctBLow);
+    extPctBs.push(dirExtPctB);
+
+    if (dirClosePctB >= 0.90) {
+      curConsec90 += 1;
+      bbTotal90Bars += 1;
+      if (curConsec90 > bbConsec90Bars) bbConsec90Bars = curConsec90;
+    } else {
+      curConsec90 = 0;
+    }
+  }
+
+  const bbRange = Math.max(bbUpper - bbLower, bbMid * 0.001, 1e-9);
+  const rawCurPctB = (markPrice - bbLower) / bbRange;
+  const dirCurPctB = isUpHunt ? rawCurPctB : (1 - rawCurPctB);
+  const bbCurrentPctB = Number((dirCurPctB * 100).toFixed(1));
+  if (anchorPrice > 0 && Math.abs(markPrice - anchorPrice) / anchorPrice < 0.25) {
+    extPctBs.push(dirCurPctB);
+  }
+  const bbPeakPctB = Number(((extPctBs.length ? Math.max(...extPctBs) : 0) * 100).toFixed(1));
+
+  const bandTouch = (bbPeakPctB >= 90.0) || (isUpHunt
+    ? (windowHigh >= bbMid + (bbUpper - bbMid) * 0.80)
+    : (windowLow <= bbMid - (bbMid - bbLower) * 0.80));
+
+  // 6) 반대 포지션 진입 시 손절가(SL) · 1차 익절(TP1 = 65% 되돌림) · 2차 익절(TP2 = 출발 기준가 Anchor 회귀) 산출
   let stopPriceUsd = 0;
   let tp1PriceUsd = 0;
   let tp2PriceUsd = 0;
@@ -912,7 +956,7 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     }
     const targetAnchor = Math.min(anchorPrice, execPrice * 0.992);
     tp2PriceUsd = formatPricePrecise(Math.min(anchorPrice, (anchorPrice + bbMid) / 2, targetAnchor));
-    tp1PriceUsd = formatPricePrecise(execPrice - (execPrice - tp2PriceUsd) * 0.55);
+    tp1PriceUsd = formatPricePrecise(execPrice - (execPrice - tp2PriceUsd) * 0.65);
   } else {
     const lowBound = Math.min(windowLow, markPrice, execPrice);
     stopPriceUsd = formatPricePrecise(lowBound * (1 - item.stopBufferPct / 100));
@@ -921,7 +965,7 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     }
     const targetAnchor = Math.max(anchorPrice, execPrice * 1.008);
     tp2PriceUsd = formatPricePrecise(Math.max(anchorPrice, (anchorPrice + bbMid) / 2, targetAnchor));
-    tp1PriceUsd = formatPricePrecise(execPrice + (tp2PriceUsd - execPrice) * 0.55);
+    tp1PriceUsd = formatPricePrecise(execPrice + (tp2PriceUsd - execPrice) * 0.65);
   }
 
   const signedReward = direction === 'LONG' ? (tp2PriceUsd - execPrice) : (execPrice - tp2PriceUsd);
@@ -974,6 +1018,13 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     wickReversalPct,
     sweptPrevLevel,
     bandTouch,
+    bbConsec90Bars,
+    bbTotal90Bars,
+    bbPeakPctB,
+    bbCurrentPctB,
+    maxConsec90Limit: 3,
+    snapbackPctBLimit: 80,
+    setupSummary: `%B 연속 ${bbConsec90Bars}봉(<=3봉) · 현재 %B ${bbCurrentPctB}%(<80% 복귀)`,
     minHuntPct: activeMinHuntPct,
     maxHuntPct: activeMaxHuntPct,
     dangerTrendPct: activeDangerTrendPct,
@@ -1105,20 +1156,42 @@ async function runVetAgent(candidates, config) {
       continue;
     }
 
-    // 규칙 3: 볼린저 밴드 과열 또는 직전 고/저점 스윕 확인
+    // 규칙 3: 볼린저 밴드 %B 90% 이상 과열 또는 직전 고/저점 스윕 확인
     if (!cand.bandTouch && !cand.sweptPrevLevel) {
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 3,
-        reason: `규칙 3 탈락 (유동성 스윕 미달): 볼린저 밴드 상/하단 과열권 미도달 및 직전 고/저점 스윕 없음`,
+        reason: `규칙 3 탈락 (유동성 스윕 미달): 스파이크 극점 %B ${cand.bbPeakPctB ?? '-'}% < 90% 및 직전 고/저점 스윕 없음`,
         candidate: cand
       });
       continue;
     }
 
-    // 규칙 4: 꼬리(되돌림 브레이크) 확인 (떨어지는 칼날 방지)
+    // 규칙 4: 퀀트 볼밴 %B 휩쏘 판별 (연속 %B>=90% 3봉 이하 + 현재봉 %B < 80% 안쪽 복귀 + 최소 꼬리 확인)
+    if ((cand.bbConsec90Bars || 0) > 3) {
+      vetResults.push({
+        symbol: cand.symbol,
+        contract: cand.contract,
+        decision: 'REJECT',
+        failedRule: 4,
+        reason: `규칙 4 차단 (원웨이 밴드타기): 볼밴 %B>=90% 연속 ${cand.bbConsec90Bars}봉 초과 (최대 3봉 이하만 진입)`,
+        candidate: cand
+      });
+      continue;
+    }
+    if ((cand.bbCurrentPctB ?? 50) >= 80) {
+      vetResults.push({
+        symbol: cand.symbol,
+        contract: cand.contract,
+        decision: 'REJECT',
+        failedRule: 4,
+        reason: `규칙 4 대기 (%B 80% 복귀 미확인): 현재 %B ${cand.bbCurrentPctB}% >= 80% (밴드 80% 안쪽 복귀 시 진입)`,
+        candidate: cand
+      });
+      continue;
+    }
     if (cand.wickReversalPct < cand.minWickPct) {
       vetResults.push({
         symbol: cand.symbol,
@@ -1156,7 +1229,7 @@ async function runVetAgent(candidates, config) {
       contract: cand.contract,
       decision,
       failedRule: null,
-      reason: `[Variational 스탑헌팅 포착 -> ${dirLabel}] 90분 ${moveSign}(확정 구간 ±${cand.minHuntPct}%~±${cand.maxHuntPct}% 진입) + 꼬리 ${cand.wickReversalPct}% 확인 | 진입 $${cand.priceUsd} -> 목표(TP2) $${cand.tp2PriceUsd} / 손절(SL) $${cand.stopPriceUsd} (손익비 1 : ${cand.rrRatio})`,
+      reason: `[Variational 스탑헌팅 포착 -> ${dirLabel}] 90분 ${moveSign}(확정 구간 ±${cand.minHuntPct}%~±${cand.maxHuntPct}% 진입) + %B 연속 ${cand.bbConsec90Bars ?? 0}봉 · 현재 %B ${cand.bbCurrentPctB ?? '-'}% 복귀 + 꼬리 ${cand.wickReversalPct}% 확인 | 진입 $${cand.priceUsd} -> 목표(TP2) $${cand.tp2PriceUsd} / 손절(SL) $${cand.stopPriceUsd} (손익비 1 : ${cand.rrRatio})`,
       candidate: cand
     });
   }
