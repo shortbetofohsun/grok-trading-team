@@ -2,110 +2,160 @@
 <html lang="ko">
 <head>
   <meta charset="UTF-8" />
-  <title>Variational Edge Bridge</title>
+  <title>Grok Edge-Render 실매매 브리지</title>
   <style>
+    * { box-sizing: border-box; }
     body {
-      width: 340px;
+      width: 375px;
       margin: 0;
-      padding: 16px;
-      background: #0B0E11;
-      color: #EAECEF;
-      font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+      padding: 14px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       font-size: 12px;
+      line-height: 1.45;
     }
-    .card {
-      background: #181A20;
-      border: 1px solid #2B313A;
-      border-radius: 10px;
-      padding: 12px;
+    .title-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 10px;
     }
     h1 {
-      margin: 0 0 6px 0;
+      margin: 0;
       font-size: 14px;
-      color: #F0B90B;
+      font-weight: 700;
+      color: #38bdf8;
     }
-    label {
+    .badge {
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-size: 10px;
+      font-weight: 700;
+      border: 1px solid #334155;
+      background: #1e293b;
+      color: #fbbf24;
+    }
+    .badge.live {
+      background: rgba(16, 185, 129, 0.16);
+      border-color: #10b981;
+      color: #34d399;
+    }
+    .card {
+      background: #1e293b;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      margin-bottom: 10px;
+    }
+    .label {
       display: block;
-      color: #9CA3AF;
       font-size: 11px;
-      margin: 8px 0 4px 0;
+      font-weight: 600;
+      color: #94a3b8;
+      margin-bottom: 4px;
     }
-    input {
+    .status-line {
+      font-size: 11px;
+      color: #cbd5e1;
+      margin: 2px 0;
+      word-break: break-all;
+    }
+    .ok { color: #34d399; font-weight: 700; }
+    .warn { color: #fbbf24; font-weight: 700; }
+    .err { color: #f87171; font-weight: 700; }
+    select, input[type="text"], input[type="number"] {
       width: 100%;
-      box-sizing: border-box;
-      background: #0B0E11;
-      border: 1px solid #2B313A;
+      padding: 7px 8px;
       border-radius: 6px;
-      padding: 7px 9px;
-      color: #FFFFFF;
-      font-family: monospace;
+      border: 1px solid #475569;
+      background: #0f172a;
+      color: #f8fafc;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 11px;
+      margin-bottom: 8px;
     }
-    .row {
-      display: flex;
+    .row2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 8px;
-    }
-    .row > div {
-      flex: 1;
     }
     button {
       width: 100%;
-      padding: 10px;
+      padding: 8px 10px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-weight: 700;
       font-size: 12px;
       cursor: pointer;
-      margin-top: 8px;
+      margin-bottom: 6px;
     }
-    .btn-primary {
-      background: #F0B90B;
-      color: #000000;
-    }
-    .btn-secondary {
-      background: #2B313A;
-      color: #EAECEF;
-    }
-    #statusBox {
-      margin-top: 10px;
-      padding: 9px;
+    button:disabled { opacity: 0.45; cursor: not-allowed; }
+    .btn-primary { background: #0284c7; color: #fff; }
+    .btn-primary:hover:not(:disabled) { background: #0369a1; }
+    .btn-secondary { background: #334155; color: #e2e8f0; }
+    .btn-secondary:hover:not(:disabled) { background: #475569; }
+    .btn-test { background: #0f766e; color: #fff; }
+    .btn-test:hover:not(:disabled) { background: #115e59; }
+    .btn-live-on { background: #059669; color: #fff; }
+    .btn-live-off { background: #dc2626; color: #fff; }
+    .msg {
+      padding: 8px;
       border-radius: 6px;
-      background: #0B0E11;
-      border: 1px solid #2B313A;
       font-size: 11px;
-      line-height: 1.45;
+      background: #020617;
+      border: 1px solid #334155;
+      color: #cbd5e1;
+      white-space: pre-wrap;
       word-break: break-all;
+      min-height: 36px;
     }
-    .ok { color: #0ECB81; }
-    .err { color: #F6465D; }
-    .muted { color: #9CA3AF; }
+    .muted {
+      font-size: 10px;
+      color: #64748b;
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <h1>Variational Edge 세션 브리지</h1>
-    <div class="muted">현재 Edge 브라우저에서 로그인된 <b>omni.variational.io</b> 부계정 세션을 로컬 봇으로 전송합니다. (개인키 전송 없음)</div>
+  <div class="title-row">
+    <h1>Grok Edge-Render 실매매 브리지</h1>
+    <span id="modeBadge" class="badge">PAPER</span>
   </div>
 
   <div class="card">
-    <label>허용 부계정 지갑 주소 (선택 - 비우면 자동 잠금)</label>
-    <input id="allowedAddress" type="text" placeholder="0x... (Edge 메타마스크 부계정 주소)" />
-    <div class="row">
+    <span class="label">연동 서버 선택 (Render 24시간 / 로컬)</span>
+    <select id="serverSelect">
+      <option value="https://grok-trading-team.onrender.com">Render 서버 (https://grok-trading-team.onrender.com)</option>
+      <option value="http://localhost:3000">로컬 서버 (http://localhost:3000)</option>
+    </select>
+    <button id="btnOpenVar" class="btn-secondary">omni.variational.io 탭 열기 / 전환</button>
+    <div id="liveSummary" class="status-line">상태 조회 중...</div>
+    <div id="walletSummary" class="status-line muted">-</div>
+  </div>
+
+  <div class="card">
+    <span class="label">부계정 안전잠금 & 주문 설정</span>
+    <span class="muted">허용 지갑(Whitelist)을 비워두고 저장하면 현재 Edge 로그인 지갑이 자동 잠금 등록됩니다.</span>
+    <input type="text" id="allowedAddr" placeholder="0x... 허용 부계정 지갑 주소" style="margin-top:5px;" />
+    <div class="row2">
       <div>
-        <label>1회 증거금 (USDC)</label>
-        <input id="orderMarginUsd" type="number" value="10" min="1" step="1" />
+        <span class="label">1회 증거금 ($)</span>
+        <input type="number" id="orderMargin" min="1" step="0.5" value="10" />
       </div>
       <div>
-        <label>계좌 상한선 (USDC)</label>
-        <input id="maxEquityCapUsd" type="number" value="250" min="50" step="10" />
+        <span class="label">최대 잔고 상한 ($)</span>
+        <input type="number" id="maxCap" min="10" step="10" value="250" />
       </div>
     </div>
-    <button id="btnConnect" class="btn-primary">Edge 부계정 세션 로컬 봇에 연결</button>
-    <button id="btnCopy" class="btn-secondary">세션 쿠키만 클립보드 복사</button>
+    <button id="btnSaveConnect" class="btn-primary">안전잠금 등록 & 연결 상태 갱신</button>
+    <div class="row2">
+      <button id="btnTestOrder" class="btn-test" style="margin-bottom:0;">$1.5 BTC 왕복 테스트</button>
+      <button id="btnToggleLive" class="btn-live-on" style="margin-bottom:0;">실전 자동매매 켜기</button>
+    </div>
   </div>
 
-  <div id="statusBox" class="muted">먼저 Edge에서 omni.variational.io에 부계정 메타마스크로 로그인해 주세요.</div>
+  <div id="msgBox" class="msg">omni.variational.io 탭을 열어두면 3초마다 자동 연결됩니다.</div>
+
   <script src="popup.js"></script>
 </body>
 </html>

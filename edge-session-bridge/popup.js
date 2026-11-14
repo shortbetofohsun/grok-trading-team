@@ -1,94 +1,200 @@
-const BLOCKED_EXACT = new Set([
-  '__cf_bm', '_cfuvid', 'cf_clearance',
-  '_gid', '_fbp', '_fbc', '_dd_s', '_uetsid', '_uetvid', '_clck', '_clsk',
-  '_rdt_uuid', '_ttp', '_tt_enable_cookie', '_scid', '_sctr', '_pin_unauth',
-  'IDE', 'MUID', 'li_sugr', 'lidc', 'bcookie', 'bscookie',
-  'sa-user-id', 'sa-user-id-v2', 'sa-user-id-v3'
-]);
+const DEFAULT_SERVER_URL = 'https://grok-trading-team.onrender.com';
 
-const BLOCKED_PREFIXES = [
-  'cf_', '__cf', '_ga', '_gcl_', '_hj', '_pk_', '_vwo', '_uet',
-  'ajs_', 'amp_', 'amplitude', 'mp_', 'ph_', 'intercom-', '__hs', 'hubspotutk', '__str'
-];
+const serverSelect = document.getElementById('serverSelect');
+const modeBadge = document.getElementById('modeBadge');
+const liveSummary = document.getElementById('liveSummary');
+const walletSummary = document.getElementById('walletSummary');
+const allowedAddrInput = document.getElementById('allowedAddr');
+const orderMarginInput = document.getElementById('orderMargin');
+const maxCapInput = document.getElementById('maxCap');
+const btnOpenVar = document.getElementById('btnOpenVar');
+const btnSaveConnect = document.getElementById('btnSaveConnect');
+const btnTestOrder = document.getElementById('btnTestOrder');
+const btnToggleLive = document.getElementById('btnToggleLive');
+const msgBox = document.getElementById('msgBox');
 
-function isBlockedCookie(name) {
-  const lower = String(name || '').toLowerCase();
-  if (!lower) return true;
-  if (BLOCKED_EXACT.has(name) || BLOCKED_EXACT.has(lower)) return true;
-  return BLOCKED_PREFIXES.some(p => lower.startsWith(p));
+let currentServerUrl = DEFAULT_SERVER_URL;
+let latestStatus = null;
+
+function shortAddr(addr) {
+  const s = String(addr || '');
+  if (s.length <= 12) return s || '미등록';
+  return `${s.slice(0, 6)}...${s.slice(-4)}`;
 }
 
-async function readVariationalCookieHeader() {
-  const [byUrl, byDomain] = await Promise.all([
-    chrome.cookies.getAll({ url: 'https://omni.variational.io' }),
-    chrome.cookies.getAll({ domain: 'variational.io' })
-  ]);
-  const map = new Map();
-  for (const c of [...byDomain, ...byUrl]) {
-    if (!c || !c.name || isBlockedCookie(c.name)) continue;
-    map.set(c.name, c.value);
+function setMsg(text, isErr = false) {
+  msgBox.style.color = isErr ? '#fca5a5' : '#cbd5e1';
+  msgBox.textContent = text;
+}
+
+function callServer(path, method = 'GET', body = null, timeoutMs = 25000) {
+  return new Promise((resolve) => {
+    chrome.runtime.sendMessage(
+      {
+        type: 'BRIDGE_HTTP',
+        url: `${currentServerUrl}${path}`,
+        method,
+        body,
+        timeoutMs,
+        storeStatus: path.includes('/api/live/')
+      },
+      (resp) => {
+        if (chrome.runtime.lastError) {
+          resolve({ ok: false, status: 0, data: { error: chrome.runtime.lastError.message } });
+          return;
+        }
+        resolve(resp || { ok: false, status: 0, data: { error: '응답 없음' } });
+      }
+    );
+  });
+}
+
+function renderStatus(st, forceHydrate = false) {
+  latestStatus = st || null;
+  if (!st) {
+    modeBadge.textContent = 'OFFLINE';
+    modeBadge.className = 'badge';
+    liveSummary.innerHTML = '<span class="err">서버 응답 없음 (Render 슬립 또는 네트워크 확인)</span>';
+    return;
   }
-  return Array.from(map.entries()).map(([k, v]) => `${k}=${v}`).join('; ');
+
+  modeBadge.textContent = st.enabled ? 'LIVE AUTO' : 'PAPER';
+  modeBadge.className = `badge${st.enabled ? ' live' : ''}`;
+
+  const bridgeConnected = Boolean(st.edgeBridgeConnected);
+  const ageSec = st.edgeLastSeenAt ? Math.max(0, Math.round((Date.now() - Number(st.edgeLastSeenAt)) / 1000)) : null;
+
+  if (bridgeConnected) {
+    liveSummary.innerHTML = `<span class="ok">Edge 탭 직결됨</span> · ${ageSec !== null ? `${ageSec}초 전` : '실시간'} · 1회 $${st.orderMarginUsd} (10x)`;
+  } else if (st.hasSession) {
+    liveSummary.innerHTML = `<span class="ok">직접 세션 연결됨</span> · 지갑 ${shortAddr(st.connectedAddress)}`;
+  } else {
+    liveSummary.innerHTML = '<span class="warn">Edge omni.variational.io 탭 대기중</span>';
+  }
+
+  const addrLabel = st.connectedAddress ? shortAddr(st.connectedAddress) : '미확인';
+  const balLabel = Number.isFinite(Number(st.lastBalanceUsd)) ? `$${Number(st.lastBalanceUsd).toFixed(2)}` : '$0.00';
+  const allowLabel = st.allowedAddress ? shortAddr(st.allowedAddress) : '미지정';
+  walletSummary.textContent = `연결지갑: ${addrLabel} (${balLabel} USDC) | 허용잠금: ${allowLabel} (상한 $${st.maxEquityCapUsd})`;
+
+  if (forceHydrate) {
+    if (!allowedAddrInput.value && st.allowedAddress) allowedAddrInput.value = st.allowedAddress;
+    if (st.orderMarginUsd) orderMarginInput.value = st.orderMarginUsd;
+    if (st.maxEquityCapUsd) maxCapInput.value = st.maxEquityCapUsd;
+  }
+
+  btnToggleLive.textContent = st.enabled ? '실전 자동매매 끄기' : '실전 자동매매 켜기';
+  btnToggleLive.className = st.enabled ? 'btn-live-off' : 'btn-live-on';
+
+  if (st.safetyError) {
+    setMsg(`안전잠금 경고: ${st.safetyError}`, true);
+  }
 }
 
-function setStatus(html, cls = 'muted') {
-  const box = document.getElementById('statusBox');
-  box.className = cls;
-  box.innerHTML = html;
+async function refreshStatus(forceHydrate = false) {
+  const res = await callServer('/api/live/status', 'GET', null, 15000);
+  if (res.ok && res.data?.status) {
+    renderStatus(res.data.status, forceHydrate);
+  } else {
+    renderStatus(null, false);
+    if (res.data?.error) setMsg(`상태 조회 실패: ${res.data.error}`, true);
+  }
 }
 
-document.getElementById('btnConnect').addEventListener('click', async () => {
-  const btn = document.getElementById('btnConnect');
-  btn.disabled = true;
-  setStatus('Edge에서 Variational 세션을 추출하고 로컬 서버를 검증 중입니다...', 'muted');
+btnOpenVar.addEventListener('click', async () => {
+  const tabs = await chrome.tabs.query({ url: ['https://omni.variational.io/*'] });
+  if (tabs && tabs.length > 0) {
+    await chrome.tabs.update(tabs[0].id, { active: true });
+    if (tabs[0].windowId) {
+      await chrome.windows.update(tabs[0].windowId, { focused: true });
+    }
+    setMsg('열려 있는 omni.variational.io 탭으로 이동했습니다.');
+    return;
+  }
+  await chrome.tabs.create({ url: 'https://omni.variational.io/perpetual/BTC' });
+  setMsg('새 omni.variational.io 탭을 열었습니다. 로그인 상태를 확인해 주세요.');
+});
 
+serverSelect.addEventListener('change', async () => {
+  currentServerUrl = serverSelect.value;
+  await chrome.storage.local.set({ serverUrl: currentServerUrl });
+  setMsg(`연동 서버 변경: ${currentServerUrl}`);
+  await refreshStatus(true);
+});
+
+btnSaveConnect.addEventListener('click', async () => {
+  btnSaveConnect.disabled = true;
+  setMsg('안전잠금 설정을 저장하고 Edge 연결 상태를 확인 중...');
   try {
-    const cookies = await readVariationalCookieHeader();
-    if (!cookies) {
-      setStatus('Variational 세션 쿠키를 찾지 못했습니다. Edge에서 omni.variational.io에 지갑 로그인해 주세요.', 'err');
-      btn.disabled = false;
-      return;
+    let targetAllow = allowedAddrInput.value.trim();
+    if (!targetAllow && latestStatus?.connectedAddress) {
+      targetAllow = latestStatus.connectedAddress;
+      allowedAddrInput.value = targetAllow;
     }
 
-    const allowedAddress = document.getElementById('allowedAddress').value.trim();
-    const orderMarginUsd = Number(document.getElementById('orderMarginUsd').value || 10);
-    const maxEquityCapUsd = Number(document.getElementById('maxEquityCapUsd').value || 250);
-
-    const res = await fetch('http://localhost:3000/api/live/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ cookies, allowedAddress, orderMarginUsd, maxEquityCapUsd })
+    const cookieRes = await new Promise((resolve) => {
+      chrome.runtime.sendMessage({ type: 'GET_VARIATIONAL_COOKIES' }, resolve);
     });
-    const out = await res.json();
-    if (!res.ok || !out.ok) {
-      setStatus(`연결 차단/오류: ${out.error || '알 수 없는 오류'}`, 'err');
+
+    const payload = {
+      allowedAddress: targetAllow,
+      orderMarginUsd: Number(orderMarginInput.value) || 10,
+      maxEquityCapUsd: Number(maxCapInput.value) || 250,
+      cookieHeader: (!latestStatus?.edgeBridgeConnected && cookieRes?.ok) ? cookieRes.cookieHeader : undefined
+    };
+
+    const res = await callServer('/api/live/connect', 'POST', payload, 20000);
+    if (res.ok && res.data?.status) {
+      renderStatus(res.data.status, true);
+      setMsg(`설정 저장 완료! 허용 지갑: ${shortAddr(res.data.status.allowedAddress || res.data.status.connectedAddress)}`);
     } else {
-      const st = out.status || {};
-      setStatus(
-        `연결 및 3중 안전 검증 성공<br>` +
-        `지갑: ${st.connectedAddress || '-'}<br>` +
-        `잔고: $${Number(st.lastBalanceUsd ?? 0).toFixed(2)} USDC (상한 $${st.maxEquityCapUsd})<br>` +
-        `이제 대시보드(localhost:3000)에서 테스트 주문 후 실전 ON 전환 가능합니다.`,
-        'ok'
-      );
+      if (res.data?.status) renderStatus(res.data.status, false);
+      setMsg(`등록 실패: ${res.data?.error || '알 수 없는 오류'}`, true);
     }
-  } catch (err) {
-    setStatus(`로컬 서버(localhost:3000) 통신 실패: ${err.message}`, 'err');
   } finally {
-    btn.disabled = false;
+    btnSaveConnect.disabled = false;
   }
 });
 
-document.getElementById('btnCopy').addEventListener('click', async () => {
+btnTestOrder.addEventListener('click', async () => {
+  btnTestOrder.disabled = true;
+  setMsg('Edge 브리지로 BTC $1.5 10x 진입 -> 즉시 청산 테스트 신호를 보냈습니다 (최대 20초)...');
   try {
-    const cookies = await readVariationalCookieHeader();
-    if (!cookies) {
-      setStatus('복사할 Variational 쿠키가 없습니다. 먼저 로그인해 주세요.', 'err');
-      return;
+    const res = await callServer('/api/live/test-order', 'POST', { symbol: 'BTC', notionalUsd: 1.5 }, 25000);
+    if (res.ok && res.data) {
+      setMsg(`왕복 테스트 성공! 진입 ${res.data.entryPrice} (RFQ ${res.data.openRfqId}) -> 청산 ${res.data.exitPrice} (RFQ ${res.data.closeRfqId})`);
+      await refreshStatus(false);
+    } else {
+      setMsg(`테스트 실패: ${res.data?.error || '실행 오류'}`, true);
     }
-    await navigator.clipboard.writeText(cookies);
-    setStatus(`세션 쿠키(${cookies.length}자)를 클립보드에 복사했습니다. 대시보드 입력칸에 붙여넣기 하세요.`, 'ok');
-  } catch (err) {
-    setStatus(`복사 실패: ${err.message}`, 'err');
+  } finally {
+    btnTestOrder.disabled = false;
   }
+});
+
+btnToggleLive.addEventListener('click', async () => {
+  btnToggleLive.disabled = true;
+  try {
+    const nextEnabled = !(latestStatus && latestStatus.enabled);
+    const res = await callServer('/api/live/toggle', 'POST', { enabled: nextEnabled }, 15000);
+    if (res.ok && res.data?.status) {
+      renderStatus(res.data.status, false);
+      setMsg(res.data.status.enabled
+        ? '실전 자동매매(LIVE)가 켜졌습니다. omni.variational.io 탭을 열어두세요.'
+        : '모의매매(PAPER) 모드로 전환되었습니다.');
+    } else {
+      setMsg(`전환 거부: ${res.data?.error || '조건 미충족'}`, true);
+    }
+  } finally {
+    btnToggleLive.disabled = false;
+  }
+});
+
+chrome.storage.local.get(['serverUrl', 'lastBridgeStatus'], (stored) => {
+  currentServerUrl = stored?.serverUrl || DEFAULT_SERVER_URL;
+  serverSelect.value = currentServerUrl;
+  if (stored?.lastBridgeStatus) {
+    renderStatus(stored.lastBridgeStatus, true);
+  }
+  refreshStatus(true);
 });

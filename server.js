@@ -155,6 +155,13 @@ function getDefaultState() {
       lastScanAt: null,
       lastRiskAt: null
     },
+    liveBridge: {
+      enabled: false,
+      allowedAddress: '',
+      orderMarginUsd: 10,
+      maxEquityCapUsd: 250,
+      maxSlippageBps: 100
+    },
     logs: [
       {
         id: 'log_init',
@@ -235,6 +242,15 @@ if (fs.existsSync(STATE_FILE)) {
             ...loaded.desks.memecoin,
             name: 'Variational 10x 스탑헌팅 봇'
           }
+        },
+        liveBridge: {
+          ...def.liveBridge,
+          ...(loaded.liveBridge || {}),
+          enabled: Boolean(loaded.liveBridge?.enabled),
+          allowedAddress: String(loaded.liveBridge?.allowedAddress || '').trim(),
+          orderMarginUsd: Number(loaded.liveBridge?.orderMarginUsd) > 0 ? Number(loaded.liveBridge.orderMarginUsd) : def.liveBridge.orderMarginUsd,
+          maxEquityCapUsd: Number(loaded.liveBridge?.maxEquityCapUsd) > 0 ? Number(loaded.liveBridge.maxEquityCapUsd) : def.liveBridge.maxEquityCapUsd,
+          maxSlippageBps: Number(loaded.liveBridge?.maxSlippageBps) > 0 ? Number(loaded.liveBridge.maxSlippageBps) : def.liveBridge.maxSlippageBps
         },
         logs: Array.isArray(loaded.logs) && loaded.logs.length ? loaded.logs : def.logs,
         optionChatHistory: Array.isArray(loaded.optionChatHistory) && loaded.optionChatHistory.length ? loaded.optionChatHistory : def.optionChatHistory
@@ -422,6 +438,129 @@ function recordStopHuntTelegramLog(symbol, actionLabel, price, target, condition
 
 const closingPosIds = new Set();
 
+const EDGE_BRIDGE_TTL_MS = 15000;
+const edgeBridgeRuntime = {
+  connectedAddress: '',
+  lastBalanceUsd: 0,
+  upnlUsd: 0,
+  marginUsage: 0,
+  positions: [],
+  lastHeartbeatAt: 0,
+  loggedIn: false,
+  pageUrl: '',
+  safetyError: null,
+  lastActionNote: '',
+  pendingSignals: [],
+  ackWaiters: new Map()
+};
+
+function isEdgeBridgeConnected() {
+  return Boolean(
+    edgeBridgeRuntime.lastHeartbeatAt &&
+    Date.now() - edgeBridgeRuntime.lastHeartbeatAt <= EDGE_BRIDGE_TTL_MS &&
+    edgeBridgeRuntime.loggedIn &&
+    edgeBridgeRuntime.connectedAddress
+  );
+}
+
+function evaluateEdgeBridgeSafety(requireAllowList = false) {
+  if (!isEdgeBridgeConnected()) {
+    return { ok: false, error: 'Edge omni.variational.io 탭 연결이 감지되지 않습니다.' };
+  }
+  const cfg = state.liveBridge || {};
+  const allowed = String(cfg.allowedAddress || '').trim().toLowerCase();
+  const actual = String(edgeBridgeRuntime.connectedAddress || '').trim().toLowerCase();
+  if (requireAllowList && !allowed) {
+    return { ok: false, error: '안전잠금: 허용 부계정 지갑(Whitelist)이 지정되지 않았습니다.' };
+  }
+  if (allowed && actual && allowed !== actual) {
+    return {
+      ok: false,
+      error: `안전잠금 차단: 연결 지갑(${edgeBridgeRuntime.connectedAddress}) != 허용 지갑(${cfg.allowedAddress})`
+    };
+  }
+  const cap = Number(cfg.maxEquityCapUsd || 250);
+  if (Number.isFinite(cap) && cap > 0 && Number(edgeBridgeRuntime.lastBalanceUsd || 0) > cap) {
+    return {
+      ok: false,
+      error: `안전잠금 차단: 현재 잔고($${Number(edgeBridgeRuntime.lastBalanceUsd).toFixed(2)})가 상한($${cap})을 초과합니다.`
+    };
+  }
+  return { ok: true, error: null };
+}
+
+function pruneExpiredEdgeSignals() {
+  const now = Date.now();
+  edgeBridgeRuntime.pendingSignals = edgeBridgeRuntime.pendingSignals.filter(
+    (s) => now - Number(s.createdAt || 0) <= Number(s.ttlMs || 45000)
+  );
+}
+
+function dispatchEdgeSignalAndWait(signalPayload, timeoutMs = 18000, ttlMs = 45000) {
+  pruneExpiredEdgeSignals();
+  const signalId = `sig_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  const sig = {
+    ...signalPayload,
+    signalId,
+    createdAt: Date.now(),
+    ttlMs,
+    dispatchedAt: null
+  };
+  edgeBridgeRuntime.pendingSignals.push(sig);
+
+  return new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      edgeBridgeRuntime.ackWaiters.delete(signalId);
+      reject(new Error(`Edge 브리지 응답 시간 초과 (${Math.round(timeoutMs / 1000)}초)`));
+    }, timeoutMs);
+    edgeBridgeRuntime.ackWaiters.set(signalId, { resolve, reject, timer });
+  });
+}
+
+function getUnifiedLiveStatus() {
+  const direct = getPublicLiveStatus();
+  const cfg = state.liveBridge || {};
+  const bridgeConn = isEdgeBridgeConnected();
+  const directActive = Boolean(!direct.isCloudBlocked && direct.hasSession);
+
+  const allowedAddress = String(cfg.allowedAddress || direct.allowedAddress || '').trim();
+  const orderMarginUsd = Number(cfg.orderMarginUsd || direct.orderMarginUsd || 10);
+  const maxEquityCapUsd = Number(cfg.maxEquityCapUsd || direct.maxEquityCapUsd || 250);
+  const maxSlippageBps = Number(cfg.maxSlippageBps || direct.maxSlippageBps || 100);
+  const connectedAddress = bridgeConn
+    ? edgeBridgeRuntime.connectedAddress
+    : (directActive ? direct.connectedAddress : (edgeBridgeRuntime.connectedAddress || ''));
+  const lastBalanceUsd = bridgeConn
+    ? Number(edgeBridgeRuntime.lastBalanceUsd || 0)
+    : (directActive ? Number(direct.lastBalanceUsd || 0) : Number(edgeBridgeRuntime.lastBalanceUsd || 0));
+  const safety = bridgeConn
+    ? evaluateEdgeBridgeSafety(false)
+    : { ok: !direct.lastError, error: direct.lastError || null };
+
+  return {
+    ...direct,
+    bridgeMode: bridgeConn ? 'EDGE_BRIDGE' : (directActive ? 'LOCAL_DIRECT' : 'NONE'),
+    edgeBridgeConnected: bridgeConn,
+    edgeLastSeenAt: edgeBridgeRuntime.lastHeartbeatAt || null,
+    edgePositionsCount: Array.isArray(edgeBridgeRuntime.positions) ? edgeBridgeRuntime.positions.length : 0,
+    hasSession: bridgeConn || directActive,
+    enabled: Boolean(cfg.enabled || (directActive && direct.enabled)),
+    allowedAddress,
+    orderMarginUsd,
+    maxEquityCapUsd,
+    maxSlippageBps,
+    connectedAddress,
+    lastBalanceUsd,
+    safetyError: safety.ok ? null : safety.error,
+    isCloudBlocked: bridgeConn ? false : direct.isCloudBlocked,
+    lastActionNote: edgeBridgeRuntime.lastActionNote || ''
+  };
+}
+
+function isAnyLiveTradingActive() {
+  return Boolean(state.liveBridge?.enabled || isLiveTradingActive());
+}
+
 async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, triggerSource = '실시간 TP/SL 감시') {
   const desk = state.desks.memecoin;
   if (!pos || !pos.id) return null;
@@ -439,7 +578,18 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
     let liveCloseNote = '';
     if (pos.isLiveOrder) {
       try {
-        const liveClose = await executeLiveStopHuntClose(pos);
+        let liveClose = null;
+        if (isEdgeBridgeConnected()) {
+          const ack = await dispatchEdgeSignalAndWait(
+            { type: 'EXIT', symbol: pos.symbol, exitPriceUsd: curP, closeReason },
+            18000,
+            120000
+          );
+          if (!ack?.ok) throw new Error(ack?.error || 'Edge 브리지 청산 거부');
+          liveClose = ack.result || {};
+        } else {
+          liveClose = await executeLiveStopHuntClose(pos);
+        }
         if (liveClose?.exitPriceUsd > 0 && !liveClose.alreadyClosedOnVenue) {
           curP = Number(liveClose.exitPriceUsd);
         }
@@ -545,9 +695,33 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
 
       if (sizeRes.dollars > 0) {
         let liveExec = null;
-        if (isLiveTradingActive()) {
+        if (isAnyLiveTradingActive()) {
           try {
-            liveExec = await executeLiveStopHuntEntry(c);
+            if (isEdgeBridgeConnected()) {
+              const safety = evaluateEdgeBridgeSafety(true);
+              if (!safety.ok) throw new Error(safety.error);
+              const cfg = state.liveBridge || {};
+              const ack = await dispatchEdgeSignalAndWait(
+                {
+                  type: 'ENTRY',
+                  symbol: c.symbol,
+                  direction: c.direction,
+                  leverage: 10,
+                  marginUsd: Number(cfg.orderMarginUsd || 10),
+                  entryPriceUsd: Number(c.priceUsd || 0),
+                  takeProfitUsd: Number(c.tp2PriceUsd || 0),
+                  stopLossUsd: Number(c.stopPriceUsd || 0)
+                },
+                18000,
+                45000
+              );
+              if (!ack?.ok) throw new Error(ack?.error || 'Edge 브리지 주문 실패');
+              liveExec = ack.result;
+            } else if (isLiveTradingActive()) {
+              liveExec = await executeLiveStopHuntEntry(c);
+            } else {
+              throw new Error('Edge omni.variational.io 탭 연결이 끊겨 실전 진입을 보류했습니다.');
+            }
           } catch (liveErr) {
             addLog('ENTRY', `[실전 LIVE 진입 실패] $${c.symbol}: ${liveErr.message}`);
             await sendTelegramNotification(`<b>[실전 LIVE 진입 실패 — $${c.symbol}]</b>\n\n사유: ${liveErr.message}`, true);
@@ -1442,7 +1616,7 @@ const server = http.createServer(async (req, res) => {
       stopHuntPerformance,
       sessionInfo: getStopHuntSessionInfo(),
       githubDeviceSession,
-      liveStatus: getPublicLiveStatus()
+      liveStatus: getUnifiedLiveStatus()
     });
   }
 
@@ -1741,52 +1915,225 @@ const server = http.createServer(async (req, res) => {
     return sendJson(res, 200, { ok: true, config: state.priceAlerts });
   }
 
-  if (pathname === '/api/live/status' && req.method === 'GET') {
-    if (parsedUrl.searchParams.get('verify') === '1') {
-      const v = await verifyLiveAccountSafety();
-      return sendJson(res, 200, { ok: v.ok, error: v.error || null, status: getPublicLiveStatus(), positions: v.positions || [] });
+  if (pathname === '/api/live/edge-heartbeat' && req.method === 'POST') {
+    const body = await parseBody(req);
+    pruneExpiredEdgeSignals();
+
+    edgeBridgeRuntime.loggedIn = Boolean(body?.loggedIn);
+    edgeBridgeRuntime.connectedAddress = String(body?.address || '').trim();
+    edgeBridgeRuntime.lastBalanceUsd = Number(body?.balanceUsd || 0);
+    edgeBridgeRuntime.upnlUsd = Number(body?.upnlUsd || 0);
+    edgeBridgeRuntime.marginUsage = Number(body?.marginUsage || 0);
+    edgeBridgeRuntime.positions = Array.isArray(body?.positions) ? body.positions : [];
+    edgeBridgeRuntime.pageUrl = String(body?.pageUrl || '');
+    edgeBridgeRuntime.lastHeartbeatAt = Date.now();
+
+    const safety = evaluateEdgeBridgeSafety(false);
+    edgeBridgeRuntime.safetyError = safety.ok ? null : safety.error;
+
+    // 안전잠금 위반 시 실행 중이던 실전 자동매매 강제 OFF
+    if (!safety.ok && state.liveBridge?.enabled && edgeBridgeRuntime.loggedIn) {
+      state.liveBridge.enabled = false;
+      saveState();
+      addLog('INFO', `[안전잠금 자동해제] ${safety.error}`);
     }
-    return sendJson(res, 200, { ok: true, status: getPublicLiveStatus() });
+
+    const toDispatch = [];
+    for (const sig of edgeBridgeRuntime.pendingSignals) {
+      if (!sig.dispatchedAt) {
+        sig.dispatchedAt = Date.now();
+        toDispatch.push({ ...sig });
+      }
+    }
+
+    const unified = getUnifiedLiveStatus();
+    return sendJson(res, 200, {
+      ok: true,
+      status: unified,
+      config: {
+        allowedAddress: unified.allowedAddress,
+        orderMarginUsd: unified.orderMarginUsd,
+        maxEquityCapUsd: unified.maxEquityCapUsd,
+        maxSlippageBps: unified.maxSlippageBps,
+        enabled: unified.enabled
+      },
+      signals: toDispatch
+    });
+  }
+
+  if (pathname === '/api/live/edge-ack' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const signalId = String(body?.signalId || '').trim();
+    edgeBridgeRuntime.pendingSignals = edgeBridgeRuntime.pendingSignals.filter((s) => s.signalId !== signalId);
+    edgeBridgeRuntime.lastActionNote = body?.ok
+      ? `${body?.type || 'ORDER'} ${body?.symbol || ''} 체결 완료`
+      : `${body?.type || 'ORDER'} ${body?.symbol || ''} 오류: ${body?.error || '실패'}`;
+
+    const waiter = edgeBridgeRuntime.ackWaiters.get(signalId);
+    if (waiter) {
+      clearTimeout(waiter.timer);
+      edgeBridgeRuntime.ackWaiters.delete(signalId);
+      waiter.resolve(body || { ok: false, error: '빈 응답' });
+    } else if (body?.type === 'EXIT') {
+      addLog('EXIT', body?.ok
+        ? `[Edge 지연 청산 확인] $${body?.symbol} RFQ ${body?.result?.rfqId || (body?.result?.alreadyClosedOnVenue ? '기청산' : '완료')}`
+        : `[Edge 지연 청산 실패] $${body?.symbol}: ${body?.error}`);
+    }
+
+    return sendJson(res, 200, { ok: true, status: getUnifiedLiveStatus() });
+  }
+
+  if (pathname === '/api/live/status' && req.method === 'GET') {
+    if (parsedUrl.searchParams.get('verify') === '1' && !isEdgeBridgeConnected()) {
+      const v = await verifyLiveAccountSafety();
+      return sendJson(res, 200, { ok: v.ok, error: v.error || null, status: getUnifiedLiveStatus(), positions: v.positions || [] });
+    }
+    return sendJson(res, 200, { ok: true, status: getUnifiedLiveStatus(), positions: edgeBridgeRuntime.positions || [] });
   }
 
   if (pathname === '/api/live/connect' && req.method === 'POST') {
     const body = await parseBody(req);
-    const out = await connectEdgeSession(body || {});
-    if (out.ok) {
-      addLog('INFO', `[Edge 부계정 연동 완료] 지갑 ${out.status?.connectedAddress} | 잔고 $${Number(out.status?.lastBalanceUsd ?? 0).toFixed(2)} USDC (상한 $${out.status?.maxEquityCapUsd})`);
-    } else {
-      addLog('INFO', `[Edge 부계정 연동 차단] ${out.error}`);
+    if (!state.liveBridge) state.liveBridge = getDefaultState().liveBridge;
+
+    const reqAllowed = typeof body?.allowedAddress === 'string' ? body.allowedAddress.trim() : '';
+    if (reqAllowed) {
+      state.liveBridge.allowedAddress = reqAllowed;
+    } else if (!state.liveBridge.allowedAddress && edgeBridgeRuntime.connectedAddress) {
+      state.liveBridge.allowedAddress = edgeBridgeRuntime.connectedAddress;
     }
-    return sendJson(res, out.ok ? 200 : 400, out);
+    if (Number(body?.orderMarginUsd) > 0) state.liveBridge.orderMarginUsd = Number(body.orderMarginUsd);
+    if (Number(body?.maxEquityCapUsd) > 0) state.liveBridge.maxEquityCapUsd = Number(body.maxEquityCapUsd);
+    if (Number(body?.maxSlippageBps) > 0) state.liveBridge.maxSlippageBps = Number(body.maxSlippageBps);
+    saveState();
+
+    if (body?.cookieHeader && !getPublicLiveStatus().isCloudBlocked) {
+      const out = await connectEdgeSession({
+        ...body,
+        allowedAddress: state.liveBridge.allowedAddress,
+        orderMarginUsd: state.liveBridge.orderMarginUsd,
+        maxEquityCapUsd: state.liveBridge.maxEquityCapUsd,
+        maxSlippageBps: state.liveBridge.maxSlippageBps
+      });
+      if (!out.ok && !isEdgeBridgeConnected()) {
+        addLog('INFO', `[Edge 부계정 연동 차단] ${out.error}`);
+        return sendJson(res, 400, { ...out, status: getUnifiedLiveStatus() });
+      }
+    }
+
+    if (isEdgeBridgeConnected()) {
+      const safety = evaluateEdgeBridgeSafety(true);
+      const unified = getUnifiedLiveStatus();
+      if (!safety.ok) {
+        addLog('INFO', `[Edge 브리지 안전잠금 차단] ${safety.error}`);
+        return sendJson(res, 400, { ok: false, error: safety.error, status: unified });
+      }
+      addLog('INFO', `[Edge 브리지 안전잠금 등록] 허용 지갑 ${unified.allowedAddress} | 현재 잔고 $${Number(unified.lastBalanceUsd || 0).toFixed(2)} USDC (상한 $${unified.maxEquityCapUsd})`);
+      return sendJson(res, 200, { ok: true, status: unified });
+    }
+
+    const unified = getUnifiedLiveStatus();
+    addLog('INFO', `[Edge 브리지 설정 저장] 허용 지갑 ${unified.allowedAddress || '자동감지 대기'} (Edge omni.variational.io 탭 연결 시 즉시 활성화)`);
+    return sendJson(res, 200, { ok: true, savedConfigOnly: true, status: unified });
   }
 
   if (pathname === '/api/live/toggle' && req.method === 'POST') {
     const body = await parseBody(req);
-    const out = await toggleLiveMode(body?.enabled);
-    if (out.ok) {
-      addLog('INFO', `[매매 모드 변경] ${out.status?.enabled ? '실전 자동매매(LIVE) 활성화' : '모의매매(PAPER) 전환'}`);
-    } else {
-      addLog('INFO', `[실전 전환 거부] ${out.error}`);
+    const nextEnabled = Boolean(body?.enabled);
+    if (!state.liveBridge) state.liveBridge = getDefaultState().liveBridge;
+
+    const direct = getPublicLiveStatus();
+    const bridgeConn = isEdgeBridgeConnected();
+    const directActive = Boolean(!direct.isCloudBlocked && direct.hasSession);
+
+    if (nextEnabled) {
+      if (!bridgeConn && !directActive) {
+        return sendJson(res, 400, {
+          ok: false,
+          error: 'Edge에서 https://omni.variational.io 탭이 연결되지 않았습니다. 확장프로그램을 켜고 Variational 탭에 로그인해 주세요.',
+          status: getUnifiedLiveStatus()
+        });
+      }
+      if (bridgeConn) {
+        if (!state.liveBridge.allowedAddress && edgeBridgeRuntime.connectedAddress) {
+          state.liveBridge.allowedAddress = edgeBridgeRuntime.connectedAddress;
+        }
+        const safety = evaluateEdgeBridgeSafety(true);
+        if (!safety.ok) {
+          return sendJson(res, 400, { ok: false, error: safety.error, status: getUnifiedLiveStatus() });
+        }
+      } else {
+        const out = await toggleLiveMode(true);
+        if (!out.ok) {
+          return sendJson(res, 400, { ok: false, error: out.error, status: getUnifiedLiveStatus() });
+        }
+      }
+    } else if (directActive) {
+      await toggleLiveMode(false);
     }
-    return sendJson(res, out.ok ? 200 : 400, out);
+
+    state.liveBridge.enabled = nextEnabled;
+    saveState();
+    const unified = getUnifiedLiveStatus();
+    addLog('INFO', `[매매 모드 변경] ${unified.enabled ? '실전 자동매매(LIVE) 활성화' : '모의매매(PAPER) 전환'}`);
+    return sendJson(res, 200, { ok: true, status: unified });
   }
 
   if (pathname === '/api/live/test-order' && req.method === 'POST') {
     const body = await parseBody(req);
-    try {
-      const out = await executeLiveRoundtripTest(body?.symbol || 'BTC', body?.notionalUsd || 1.5);
-      addLog('INFO', `[실전 소액 왕복 테스트 완료] BTC 진입 RFQ ${out.openRfqId} -> 청산 RFQ ${out.closeRfqId || '완료'} ($${out.entryPrice} -> $${out.exitPrice})`);
-      return sendJson(res, 200, out);
-    } catch (err) {
-      addLog('INFO', `[실전 테스트 주문 실패] ${err.message}`);
-      return sendJson(res, 400, { ok: false, error: err.message, status: getPublicLiveStatus() });
+    const symbol = String(body?.symbol || 'BTC').toUpperCase();
+    const notionalUsd = Number(body?.notionalUsd) > 0 ? Number(body.notionalUsd) : 1.5;
+
+    if (isEdgeBridgeConnected()) {
+      if (!state.liveBridge?.allowedAddress && edgeBridgeRuntime.connectedAddress) {
+        state.liveBridge.allowedAddress = edgeBridgeRuntime.connectedAddress;
+        saveState();
+      }
+      const safety = evaluateEdgeBridgeSafety(true);
+      if (!safety.ok) {
+        return sendJson(res, 400, { ok: false, error: safety.error, status: getUnifiedLiveStatus() });
+      }
+      try {
+        const ack = await dispatchEdgeSignalAndWait(
+          { type: 'TEST_ROUNDTRIP', symbol, notionalUsd },
+          22000,
+          25000
+        );
+        if (!ack?.ok) throw new Error(ack?.error || 'Edge 브리지 주문 실패');
+        const r = ack.result || {};
+        addLog('INFO', `[실전 소액 왕복 테스트 완료 (Edge 브리지)] ${r.symbol || symbol} 진입 RFQ ${r.openRfqId} -> 청산 RFQ ${r.closeRfqId || '완료'} ($${r.entryPrice} -> $${r.exitPrice})`);
+        return sendJson(res, 200, { ok: true, ...r, status: getUnifiedLiveStatus() });
+      } catch (err) {
+        addLog('INFO', `[실전 테스트 주문 실패] ${err.message}`);
+        return sendJson(res, 400, { ok: false, error: err.message, status: getUnifiedLiveStatus() });
+      }
     }
+
+    const direct = getPublicLiveStatus();
+    if (!direct.isCloudBlocked && direct.hasSession) {
+      try {
+        const out = await executeLiveRoundtripTest(symbol, notionalUsd);
+        addLog('INFO', `[실전 소액 왕복 테스트 완료] ${symbol} 진입 RFQ ${out.openRfqId} -> 청산 RFQ ${out.closeRfqId || '완료'} ($${out.entryPrice} -> $${out.exitPrice})`);
+        return sendJson(res, 200, { ...out, status: getUnifiedLiveStatus() });
+      } catch (err) {
+        addLog('INFO', `[실전 테스트 주문 실패] ${err.message}`);
+        return sendJson(res, 400, { ok: false, error: err.message, status: getUnifiedLiveStatus() });
+      }
+    }
+
+    return sendJson(res, 400, {
+      ok: false,
+      error: 'Edge에서 omni.variational.io 탭 연결이 감지되지 않았습니다. Edge에서 베리에이셔널 로그인 탭을 열어두고 3초 후 다시 시도해 주세요.',
+      status: getUnifiedLiveStatus()
+    });
   }
 
   if (pathname === '/api/live/disconnect' && req.method === 'POST') {
-    const out = disconnectEdgeSession();
+    if (state.liveBridge) state.liveBridge.enabled = false;
+    edgeBridgeRuntime.pendingSignals = [];
+    saveState();
+    disconnectEdgeSession();
     addLog('INFO', '[Edge 부계정 세션 연결 해제] 모의매매(PAPER) 모드로 복귀했습니다.');
-    return sendJson(res, 200, out);
+    return sendJson(res, 200, { ok: true, status: getUnifiedLiveStatus() });
   }
 
   // 11) 정적 파일 서빙

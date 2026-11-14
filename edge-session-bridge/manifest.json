@@ -1,19 +1,35 @@
 {
   "manifest_version": 3,
-  "name": "Variational Edge Session Bridge (Local Bot)",
-  "version": "1.0.0",
-  "description": "Edge 브라우저의 omni.variational.io 부계정 세션을 로컬 스탑헌팅 봇(localhost:3000)에 원클릭 연결합니다.",
+  "name": "Grok Edge-Render 실매매 브리지",
+  "version": "2.0.0",
+  "description": "omni.variational.io 브라우저 세션과 Render 24시간 스탑헌팅 서버를 직접 연결해 부계정 실전 주문을 실행합니다.",
   "permissions": [
-    "cookies"
+    "cookies",
+    "storage",
+    "tabs"
   ],
   "host_permissions": [
     "https://omni.variational.io/*",
     "https://*.variational.io/*",
-    "http://localhost:3000/*",
-    "http://127.0.0.1:3000/*"
+    "https://grok-trading-team.onrender.com/*",
+    "http://localhost:3000/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://omni.variational.io/*"
+      ],
+      "js": [
+        "content-bridge.js"
+      ],
+      "run_at": "document_idle"
+    }
   ],
   "action": {
-    "default_title": "Variational 로컬 봇 연결",
-    "default_popup": "popup.html"
+    "default_popup": "popup.html",
+    "default_title": "Grok Edge-Render 브리지"
   }
 }
