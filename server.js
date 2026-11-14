@@ -54,10 +54,24 @@ const DEFAULT_ALERT_BOT_TOKEN = process.env.ALERT_BOT_TOKEN || Buffer.from(DEFAU
 const DEFAULT_TELEGRAM_CHAT_ID = process.env.TELEGRAM_CHAT_ID || '8417795671';
 
 const DEFAULT_PRICE_ALERT_TARGETS = {
-  QQQ: {
-    symbol: 'QQQ',
-    name: '나스닥 100 (QQQ)',
-    target_price: 670.0,
+  NFLX: {
+    symbol: 'NFLX',
+    name: '넷플릭스 (NFLX)',
+    target_price: 55.0,
+    condition: 'lte',
+    enabled: true,
+    indicators: {
+      ma20_daily: true,
+      bb_daily_upper: true,
+      bb_daily_lower: true,
+      bb_weekly_upper: true,
+      bb_weekly_lower: true
+    }
+  },
+  GOOGL: {
+    symbol: 'GOOGL',
+    name: '알파벳 (GOOGL)',
+    target_price: 303.27,
     condition: 'gte',
     enabled: true,
     indicators: {
@@ -68,11 +82,11 @@ const DEFAULT_PRICE_ALERT_TARGETS = {
       bb_weekly_lower: true
     }
   },
-  NFLX: {
-    symbol: 'NFLX',
-    name: '넷플릭스 (NFLX)',
-    target_price: 55.0,
-    condition: 'lte',
+  MRNA: {
+    symbol: 'MRNA',
+    name: 'Moderna, Inc.',
+    target_price: 300.0,
+    condition: 'gte',
     enabled: true,
     indicators: {
       ma20_daily: true,
@@ -156,8 +170,8 @@ function getDefaultState() {
       lastRiskAt: null
     },
     liveBridge: {
-      enabled: false,
-      allowedAddress: '',
+      enabled: true,
+      allowedAddress: '0x0e065c01753ddc2a61707642c0650f06e965c119',
       orderMarginUsd: 30,
       maxSlots: 3,
       maxEquityCapUsd: 0,
@@ -192,10 +206,10 @@ if (fs.existsSync(STATE_FILE)) {
     if (loaded && loaded.desks?.memecoin) {
       const def = getDefaultState();
       const loadedAlerts = loaded.priceAlerts || {};
-      const mergedTargets = {
-        ...JSON.parse(JSON.stringify(DEFAULT_PRICE_ALERT_TARGETS)),
-        ...(loadedAlerts.targets || {})
-      };
+      const hasSavedTargets = loadedAlerts.targets && typeof loadedAlerts.targets === 'object' && Object.keys(loadedAlerts.targets).length > 0;
+      const mergedTargets = hasSavedTargets
+        ? { ...loadedAlerts.targets }
+        : JSON.parse(JSON.stringify(DEFAULT_PRICE_ALERT_TARGETS));
       // 기존 QQQUSDT / NFLXUSDT 키가 있으면 QQQ / NFLX로 정규화
       for (const k of Object.keys(mergedTargets)) {
         const clean = k.toUpperCase().replace(/USDT$/, '');
@@ -1535,7 +1549,7 @@ async function pollVariationalPriceAlerts() {
         const diff = curP - targetP;
         const diffStr = diff >= 0 ? `+$${diff.toFixed(2)}` : `-$${Math.abs(diff).toFixed(2)}`;
         const pctDiff = targetP > 0 ? ((curP - targetP) / targetP) * 100 : 0;
-        const condStr = cond === 'gte' ? '이상 돌파 (>=)' : '이하 도달 (<=)';
+        const condStr = cond === 'gte' ? '이상 돌파 (&gt;=)' : '이하 도달 (&lt;=)';
 
         const perf = getStopHuntPerformanceSummary();
         const msg = [
@@ -1914,7 +1928,7 @@ const server = http.createServer(async (req, res) => {
     const tConf = state.priceAlerts?.targets?.[sym] || { symbol: sym, name: sym, target_price: 0, condition: 'gte' };
     const sState = getOrInitVarSymbolState(sym);
     const nowStr = new Date().toISOString().replace('T', ' ').slice(0, 19);
-    const condStr = tConf.condition === 'lte' ? '이하 도달 (<=)' : '이상 돌파 (>=)';
+    const condStr = tConf.condition === 'lte' ? '이하 도달 (&lt;=)' : '이상 돌파 (&gt;=)';
 
     let ind = sState.indicators;
     if (!ind) {
@@ -2230,8 +2244,7 @@ function startServer(port = 3000) {
     // Render 무료 서버 슬립(15분 절전) 방지용 자체 헬스체크 핑 (중복 스캔/점검은 상단 5분/15분 루프 전담)
     setInterval(() => {
       try {
-        const sInfo = getStopHuntSessionInfo();
-        if (process.env.RENDER_EXTERNAL_URL && !sInfo.isWeekend) {
+        if (process.env.RENDER_EXTERNAL_URL) {
           fetchJson(`${process.env.RENDER_EXTERNAL_URL.replace(/\/$/, '')}/healthz`, {}, 5000).catch(() => {});
         }
       } catch {}
