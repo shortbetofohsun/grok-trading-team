@@ -95,233 +95,9 @@ const RWA_UNIVERSE = [
   { symbol: 'RGTI', name: 'Rigetti Computing (초전도 풀스택 양자컴퓨터)', sector: 'robotics', category: '🤖 양자컴퓨팅' }
 ];
 
-/**
- * 각 데스크별 7개 에이전트 맞춤 역할(Role) 및 행동 수칙 매트릭스
- */
-const ROLE_PROFILES_BY_DESK = {
-  memecoin: {
-    deskId: 'memecoin',
-    title: '⚡ 데스크 1: Variational DEX 7대 정예 선물 스탑헌팅 역추세 데스크 ($1,000 금고)',
-    subtitle: 'BTC·ETH·SOL·HYPE·QQQUSDT·SOXXUSDT·EWYUSDT (Variational DEX 호가 연동 · 주말 작동 중지 · 미장 개장 1~1.5h 전 골디락스 % 스탑헌팅 역추세)',
-    bots: {
-      CHIEF: {
-        name: 'CHIEF',
-        role: 'Variational 선물 스탑헌팅 총괄 (Stop-Hunt Reversal Chief)',
-        badge: '👑 선물역추세총괄',
-        color: '#f59e0b',
-        prompt: `너는 Variational Omni DEX 기반 7대 정예 선물(BTC · ETH · SOL · HYPE · QQQUSDT · SOXXUSDT · EWYUSDT) 스탑헌팅 역추세 데스크($1,000 독립 시드)의 총괄 CHIEF다.
-- 잡코인은 일절 배제하며, 주말(토·일 미장 휴장일)에는 자동으로 매매를 중지(Weekend Guard)한다.
-- 평일 미국장 개장 1~1.5시간 전(08:00~09:30 AM EST) 등 호가창이 얇을 때 손절을 터뜨리는 급등/급락(Judas Swing)을 포착해 꼬리 확인 후 반대 포지션(LONG/SHORT)으로 진입한다.`
-      },
-      SCAN: {
-        name: 'SCAN',
-        role: 'Variational DEX 7대 선물 스캐너 (Variational Omni Scanner)',
-        badge: '🔍 Variational스캔',
-        color: '#38bdf8',
-        prompt: `너는 선물 스탑헌팅 SCAN이다. Variational Omni DEX 공식 API(omni-client-api.prod.ap-northeast-1.variational.io/metadata/stats)에서 7대 정예 종목(BTC, ETH, SOL, HYPE, QQQUSDT, SOXXUSDT, EWYUSDT)의 실시간 마크 가격(mark_price)과 매수/매도 호가(quotes.base.bid/ask), 스프레드(bps)를 가져온다.
-- 직전 90분(1.5시간) 출발 기준가(Anchor) 대비 최대 급등/급락 폭(huntMovePct)과 꼬리 되돌림(wickReversalPct)을 계산한다.`
-      },
-      VET: {
-        name: 'VET',
-        role: '주말 휴장 가드 & 골디락스 % 검증기 (Weekend & Stop-Hunt Vetter)',
-        badge: '🛡️ 주말/5단계필터',
-        color: '#a855f7',
-        prompt: `너는 스탑헌팅 역추세 VET이다. 최근 60일(31,224개 15분봉) 백테스트 최적 기준으로 타점을 엄격히 심사한다:
-0. [주말 작동 중지] 미 동부시간 기준 주말(토·일 미국장 휴장)이면 무조건 REJECT (매매 휴식)
-1. [노이즈 탈락] 종목별 60d 백테스트 최소 기준(BTC 0.85%, ETH 0.85%, SOL 1.00%, HYPE 1.80%, QQQ 0.30%, SOXX 0.75%, EWY 0.70%) 미만이면 REJECT
-2. [원웨이 폭주 탈락] 종목별 위험 상한선(BTC 2.80%, ETH 2.80%, SOL 3.80%, HYPE 4.20%, QQQ 1.20%, SOXX 2.60%, EWY 1.50%) 이상이면 진짜 추세 폭발이므로 REJECT
-3. [과열/스윕 확인] 볼린저 밴드 상·하단 과열권 도달 또는 직전 고/저점 스윕이 없으면 REJECT
-4. [꼬리 브레이크 확인] 고점/저점 찍은 후 최소 꼬리 되돌림(0.06%~0.20%)이 안 나왔으면 REJECT
-5. [손익비 검증] 출발점(Anchor) 회귀 익절폭 대비 손절폭 손익비(R/R)가 1.5 미만이면 REJECT`
-      },
-      BOOK: {
-        name: 'BOOK',
-        role: '반대 포지션 타점 & 손익비 설계기 (Reversal Bracket Engine)',
-        badge: '📊 역추세설계',
-        color: '#10b981',
-        prompt: `너는 스탑헌팅 역추세 타점 설계기 BOOK이다.
-- 위로 쏜 스탑헌팅(UP_HUNT) ➔ 🔴 SHORT 진입(Variational Bid 체결) | 손절(SL): 스탑헌팅 고점 위 | 1차익절(TP1): 55% 되돌림 | 2차익절(TP2): 급등 출발점(Anchor)
-- 아래로 뺀 스탑헌팅(DOWN_HUNT) ➔ 🟢 LONG 진입(Variational Ask 체결) | 손절(SL): 스탑헌팅 저점 아래 | 1차익절(TP1): 55% 반등 | 2차익절(TP2): 급락 출발점(Anchor)`
-      },
-      SIZE: {
-        name: 'SIZE',
-        role: '손익비·킬존 연동 사이저 (Killzone Kelly Sizer)',
-        badge: '📐 킬존배분',
-        color: '#eab308',
-        prompt: `너는 선물 스탑헌팅 SIZE다. 데스크 1 금고($1,000)에서 골디락스 정타(PASS)는 계좌의 최대 8%($80), 확장 구간(PASS_PARTIAL)은 최대 6%($60)로 진입 증거금을 배분한다.`
-      },
-      FILLS: {
-        name: 'FILLS',
-        role: 'Variational 호가 양방향 체결기 (Variational Paper Executor)',
-        badge: '📝 호가체결',
-        color: '#6366f1',
-        prompt: `너는 선물 스탑헌팅 FILLS다. Variational DEX의 실제 매수/매도 호가(Bid/Ask)를 반영하여 🟢 LONG 또는 🔴 SHORT 모의 포지션을 체결하고, 출발 기준가(Anchor)·스탑헌팅 극점·TP1·TP2·SL을 기록한다.`
-      },
-      RISK: {
-        name: 'RISK',
-        role: '평균회귀 익절 & 고점재돌파 칼손절기 (Reversal Exit Authority)',
-        badge: '🚨 회귀/칼손절',
-        color: '#ef4444',
-        prompt: `너는 선물 스탑헌팅 RISK다. 5분마다 열린 LONG/SHORT 선물 포지션의 Variational 실시간 마크 가격을 추적하여:
-1. TP2(스탑헌팅 출발 기준가 Anchor 완전 회귀) 도달 시 전량 익절 CLOSE
-2. TP1(55% 회귀) 도달 후 탄력 둔화 시 수익 확정 CLOSE
-3. SL(스탑헌팅 고점/저점 재돌파 = 원웨이 추세 전환) 도달 시 지체 없이 즉시 칼손절 CLOSE`
-      }
-    }
-  },
-
-  prediction: {
-    deskId: 'prediction',
-    title: '🎯 데스크 2: 예측시장 괴리율 데스크 ($1,000 금고)',
-    subtitle: 'Kalshi · Polymarket 실시간 가격 vs Gemini 3.5 Flash 블라인드 추론 확률 괴리율(>=8%) 아비트리지 모의매매',
-    bots: {
-      CHIEF: {
-        name: 'CHIEF',
-        role: '예측시장 괴리율 총괄 (Arbitrage Chief)',
-        badge: '👑 괴리율총괄',
-        color: '#f59e0b',
-        prompt: `너는 예측시장 괴리율 데스크($1,000 독립 시드)의 총괄 CHIEF다.
-- Kalshi와 Polymarket의 질문들을 수집하고, 시장 가격을 가린 채 BOOK(Gemini AI)이 독립 추론한 확률(myProb)과 실제 시장 가격(marketPrice) 사이의 괴리율(|myProb - marketPrice|)이 8% 이상 벌어졌을 때만 모의 매수를 승인한다.`
-      },
-      SCAN: {
-        name: 'SCAN',
-        role: '글로벌 예측시장 스캐너 (Kalshi & Polymarket Scanner)',
-        badge: '🔍 마켓스캔',
-        color: '#38bdf8',
-        prompt: `너는 예측시장 SCAN이다. Kalshi 오픈 이벤트/마켓과 Polymarket 거래량 상위 마켓, 그리고 해외시장 ADR 괴리율 데이터를 실시간 수집하여 유동성과 거래량이 풍부한 후보 마켓을 추출한다.`
-      },
-      VET: {
-        name: 'VET',
-        role: '마켓 적격성 5단계 검증기 (Market Integrity Vetter)',
-        badge: '🛡️ 마켓검증',
-        color: '#a855f7',
-        prompt: `너는 예측시장 VET이다. 스캔된 이벤트 중:
-1. 최근 업데이트가 48시간보다 오래된 마켓 REJECT
-2. YES 가격이 0.05 이하이거나 0.95 이상인 극단적 만기 임박 마켓 REJECT
-3. 유동성(Liquidity/OI) $5,000 미만 마켓 REJECT
-4. 이미 보유 중인 동일 질문/티커 마켓 REJECT
-5. 질문 의미가 모호하여 확률 판정이 불가능한 마켓 REJECT`
-      },
-      BOOK: {
-        name: 'BOOK',
-        role: '블라인드 확률 & 괴리율 산출기 (Gemini AI Edge Engine)',
-        badge: '📊 괴리율추론',
-        color: '#10b981',
-        prompt: `너는 예측시장 핵심 두뇌 BOOK이다.
-- 반드시 시장 가격(yesPrice)을 보지 않은 블라인드 상태에서 거시경제·뉴스·공포탐욕지수를 바탕으로 자체 확률(myProb)을 먼저 도출한다.
-- 그 후 실제 시장 가격과 대조하여 괴리율 Edge = |myProb - marketPrice| >= 8.0% 인 마켓만 YES(저평가) 또는 NO(고평가) 포지션으로 진입 요청한다.`
-      },
-      SIZE: {
-        name: 'SIZE',
-        role: '괴리율 비례 켈리 사이저 (Edge-Weighted Kelly Sizer)',
-        badge: '📐 괴리율배분',
-        color: '#eab308',
-        prompt: `너는 예측시장 SIZE다. 예측시장 전용 금고($1,000)에서 괴리율(Edge %) 크기에 비례하여 켈리 비중을 계산하되, 한 마켓당 계좌의 최대 8%($80), 최소 주문 $50, 동시 보유 최대 7개 한도로 배분한다.`
-      },
-      FILLS: {
-        name: 'FILLS',
-        role: 'YES/NO 컨트랙트 체결기 (Contract Paper Executor)',
-        badge: '📝 컨트랙트체결',
-        color: '#6366f1',
-        prompt: `너는 예측시장 FILLS다. YES 또는 NO 컨트랙트의 진입 단가($0.05~$0.95)와 계약 수량(Shares = 투자금 / 단가), 플랫폼 수수료(0.5%, 최소 $0.50)를 기록하고 예측시장 금고($1,000)에서 현금을 차감한다.`
-      },
-      RISK: {
-        name: 'RISK',
-        role: '괴리율 수렴 익절·역행 손절기 (Convergence Exit Authority)',
-        badge: '🚨 수렴/손절',
-        color: '#ef4444',
-        prompt: `너는 예측시장 RISK다. 열린 YES/NO 포지션의 실시간 Kalshi·Polymarket 가격을 추적하여:
-1. 시장 가격이 내 추정 확률(myProb)의 70% 이상 수렴했거나 수익률 +18% 도달 시 [괴리 수렴 익절 CLOSE]
-2. 시장 가격이 진입가 대비 -18% 이상 역행하여 괴리가 확대될 경우 [괴리 역행 손절 CLOSE]`
-      }
-    }
-  },
-
-  rwa: {
-    deskId: 'rwa',
-    title: '🏛️ 데스크 3: RWA & 7대 섹터(우주·방산·바이오·반도체·광통신·로봇) 차트·옵션감마 데스크 ($1,000 금고)',
-    subtitle: '49개 섹터별 개별주/RWA 스캔 ➔ tooja.me 켈트너·볼린저 스퀴즈 × 콜감마·숏감마·맥스페인 5단계 검증 ➔ 롱/숏 양방향 모의매매',
-    bots: {
-      CHIEF: {
-        name: 'CHIEF',
-        role: 'RWA & 7대 섹터 개별주 총괄 (Multi-Sector Quant Chief)',
-        badge: '👑 섹터총괄',
-        color: '#f59e0b',
-        prompt: `너는 RWA(금 GLD, 은 SLV, 원유 USO, 국채 TLT, 리츠 VNQ) 및 미 증시 6대 핵심 성장 섹터(🚀우주 RKLB·ASTS·LUNR, 🛡️방산 PLTR·LMT·AVAV, 🧬바이오 LLY·CRSP·MRNA, 💾반도체 NVDA·AMD·AVGO·MU, 🔦광통신/전력 LITE·COHR·ANET·VRT, 🤖로봇/양자 TSLA·ISRG·SERV·IONQ) 총 49개 종목을 총괄하는 CHIEF다.
-- 섹터별로 스캔(SCAN) -> 5단계 멀티타임프레임·IV·손익비 검증(VET) -> 옵션 콜감마/숏감마/맥스페인 타점 확정(BOOK) -> 감마 연동 배분(SIZE) -> 롱/숏 양방향 체결(FILLS) -> 실시간 채널 이탈/도달 청산(RISK)을 지휘한다.`
-      },
-      SCAN: {
-        name: 'SCAN',
-        role: '7대 섹터 켈트너·볼린저 스퀴즈 스캐너 (Sector Channel Scanner)',
-        badge: '🔍 섹터스캔',
-        color: '#38bdf8',
-        prompt: `너는 7대 섹터(우주·방산·바이오·반도체·광통신·로봇·RWA) 차트 스캐너 SCAN이다. tooja.me/api/chart 에서 49개 종목의 1시간봉(1H)과 10분봉(10m) 캔들 및 2개 전용 채널을 실시간 스캔한다:
-- 흰색 채널(#d6dae2, Keltner 광역 범위) 안에 현재가가 위치하고,
-- 보라색 채널(#a855f7, Bollinger 세부 범위)이 흰색 채널 내부로 수축 진입('꿈틀꿈틀 스퀴즈 패턴')하거나 상/하단 변곡점에 도달한 종목을 섹터별로 순위화한다.`
-      },
-      VET: {
-        name: 'VET',
-        role: '섹터 개별주 5단계 필터 (MTF · 손익비 · IV Vetter)',
-        badge: '🛡️ 5단계검증',
-        color: '#a855f7',
-        prompt: `너는 섹터 개별주 & RWA VET이다. 스캔된 후보를 다음 5단계 기준으로 엄격히 탈락시킨다:
-1. 이미 보유 중인 종목 중복 진입 REJECT
-2. 1시간봉(1H) 추세/캔들 방향과 진입 방향(LONG/SHORT)이 역행하면 REJECT ("전체 추세에 맞춘 한방향 매매 원칙")
-3. LONG인데 이미 흰색 채널 상단(84% 초과) 과열이거나, SHORT인데 흰색 채널 하단(16% 미만) 과매도면 REJECT
-4. 2차 목표가(TP2) 대비 손절가(SL) 기대 손익비(R/R)가 1.15 미만이면 REJECT
-5. 옵션 내재변동성(IV)이 극단적 과열(> 135%)인 지뢰밭 구간이면 REJECT`
-      },
-      BOOK: {
-        name: 'BOOK',
-        role: '콜감마·숏감마 & 맥스페인 분석기 (Options GEX & Max Pain)',
-        badge: '📊 콜/숏감마',
-        color: '#10b981',
-        prompt: `너는 옵션 감마 분석기 BOOK(GAMMA)이다. tooja.me/api/options 의 행사가별 Call/Put OI·거래량·감마(Γ)로 딜러 GEX를 계산하여 롱/숏 양방향 타점을 확정한다:
-- 🟢 LONG 타점: 채널 중하단 지지 + 상방 맥스페인(Max Pain)·콜감마 벽(Call Wall) 자석 효과 또는 숏감마 상방 스퀴즈 돌파
-- 🔴 SHORT 타점: 채널 상단 저항 + 하방 맥스페인 자석 회귀 또는 숏감마(Short Gamma) 하방 이탈 가속`
-      },
-      SIZE: {
-        name: 'SIZE',
-        role: '감마 레짐 연동 사이저 (Gamma-Adjusted Kelly Sizer)',
-        badge: '📐 감마사이징',
-        color: '#eab308',
-        prompt: `너는 RWA/섹터 개별주 SIZE다. 데스크 3 금고($1,000)에서 감마 레짐과 손익비에 따라 포지션 크기를 결정한다:
-- 콜감마(Long Gamma) 안정 수렴장: 계좌의 최대 10%($100) 배분
-- 숏감마(Short Gamma) 고변동성 개별주 폭발장: 변동성 위험을 반영해 계좌의 최대 6%($60)로 축소 배분 (최소 주문 $50)`
-      },
-      FILLS: {
-        name: 'FILLS',
-        role: '롱·숏 양방향 체결 & 목표가 설정기 (Long/Short Bracket Logger)',
-        badge: '📝 롱/숏체결',
-        color: '#6366f1',
-        prompt: `너는 RWA/섹터 개별주 FILLS다. LONG 또는 SHORT 방향에 맞춰 진입과 동시에 정확한 목표가·손절가를 기록한다:
-- 🟢 LONG: 1차 익절(보라상단) · 2차 익절(흰색상단/콜감마 벽) · 손절(흰색하단)
-- 🔴 SHORT: 1차 익절(보라하단) · 2차 익절(흰색하단/풋감마 벽·맥스페인) · 손절(흰색상단)`
-      },
-      RISK: {
-        name: 'RISK',
-        role: '채널 이탈 & 감마 플립 청산기 (Band & Gamma Exit)',
-        badge: '🚨 채널/감마청산',
-        color: '#ef4444',
-        prompt: `너는 RWA/섹터 개별주 RISK다. 5분마다 열린 모든 LONG/SHORT 포지션의 실시간 현재가, 흰색/보라색 채널, 옵션 감마 벽을 대조하여:
-- TP2 도달 시 전량 익절 CLOSE
-- TP1 도달 후 10분봉 추세 꺾임 발생 시 익절 CLOSE
-- SL(흰색 채널 이탈) 도달 시 즉시 손절 CLOSE`
-      }
-    }
-  }
-};
-
-// 하위 호환용 기본 BOT_PROMPTS
-const BOT_PROMPTS = {
-  CHIEF: { ...ROLE_PROFILES_BY_DESK.memecoin.bots.CHIEF, desk: ['memecoin', 'prediction', 'rwa'] },
-  SCAN: { ...ROLE_PROFILES_BY_DESK.memecoin.bots.SCAN, desk: ['memecoin', 'prediction', 'rwa'] },
-  VET: { ...ROLE_PROFILES_BY_DESK.memecoin.bots.VET, desk: ['memecoin', 'prediction', 'rwa'] },
-  BOOK: { ...ROLE_PROFILES_BY_DESK.prediction.bots.BOOK, desk: ['memecoin', 'prediction', 'rwa'] },
-  SIZE: { ...ROLE_PROFILES_BY_DESK.memecoin.bots.SIZE, desk: ['memecoin', 'prediction', 'rwa'] },
-  FILLS: { ...ROLE_PROFILES_BY_DESK.memecoin.bots.FILLS, desk: ['memecoin', 'prediction', 'rwa'] },
-  RISK: { ...ROLE_PROFILES_BY_DESK.memecoin.bots.RISK, desk: ['memecoin', 'prediction', 'rwa'] }
-};
+// ============================================================================
+// [1. 스탑헌팅 10x 실전/모의매매 + 옵션 지지·저항선 분석 코어 엔진]
+// ============================================================================
 
 async function fetchJson(url, options = {}, timeoutMs = 8500) {
   const controller = new AbortController();
@@ -349,57 +125,6 @@ async function fetchJson(url, options = {}, timeoutMs = 8500) {
   } finally {
     clearTimeout(timer);
   }
-}
-
-/**
- * 한국 ISP(KT/SKB/LGU+)의 Polymarket SNI 차단(ECONNRESET)을 자동 우회하는 CloudFront 터널링 헬퍼
- * - 해외 클라우드(GitHub Actions)에서는 직접 호출, 한국 내 PC에서는 CloudFront SNI 우회로 100% 수신
- */
-const https = require('https');
-async function fetchPolymarketGamma(pathQuery = '/markets?closed=false&active=true&order=volume24hr&ascending=false&limit=40', timeoutMs = 6000) {
-  const directRes = await fetchJson(`https://gamma-api.polymarket.com${pathQuery}`, {}, 2200);
-  if (directRes.ok && Array.isArray(directRes.data)) {
-    return directRes;
-  }
-  return new Promise((resolve) => {
-    const req = https.request({
-      hostname: 'd29c69nd1a26c8.cloudfront.net',
-      port: 443,
-      path: pathQuery,
-      method: 'GET',
-      servername: 'd29c69nd1a26c8.cloudfront.net',
-      headers: {
-        'Host': 'gamma-api.polymarket.com',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-        'Accept': 'application/json'
-      },
-      rejectUnauthorized: false,
-      timeout: timeoutMs
-    }, (res) => {
-      let body = '';
-      res.on('data', chunk => { body += chunk; });
-      res.on('end', () => {
-        try {
-          const data = JSON.parse(body);
-          resolve({
-            ok: res.statusCode >= 200 && res.statusCode < 300,
-            status: res.statusCode,
-            data,
-            firstLine: `HTTP ${res.statusCode} (CloudFront SNI Bypass)`
-          });
-        } catch (e) {
-          resolve({ ok: false, status: res.statusCode || 0, data: null, error: e.message });
-        }
-      });
-    });
-    req.on('timeout', () => {
-      req.destroy(new Error('Polymarket CloudFront timeout'));
-    });
-    req.on('error', (err) => {
-      resolve({ ok: false, status: 0, data: null, error: err.message });
-    });
-    req.end();
-  });
 }
 
 /**
@@ -439,153 +164,22 @@ async function callGeminiAI(promptText, apiKey = DEFAULT_GEMINI_KEY, timeoutMs =
   return { ok: false, model: null, text: null, error: 'Gemini 응답 지연 또는 한도 초과' };
 }
 
-/**
- * Solana 지갑 집중도 및 홀더 수 조회 (키 없이 무료)
- */
-async function checkSolanaTokenOnChain(mintAddress) {
-  let supplyUi = null;
-  let largestAccountPct = null;
-  let totalHolders = null;
-  let source = null;
-
-  try {
-    const supplyReq = await fetchJson('https://api.mainnet-beta.solana.com', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getTokenSupply', params: [mintAddress] })
-    }, 4500);
-
-    if (supplyReq.ok && supplyReq.data?.result?.value?.uiAmount) {
-      supplyUi = Number(supplyReq.data.result.value.uiAmount);
-    }
-
-    const largestReq = await fetchJson('https://api.mainnet-beta.solana.com', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ jsonrpc: '2.0', id: 2, method: 'getTokenLargestAccounts', params: [mintAddress] })
-    }, 4500);
-
-    if (largestReq.ok && largestReq.data?.result?.value?.length && supplyUi > 0) {
-      const topUi = Number(largestReq.data.result.value[0].uiAmount || 0);
-      largestAccountPct = (topUi / supplyUi) * 100;
-      source = 'solana-rpc:mainnet-beta';
-    }
-  } catch {
-    // fallback below
-  }
-
-  const rugRes = await fetchJson(`https://api.rugcheck.xyz/v1/tokens/${encodeURIComponent(mintAddress)}/report`, {}, 5500);
-  if (rugRes.ok && rugRes.data) {
-    if (typeof rugRes.data.totalHolders === 'number') {
-      totalHolders = rugRes.data.totalHolders;
-    }
-    if (largestAccountPct === null && Array.isArray(rugRes.data.topHolders) && rugRes.data.topHolders.length > 0) {
-      largestAccountPct = Number(rugRes.data.topHolders[0].pct ?? 0);
-      source = source ? `${source}+rugcheck` : 'solana-rpc+rugcheck-index';
-    }
-  }
-
-  return {
-    responded: largestAccountPct !== null,
-    supplyUi,
-    largestAccountPct: largestAccountPct !== null ? Number(largestAccountPct.toFixed(2)) : null,
-    totalHolders,
-    source: source || 'unreachable'
-  };
-}
-
-/**
- * STEP 1 & 2: CHIEF 초기 환경 및 WorldMonitor + tooja.me RWA 데이터 연결 검증
- */
-async function runChiefVerification(wmPort = 3000) {
-  const nodeVersion = process.version;
-  const majorNode = parseInt(nodeVersion.replace('v', '').split('.')[0], 10);
-
-  const [dexRes, fgRes, predRes, sigRes, kalshiRes, toojaChartRes, toojaOptRes] = await Promise.all([
-    fetchJson('https://api.dexscreener.com/latest/dex/search?q=BONK'),
-    fetchJson(`http://localhost:${wmPort}/api/market/v1/get-fear-greed-index`),
-    fetchJson(`http://localhost:${wmPort}/api/prediction/v1/list-prediction-markets?page_size=1`),
-    fetchJson(`http://localhost:${wmPort}/api/intelligence/v1/list-cross-source-signals`),
-    fetchJson('https://external-api.kalshi.com/trade-api/v2/markets?limit=5&status=open'),
-    fetchJson('https://tooja.me/api/chart?symbol=GLD&tf=1H'),
-    fetchJson('https://tooja.me/api/options?symbol=SPY')
-  ]);
-
-  const hasPairs = Boolean(dexRes.ok && Array.isArray(dexRes.data?.pairs) && dexRes.data.pairs.length > 0);
-  const hasKalshi = Boolean(kalshiRes.ok && kalshiRes.data && ('markets' in kalshiRes.data));
-  const fgReady = Boolean(fgRes.ok && fgRes.data && !fgRes.data.unavailable && fgRes.data.value);
-  const predReady = Boolean(predRes.ok && predRes.data && predRes.data.dataAvailable === true);
-  const sigReady = Boolean(sigRes.ok && sigRes.status === 200 && Array.isArray(sigRes.data?.signals));
-  const rwaReady = Boolean(toojaChartRes.ok && toojaOptRes.ok);
-
-  const allWmReady = fgReady && predReady && sigReady;
-  const status = !hasPairs ? 'ERROR' : (allWmReady ? 'READY' : 'degraded');
-
-  return {
-    timestamp: new Date().toISOString(),
-    nodeVersion,
-    nodeVersionOk: majorNode >= 20,
-    wmUrl: `http://localhost:${wmPort}`,
-    status,
-    rwaReady,
-    checks: {
-      dexscreenerBonk: {
-        cmd: 'curl -s "https://api.dexscreener.com/latest/dex/search?q=BONK"',
-        status: dexRes.status,
-        hasPairs,
-        pairCount: dexRes.data?.pairs?.length || 0,
-        firstLine: dexRes.firstLine
-      },
-      kalshiOpen: {
-        cmd: 'curl -s "https://external-api.kalshi.com/trade-api/v2/markets?limit=100&status=open"',
-        status: kalshiRes.status,
-        ok: hasKalshi,
-        firstLine: kalshiRes.firstLine
-      },
-      toojaRwa: {
-        cmd: 'curl -s "https://tooja.me/api/chart?symbol=GLD&tf=1H" && curl -s "https://tooja.me/api/options?symbol=SPY"',
-        chartStatus: toojaChartRes.status,
-        optionsStatus: toojaOptRes.status,
-        ready: rwaReady
-      },
-      wmFearGreed: {
-        cmd: `curl -s "http://localhost:${wmPort}/api/market/v1/get-fear-greed-index"`,
-        status: fgRes.status,
-        ready: fgReady,
-        firstLine: fgRes.firstLine
-      },
-      wmPrediction: {
-        cmd: `curl -s "http://localhost:${wmPort}/api/prediction/v1/list-prediction-markets?page_size=1"`,
-        status: predRes.status,
-        ready: predReady,
-        firstLine: predRes.firstLine
-      },
-      wmSignals: {
-        cmd: `curl -s "http://localhost:${wmPort}/api/intelligence/v1/list-cross-source-signals"`,
-        status: sigRes.status,
-        ready: sigReady,
-        firstLine: sigRes.firstLine
-      }
-    }
-  };
-}
-
 // ============================================================================
-// [데스크 1: Variational DEX 7대 정예 선물 스탑헌팅 역추세 데스크 ($1,000)]
-//  - 대상: BTC, ETH, SOL, HYPE, QQQUSDT, SOXLUSDT, EWYUSDT (12개월 · 6개월 · 60일 교차검증 최적 스탑헌팅 스나이퍼 구간 확정)
-//  - 시세/호가: Variational Omni DEX 공식 API (omni-client-api.prod.ap-northeast-1.variational.io) 실시간 마크가·Bid/Ask 연동
+// [데스크 1: Variational DEX 7대 정예 선물 스탑헌팅 역추세 데스크]
+//  - 대상: EWYUSDT > SOXLUSDT > QQQUSDT > ETH > SOL > HYPE > BTC (3분할 우선순위)
+//  - 시세/호가: Variational Omni DEX 공식 API 실시간 마크가·Bid/Ask 연동
 //  - 주말(토·일) 미국장 휴장 시 자동 작동 중지 (Weekend Guard)
 // ============================================================================
 const STOPHUNT_UNIVERSE = [
-  // 1) 크립토 4대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 퀀트 필터 60일 백테스트 확정)
-  { symbol: 'BTC', name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.05, maxHuntPct: 2.15, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+5.5%', btRR: 1.55 },
-  { symbol: 'ETH', name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.15, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.20, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 9, btPnl10x: '+21.8%', btRR: 1.68 },
-  { symbol: 'SOL', name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 1.40, maxHuntPct: 2.65, dangerTrendPct: 3.40, minWickPct: 0.25, stopBufferPct: 0.30, btWinRate: 77.8, bt6mWinRate: 85.7, bt60dWinRate: 100.0, btTrades: 2, btPnl10x: '+17.8%', btRR: 1.73 },
-  { symbol: 'HYPE', name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.45, btWinRate: 80.0, bt6mWinRate: 80.0, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+8.1%', btRR: 1.78 },
-  // 2) 지수·반도체3배(SOXL)·한국증시 선물 3대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 퀀트 필터 60일 백테스트 확정)
-  { symbol: 'QQQUSDT', name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 70.0, btTrades: 10, btPnl10x: '+16.4%', btRR: 1.55 },
-  { symbol: 'SOXLUSDT', name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 75.0, btTrades: 4, btPnl10x: '+42.6%', btRR: 2.70 },
-  { symbol: 'EWYUSDT', name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 66.7, asiaBtWinRate: 71.4, btTrades: 36, btPnl10x: '+51.3%', asiaBtPnl10x: '+24.9%', btRR: 1.76 }
+  // 우선순위 1~3: 백테스트 최상위 RWA/ETF 3대장 (3분할 슬롯 최우선 배정)
+  { symbol: 'EWYUSDT', priorityRank: 1, name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 66.7, asiaBtWinRate: 71.4, btTrades: 36, btPnl10x: '+51.3%', asiaBtPnl10x: '+24.9%', btRR: 1.76 },
+  { symbol: 'SOXLUSDT', priorityRank: 2, name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 75.0, btTrades: 4, btPnl10x: '+42.6%', btRR: 2.70 },
+  { symbol: 'QQQUSDT', priorityRank: 3, name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 70.0, btTrades: 10, btPnl10x: '+16.4%', btRR: 1.55 },
+  // 우선순위 4~7: 크립토 4대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 퀀트 필터)
+  { symbol: 'ETH', priorityRank: 4, name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.15, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.20, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 9, btPnl10x: '+21.8%', btRR: 1.68 },
+  { symbol: 'SOL', priorityRank: 5, name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 1.40, maxHuntPct: 2.65, dangerTrendPct: 3.40, minWickPct: 0.25, stopBufferPct: 0.30, btWinRate: 77.8, bt6mWinRate: 85.7, bt60dWinRate: 100.0, btTrades: 2, btPnl10x: '+17.8%', btRR: 1.73 },
+  { symbol: 'HYPE', priorityRank: 6, name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.45, btWinRate: 80.0, bt6mWinRate: 80.0, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+8.1%', btRR: 1.78 },
+  { symbol: 'BTC', priorityRank: 7, name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.05, maxHuntPct: 2.15, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+5.5%', btRR: 1.55 }
 ];
 
 const VARIATIONAL_API_BASE = 'https://omni-client-api.prod.ap-northeast-1.variational.io';
@@ -637,8 +231,8 @@ async function fetchVariationalMarketMap() {
   return cachedVariationalMap;
 }
 
-function getStopHuntSessionInfo() {
-  const now = new Date();
+function getStopHuntSessionInfo(refDate = new Date()) {
+  const now = refDate instanceof Date ? refDate : new Date(refDate || Date.now());
   let nyHour = 0;
   let nyMin = 0;
   let nyWeekday = 'Mon';
@@ -1250,7 +844,7 @@ async function runVetAgent(candidates, config) {
 }
 
 function runSizeAgent(item, portfolio, config, customCapPct = null) {
-  const maxKellyCapPct = Number(customCapPct || config.maxKellyCapPct || 0.08);
+  const maxKellyCapPct = Number(customCapPct || config.maxKellyCapPct || 0.30);
   const minOrderUsd = Number(config.minOrderUsd || 50);
   const slippageBudgetPct = Number(config.slippageBudgetPct || 0.02);
 
@@ -1268,7 +862,7 @@ function runSizeAgent(item, portfolio, config, customCapPct = null) {
   const winProb = item.decision === 'PASS' ? 0.62 : (item.myProb || 0.57);
   const payoffRatio = item.candidate?.rrRatio || item.payoffRatio || 2.0;
   const rawKelly = ((payoffRatio * winProb) - (1 - winProb)) / payoffRatio;
-  const cappedKellyPct = Math.min(maxKellyCapPct, Math.max(0.055, rawKelly));
+  const cappedKellyPct = Math.min(maxKellyCapPct, Math.max(0.15, rawKelly));
 
   const maxByAccountCap = totalEquity * cappedKellyPct;
   const liqUsd = Number(item.candidate?.liquidityUsd || item.liquidityUsd || 500000);
@@ -1288,7 +882,7 @@ function runSizeAgent(item, portfolio, config, customCapPct = null) {
     bot: 'SIZE',
     dollars: calculatedDollars,
     kellyPct: Number((cappedKellyPct * 100).toFixed(2)),
-    reason: `손익비(1:${payoffRatio}) 및 켈리 상한(${(maxKellyCapPct * 100).toFixed(1)}%) 통과 -> $${calculatedDollars} 배분`
+    reason: `3분할 우선순위·손익비(1:${payoffRatio}) 한도(${(maxKellyCapPct * 100).toFixed(0)}%) 통과 -> $${calculatedDollars} 배분`
   };
 }
 
@@ -1298,7 +892,7 @@ function runFillsAgent(candidate, sizeResult) {
   const notionalUsd = Number((dollars * leverage).toFixed(2));
   // Variational DEX 호가 스프레드 반영 + 최소 네트워크/집행 비용 $0.25
   const feeRate = 0.0002;
-  const feeFloor = 0.25;
+  const feeFloor = 0.05;
 
   if (dollars <= 0) {
     return {
@@ -1350,27 +944,6 @@ function runFillsAgent(candidate, sizeResult) {
     slippageWarning: null,
     quantity,
     openedAt: new Date().toISOString()
-  };
-}
-
-function calculateRiskFormula(volumeH24, volumeH6) {
-  const h24 = Number(volumeH24 || 0);
-  const h6 = Number(volumeH6 || 0);
-  const avg6h = Math.round((h24 / 4) * 100) / 100;
-  const ratio = avg6h > 0 ? Math.round((h6 / avg6h) * 1000) / 1000 : 0;
-  const action = ratio < 0.20 ? 'CLOSE' : 'HOLD';
-  const formattedLine = [
-    `volume.h24 = ${h24.toFixed(2)} -> avg_6h = ${avg6h.toFixed(2)}`,
-    `volume.h6  = ${h6.toFixed(2)} -> ratio  = ${ratio.toFixed(3)}  ->  ${action}`
-  ].join('\n');
-
-  return {
-    volumeH24: Number(h24.toFixed(2)),
-    volumeH6: Number(h6.toFixed(2)),
-    avg6h,
-    ratio,
-    action,
-    formattedLine
   };
 }
 
@@ -1429,24 +1002,36 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
   if (dir === 'SHORT') {
     if (currentPrice <= tp2P) {
       action = 'CLOSE';
-      reason = `🎯 [SHORT ${lev}x 평균회귀 완승!] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절! (10x ROE +${pnlPct}%)`;
+      reason = `[SHORT ${lev}x 평균회귀 완승] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절 (10x ROE +${pnlPct}%)`;
     } else if (currentPrice >= stopP) {
       action = 'CLOSE';
-      reason = `🚨 [SHORT ${lev}x 칼손절] 스탑헌팅 고점 방어선(SL $${stopP}) 재돌파 즉시 손절! (10x ROE ${pnlPct}%)`;
-    } else if (currentPrice <= tp1P && candleBullish) {
+      reason = `[SHORT ${lev}x 칼손절] 스탑헌팅 고점 방어선(SL $${stopP}) 재돌파 즉시 손절 (10x ROE ${pnlPct}%)`;
+    } else if (posObj.tp1Reached && currentPrice >= tp1P * 1.0015) {
       action = 'CLOSE';
-      reason = `✅ [SHORT ${lev}x 1차익절 확정] 55% 되돌림(TP1 $${tp1P}) 도달 후 반등 캔들 출현으로 수익 확정! (10x ROE +${pnlPct}%)`;
+      reason = `[SHORT ${lev}x 1차익절 확정] 65% 되돌림(TP1 $${tp1P}) 도달 후 수익 보존 익절 (10x ROE +${pnlPct}%)`;
+    } else if (currentPrice <= tp1P) {
+      posObj.tp1Reached = true;
+      if (candleBullish) {
+        action = 'CLOSE';
+        reason = `[SHORT ${lev}x 1차익절 확정] 65% 되돌림(TP1 $${tp1P}) 도달 후 반등 캔들 출현 수익 확정 (10x ROE +${pnlPct}%)`;
+      }
     }
   } else {
     if (currentPrice >= tp2P) {
       action = 'CLOSE';
-      reason = `🎯 [LONG ${lev}x 평균회귀 완승!] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절! (10x ROE +${pnlPct}%)`;
+      reason = `[LONG ${lev}x 평균회귀 완승] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절 (10x ROE +${pnlPct}%)`;
     } else if (currentPrice <= stopP) {
       action = 'CLOSE';
-      reason = `🚨 [LONG ${lev}x 칼손절] 스탑헌팅 저점 방어선(SL $${stopP}) 재이탈 즉시 손절! (10x ROE ${pnlPct}%)`;
-    } else if (currentPrice >= tp1P && !candleBullish) {
+      reason = `[LONG ${lev}x 칼손절] 스탑헌팅 저점 방어선(SL $${stopP}) 재이탈 즉시 손절 (10x ROE ${pnlPct}%)`;
+    } else if (posObj.tp1Reached && currentPrice <= tp1P * 0.9985) {
       action = 'CLOSE';
-      reason = `✅ [LONG ${lev}x 1차익절 확정] 55% 반등(TP1 $${tp1P}) 도달 후 음봉 출현으로 수익 확정! (10x ROE +${pnlPct}%)`;
+      reason = `[LONG ${lev}x 1차익절 확정] 65% 반등(TP1 $${tp1P}) 도달 후 수익 보존 익절 (10x ROE +${pnlPct}%)`;
+    } else if (currentPrice >= tp1P) {
+      posObj.tp1Reached = true;
+      if (!candleBullish) {
+        action = 'CLOSE';
+        reason = `[LONG ${lev}x 1차익절 확정] 65% 반등(TP1 $${tp1P}) 도달 후 음봉 출현 수익 확정 (10x ROE +${pnlPct}%)`;
+      }
     }
   }
 
@@ -1469,429 +1054,7 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
 }
 
 // ============================================================================
-// [데스크 2: 예측시장 괴리율 데스크 ($1,000)] 7개 에이전트 파이프라인 & 리스크 관리
-// ============================================================================
-async function runBookAgent(wmPort = 3000, openBetsCount = 0, geminiKey = DEFAULT_GEMINI_KEY, existingMarketIds = new Set()) {
-  let wmAvailable = true;
-  if (wmPort) {
-    const wmRes = await fetchJson(`http://localhost:${wmPort}/api/prediction/v1/list-prediction-markets?page_size=100&category=crypto`);
-    if (wmRes.ok && wmRes.data && wmRes.data.dataAvailable === false) {
-      wmAvailable = false;
-    }
-  }
-
-  if (!wmAvailable) {
-    return {
-      bot: 'BOOK',
-      status: 'RESTING',
-      reason: '월드모니터 prediction 응답이 비어 있음 (degraded 상태) -> 규칙에 따라 BOOK 휴식',
-      scannedRawCount: 0,
-      vetRejected: [],
-      evaluatedMarkets: [],
-      proposals: []
-    };
-  }
-
-  if (openBetsCount >= 7) {
-    return {
-      bot: 'BOOK',
-      status: 'MAX_BETS_REACHED',
-      reason: '열린 예측 시장 포지션이 최대 한도(7개)에 도달하여 신규 진입 건너뜀',
-      scannedRawCount: 0,
-      vetRejected: [],
-      evaluatedMarkets: [],
-      proposals: []
-    };
-  }
-
-  const [kalshiRes, kalshiEventsRes, polyRes, fgRes] = await Promise.all([
-    fetchJson('https://external-api.kalshi.com/trade-api/v2/markets?limit=50&status=open'),
-    fetchJson('https://external-api.kalshi.com/trade-api/v2/events?limit=35&status=open&with_nested_markets=true'),
-    fetchPolymarketGamma('/markets?closed=false&active=true&order=volume24hr&ascending=false&limit=50'),
-    fetchJson('https://api.alternative.me/fng/?limit=1')
-  ]);
-
-  const fearGreedVal = Number(fgRes.data?.data?.[0]?.value || 54);
-  const fearGreedClass = fgRes.data?.data?.[0]?.value_classification || 'Neutral';
-
-  // 1) SCAN: 원시 마켓 수집 (실전 매매 가능한 Polymarket CLOB 오더북 최우선 + Kalshi 실전 호가)
-  const rawMarkets = [];
-  if (polyRes.ok && Array.isArray(polyRes.data)) {
-    for (const m of polyRes.data) {
-      const question = m.question || m.title || '';
-      if (!question) continue;
-      let outcomePrices = [];
-      try {
-        outcomePrices = typeof m.outcomePrices === 'string' ? JSON.parse(m.outcomePrices) : (m.outcomePrices || []);
-      } catch {
-        outcomePrices = [];
-      }
-      const midYes = Number(outcomePrices[0] || 0);
-      const yesBid = Number(m.bestBid !== undefined && m.bestBid !== null ? m.bestBid : Math.max(0.01, midYes - 0.01));
-      const yesAsk = Number(m.bestAsk !== undefined && m.bestAsk !== null ? m.bestAsk : Math.min(0.99, midYes + 0.01));
-      const noBid = Number(Math.max(0.01, 1 - yesAsk).toFixed(4));
-      const noAsk = Number(Math.min(0.99, 1 - yesBid).toFixed(4));
-      const spread = Number(Math.max(0, yesAsk - yesBid).toFixed(4));
-
-      rawMarkets.push({
-        source: 'Polymarket',
-        marketId: String(m.id || m.conditionId || question.slice(0, 24)),
-        question,
-        yesPrice: Number(((yesBid + yesAsk) / 2).toFixed(4)),
-        yesBid: Number(yesBid.toFixed(4)),
-        yesAsk: Number(yesAsk.toFixed(4)),
-        noBid,
-        noAsk,
-        spread,
-        volumeUsd: Math.round(Number(m.volume24hr || m.volumeNum || 0)),
-        liquidityUsd: Math.round(Number(m.liquidityNum || 0)),
-        updatedAt: m.updatedAt ? new Date(m.updatedAt).getTime() : Date.now()
-      });
-    }
-  }
-
-  if (kalshiEventsRes.ok && Array.isArray(kalshiEventsRes.data?.events)) {
-    for (const ev of kalshiEventsRes.data.events) {
-      const m = ev.markets?.[0];
-      if (!m) continue;
-      const baseTitle = ev.title || m.title || '';
-      if (!baseTitle) continue;
-      const subLabel = (m.yes_sub_title || m.subtitle || '').trim();
-      const question = (subLabel && !baseTitle.includes(subLabel))
-        ? `${baseTitle} [${subLabel}]`
-        : baseTitle;
-      const yesBid = Number(m.yes_bid_dollars || 0);
-      const yesAsk = Number(m.yes_ask_dollars || 0);
-      const noBid = Number(m.no_bid_dollars || (yesAsk > 0 ? Math.max(0.01, 1 - yesAsk) : 0));
-      const noAsk = Number(m.no_ask_dollars || (yesBid > 0 ? Math.min(0.99, 1 - yesBid) : 0));
-      const spread = (yesAsk > 0 && yesBid > 0) ? Number(Math.max(0, yesAsk - yesBid).toFixed(4)) : 0.99;
-      const midYes = (yesAsk > 0 && yesBid > 0) ? Number(((yesBid + yesAsk) / 2).toFixed(4)) : Number(m.last_price_dollars || 0);
-
-      rawMarkets.push({
-        source: 'Kalshi',
-        marketId: String(m.ticker || ev.event_ticker),
-        question,
-        yesPrice: midYes,
-        yesBid: Number(yesBid.toFixed(4)),
-        yesAsk: Number(yesAsk.toFixed(4)),
-        noBid: Number(noBid.toFixed(4)),
-        noAsk: Number(noAsk.toFixed(4)),
-        spread,
-        volumeUsd: Math.round(Number(m.volume_24h_fp || 0)),
-        liquidityUsd: Math.round(Number(m.open_interest_fp || 0)),
-        updatedAt: Date.now()
-      });
-    }
-  }
-
-  // 2) VET: 예측시장 실전 오더북(Bid/Ask 스프레드) 6단계 가혹 검증
-  const vetRejected = [];
-  const validMarkets = [];
-
-  for (const m of rawMarkets) {
-    const qLower = m.question.toLowerCase();
-    if (qLower.includes('counter-strike') || qLower.includes('dota') || qLower.includes('valorant') || qLower.includes('bo3') || qLower.includes('bo5')) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 1, reason: `실시간 e스포츠 경기 배제 (인게임 스코어 정보비대칭 위험)` });
-      continue;
-    }
-    const ageHours = (Date.now() - m.updatedAt) / 3600000;
-    if (ageHours > 48) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 1, reason: `데이터 노후화 (${Math.round(ageHours)}h > 48h)` });
-      continue;
-    }
-    if (m.yesBid < 0.06 || m.yesAsk > 0.94 || m.yesAsk <= m.yesBid) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 2, reason: `극단 확률 또는 비정상 호가 배제 (Bid $${m.yesBid} / Ask $${m.yesAsk})` });
-      continue;
-    }
-    if (m.spread > 0.03) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 3, reason: `가혹 호가 스프레드 탈락 (Ask-Bid 갭 $${m.spread} > 기준 $0.03)` });
-      continue;
-    }
-    if (m.volumeUsd < 1500) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 4, reason: `24시간 실거래량 부족 ($${m.volumeUsd.toLocaleString()} < $1,500)` });
-      continue;
-    }
-    if (m.liquidityUsd < 10000) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 5, reason: `오더북 유동성 미달 ($${m.liquidityUsd.toLocaleString()} < $10,000)` });
-      continue;
-    }
-    if (existingMarketIds && existingMarketIds.has(m.marketId)) {
-      vetRejected.push({ marketId: m.marketId, question: m.question, source: m.source, rule: 6, reason: `보유 중이거나 기청산 마켓 중복 진입 차단` });
-      continue;
-    }
-    validMarkets.push(m);
-    if (validMarkets.length >= 10) break;
-  }
-
-  // 3) BOOK: 시장 가격을 가린 블라인드 상태에서 Gemini 3.5 Flash 확률 추론
-  let aiEstimates = {};
-  let aiModelUsed = null;
-  if (validMarkets.length > 0) {
-    const questionsPrompt = [
-      `너는 예측 시장 전문 퀀트 애널리스트 봇 BOOK이다.`,
-      `현재 시장 공포·탐욕 지수는 ${fearGreedVal}(${fearGreedClass})이다.`,
-      `아래 예측 시장 질문들을 보고, 시장 가격을 절대 참고하지 않은 블라인드 상태에서 각 질문이 YES로 결정될 너의 독립적인 추정 확률(0.08~0.92 사이 소수)과 1줄 한국어 근거를 JSON 배열로만 답하라.`,
-      `형식: [{"idx":0,"prob":0.62,"reason":"한 줄 근거"}, ...]`,
-      `질문 목록:`,
-      ...validMarkets.map((m, idx) => `${idx}. "${m.question}"`)
-    ].join('\n');
-
-    const aiRes = await callGeminiAI(questionsPrompt, geminiKey, 8500);
-    if (aiRes.ok && aiRes.text) {
-      aiModelUsed = aiRes.model;
-      try {
-        const jsonMatch = aiRes.text.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const parsed = JSON.parse(jsonMatch[0]);
-          for (const item of parsed) {
-            if (typeof item.idx === 'number' && typeof item.prob === 'number') {
-              aiEstimates[item.idx] = {
-                prob: Math.min(0.92, Math.max(0.08, Number(item.prob.toFixed(3)))),
-                reason: item.reason || 'Gemini AI 거시·센티먼트 독립 추론'
-              };
-            }
-          }
-        }
-      } catch {
-        // fallback below
-      }
-    }
-  }
-
-  const evaluatedMarkets = [];
-  const proposals = [];
-
-  for (let i = 0; i < validMarkets.length; i++) {
-    const m = validMarkets[i];
-    const aiEst = aiEstimates[i];
-
-    let myYesProb;
-    let reasoningText;
-    if (aiEst) {
-      myYesProb = aiEst.prob;
-      reasoningText = `🧠 Gemini(${aiModelUsed}): ${aiEst.reason}`;
-    } else {
-      const turnoverSignal = Math.min(0.14, Math.max(-0.14, ((m.volumeUsd / (m.liquidityUsd + 1)) - 1.5) * 0.04));
-      const sentimentBias = ((fearGreedVal - 50) / 400);
-      myYesProb = Number(Math.min(0.90, Math.max(0.10, 0.50 + turnoverSignal + sentimentBias)).toFixed(3));
-      reasoningText = `정량 멀티팩터 추론 (공포탐욕지수 ${fearGreedVal} 반영)`;
-    }
-
-    // [가혹 모드 핵심] 매수 시 무조건 불리한 매도호가(Ask)를 지불해야 하며, 매도호가(Ask) 대비 순괴리율을 계산!
-    const rawMidDiff = myYesProb - m.yesPrice;
-    const side = rawMidDiff >= 0 ? 'YES' : 'NO';
-    const sideMyProb = side === 'YES' ? myYesProb : Number((1 - myYesProb).toFixed(3));
-    const buyAskPrice = side === 'YES' ? m.yesAsk : m.noAsk;
-    const sellBidPrice = side === 'YES' ? m.yesBid : m.noBid;
-    const sideSpread = Number(Math.max(0, buyAskPrice - sellBidPrice).toFixed(4));
-
-    // 매도호가(buyAskPrice)로 비싸게 샀을 때도 남는 실전 순괴리율(executable edge)
-    const executableEdge = Number((sideMyProb - buyAskPrice).toFixed(3));
-    const execEdgePct = Number((Math.max(0, executableEdge) * 100).toFixed(1));
-    // [역선택 방지] 순괴리율이 25%를 초과하는 극단적 괴리율은 AI가 모르는 최신 속보 선반영(Information Lag) 위험이므로 보류하고, 8% ~ 25% 골디락스 구간만 진입!
-    const isGoldilocksEdge = executableEdge >= 0.08 && executableEdge <= 0.25;
-    const edgeNote = executableEdge > 0.25
-      ? ' ⚠️ [괴리율 >25% 과다: 최신 속보 선반영/역선택 위험으로 진입 제외]'
-      : '';
-
-    const evalRecord = {
-      source: m.source,
-      marketId: m.marketId,
-      question: m.question,
-      yesPrice: m.yesPrice,
-      myYesProb,
-      side,
-      myProb: sideMyProb,
-      marketPrice: buyAskPrice, // 실전 매수 체결가(Ask)
-      buyAskPrice,
-      sellBidPrice,
-      spread: sideSpread,
-      edgePct: execEdgePct,
-      liquidityUsd: m.liquidityUsd,
-      volumeUsd: m.volumeUsd,
-      aiModel: aiModelUsed || 'quant-fallback',
-      reasoning: `${reasoningText} [실전호가 Ask $${buyAskPrice} / Bid $${sellBidPrice}, 스프레드 $${sideSpread}]${edgeNote}`,
-      actionable: isGoldilocksEdge
-    };
-    evaluatedMarkets.push(evalRecord);
-
-    if (isGoldilocksEdge) {
-      proposals.push(evalRecord);
-    }
-  }
-
-  proposals.sort((a, b) => b.edgePct - a.edgePct);
-
-  return {
-    bot: 'BOOK',
-    status: 'ACTIVE',
-    harshOrderbookMode: true,
-    aiModelUsed,
-    kalshiStatus: kalshiRes.status,
-    polymarketStatus: polyRes.status,
-    scannedRawCount: rawMarkets.length,
-    vetRejectedCount: vetRejected.length,
-    vetRejected: vetRejected.slice(0, 12),
-    evaluatedCount: evaluatedMarkets.length,
-    evaluatedMarkets,
-    proposals: proposals.slice(0, 2)
-  };
-}
-
-/**
- * 예측시장 컨트랙트 실전 가혹 모드 체결 (FILLS)
- * - 매수 진입가(entryPriceUsd)는 무조건 비싼 매도호가(Ask = buyAskPrice) 적용
- * - 체결 직후 현재 평가가(currentPriceUsd)는 즉시 매도 가능한 매수호가(Bid = sellBidPrice) 적용 (사자마자 스프레드+수수료 손실 반영!)
- */
-function runPredictionFillsAgent(proposal, sizeResult) {
-  const dollars = Number(sizeResult.dollars || 0);
-  if (dollars <= 0) {
-    return { bot: 'FILLS', status: 'SKIPPED_ZERO_SIZE', reason: sizeResult.reason };
-  }
-
-  const feeUsd = Number(Math.max(dollars * 0.005, 0.50).toFixed(2));
-  const netInvestedUsd = Number((dollars - feeUsd).toFixed(2));
-  const entryPrice = Math.max(0.05, Math.min(0.95, Number(proposal.buyAskPrice || proposal.marketPrice || 0.5)));
-  const immediateBidPrice = Math.max(0.02, Math.min(entryPrice, Number(proposal.sellBidPrice || (entryPrice - 0.01))));
-  const shares = Number((netInvestedUsd / entryPrice).toFixed(2));
-
-  // 목표 수렴 가격: 시장 매수호가(Bid)가 내 진입가(Ask) 위로 최소 +15% 이상 올라오거나 내 추정 확률의 70% 지점까지 수렴해야만 익절!
-  const convergenceTarget = Number((entryPrice + (proposal.myProb - entryPrice) * 0.70).toFixed(3));
-  const minProfitTarget = Number((entryPrice * 1.15).toFixed(3));
-  const targetPrice = Math.min(0.96, Math.max(convergenceTarget, minProfitTarget));
-  const stopPrice = Number(Math.max(0.02, entryPrice * 0.82).toFixed(3));
-
-  return {
-    bot: 'FILLS',
-    desk: 'prediction',
-    harshMode: true,
-    status: 'FILLED_PAPER',
-    id: `pos_pred_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    source: proposal.source,
-    marketId: proposal.marketId,
-    question: proposal.question,
-    side: proposal.side,
-    myProb: proposal.myProb,
-    entryPriceUsd: entryPrice,          // 내가 산 매도호가 (Ask)
-    currentPriceUsd: immediateBidPrice, // 지금 당장 팔 때 받는 매수호가 (Bid)
-    bidPriceUsd: immediateBidPrice,
-    askPriceUsd: entryPrice,
-    spreadUsd: Number((entryPrice - immediateBidPrice).toFixed(4)),
-    targetPriceUsd: targetPrice,
-    stopPriceUsd: stopPrice,
-    edgePct: proposal.edgePct,
-    currentEdgePct: proposal.edgePct,
-    dollars,
-    feeUsd,
-    quantity: shares,
-    reasoning: proposal.reasoning,
-    openedAt: new Date().toISOString()
-  };
-}
-
-/**
- * 예측시장 열린 포지션 실시간 오더북(Bid/Ask) 가격 갱신 및 가혹 익절/손절 점검 (PRED-RISK)
- * - 최근 체결가(last_price) 착시를 완전히 배제하고, 지금 즉시 시장가로 던졌을 때 받을 수 있는 매수호가(Bid)로만 평가·청산!
- */
-async function checkPredictionRiskLive(openPositions = []) {
-  if (!openPositions.length) return [];
-
-  const [kalshiEventsRes, polyRes] = await Promise.all([
-    fetchJson('https://external-api.kalshi.com/trade-api/v2/events?limit=40&status=open&with_nested_markets=true'),
-    fetchPolymarketGamma('/markets?closed=false&active=true&order=volume24hr&ascending=false&limit=60')
-  ]);
-
-  // marketId -> { yesBid, yesAsk, noBid, noAsk }
-  const liveBookMap = new Map();
-  if (polyRes.ok && Array.isArray(polyRes.data)) {
-    for (const m of polyRes.data) {
-      const id = String(m.id || m.conditionId || '');
-      let outcomePrices = [];
-      try {
-        outcomePrices = typeof m.outcomePrices === 'string' ? JSON.parse(m.outcomePrices) : (m.outcomePrices || []);
-      } catch {
-        outcomePrices = [];
-      }
-      const midYes = Number(outcomePrices[0] || 0);
-      const yesBid = Number(m.bestBid !== undefined && m.bestBid !== null ? m.bestBid : Math.max(0.01, midYes - 0.01));
-      const yesAsk = Number(m.bestAsk !== undefined && m.bestAsk !== null ? m.bestAsk : Math.min(0.99, midYes + 0.01));
-      if (id && yesBid > 0 && yesAsk > 0) {
-        liveBookMap.set(id, {
-          yesBid: Number(yesBid.toFixed(4)),
-          yesAsk: Number(yesAsk.toFixed(4)),
-          noBid: Number(Math.max(0.01, 1 - yesAsk).toFixed(4)),
-          noAsk: Number(Math.min(0.99, 1 - yesBid).toFixed(4))
-        });
-      }
-    }
-  }
-  if (kalshiEventsRes.ok && Array.isArray(kalshiEventsRes.data?.events)) {
-    for (const ev of kalshiEventsRes.data.events) {
-      const m = ev.markets?.[0];
-      if (!m) continue;
-      const id = String(m.ticker || ev.event_ticker);
-      const yesBid = Number(m.yes_bid_dollars || 0);
-      const yesAsk = Number(m.yes_ask_dollars || 0);
-      const noBid = Number(m.no_bid_dollars || (yesAsk > 0 ? Math.max(0.01, 1 - yesAsk) : 0));
-      const noAsk = Number(m.no_ask_dollars || (yesBid > 0 ? Math.min(0.99, 1 - yesBid) : 0));
-      if (id && yesBid > 0 && yesAsk > 0) {
-        liveBookMap.set(id, {
-          yesBid: Number(yesBid.toFixed(4)),
-          yesAsk: Number(yesAsk.toFixed(4)),
-          noBid: Number(noBid.toFixed(4)),
-          noAsk: Number(noAsk.toFixed(4))
-        });
-      }
-    }
-  }
-
-  const results = [];
-  for (const pos of openPositions) {
-    const book = liveBookMap.get(pos.marketId);
-    // [가혹 모드] 내가 보유한 포지션을 지금 당장 팔 때 받을 수 있는 실전 매수호가(Bid)로만 현재가 산정!
-    let currentSellBid = pos.currentPriceUsd || pos.entryPriceUsd;
-    let currentBuyAsk = pos.askPriceUsd || pos.entryPriceUsd;
-    if (book) {
-      currentSellBid = pos.side === 'YES' ? book.yesBid : book.noBid;
-      currentBuyAsk = pos.side === 'YES' ? book.yesAsk : book.noAsk;
-    }
-
-    const currentEdgePct = Number((Math.max(0, pos.myProb - currentBuyAsk) * 100).toFixed(1));
-    const pnlPct = pos.entryPriceUsd > 0
-      ? Number((((currentSellBid - pos.entryPriceUsd) / pos.entryPriceUsd) * 100).toFixed(2))
-      : 0;
-
-    let action = 'HOLD';
-    let closeReason = `실전 매수호가(Bid) $${currentSellBid} / 매수가(Ask) $${pos.entryPriceUsd} (${pnlPct >= 0 ? '+' : ''}${pnlPct}%) | 목표 Bid $${pos.targetPriceUsd}`;
-
-    if (currentSellBid >= pos.targetPriceUsd || pnlPct >= 18) {
-      action = 'CLOSE';
-      closeReason = `🎯 [실전호가 Bid 익절] 매수호가(Bid $${currentSellBid})가 진입 매도호가(Ask $${pos.entryPriceUsd}) 대비 +${pnlPct}% 상승 돌파!`;
-    } else if (currentSellBid <= pos.stopPriceUsd || pnlPct <= -18) {
-      action = 'CLOSE';
-      closeReason = `🚨 [실전호가 Bid 손절] 매수호가(Bid $${currentSellBid})가 진입 매도호가(Ask $${pos.entryPriceUsd}) 대비 ${pnlPct}% 하락 이탈`;
-    }
-
-    results.push({
-      id: pos.id,
-      marketId: pos.marketId,
-      question: pos.question,
-      side: pos.side,
-      currentPriceUsd: currentSellBid,
-      bidPriceUsd: currentSellBid,
-      askPriceUsd: currentBuyAsk,
-      currentEdgePct,
-      pnlPct,
-      action,
-      reason: closeReason
-    });
-  }
-
-  return results;
-}
-
-// ============================================================================
-// [데스크 3: RWA 차트(켈트너·볼린저) & 옵션 감마(콜감마·숏감마) 데스크 ($1,000)]
+// [옵션 지지·저항선 AI 분석: RWA 차트(켈트너·볼린저) & 옵션 감마]
 // ============================================================================
 
 /**
@@ -2369,324 +1532,6 @@ async function askOptionSupportResistanceAI(symbolInput, userQuestion = '', gemi
   };
 }
 
-/**
- * 데스크 3 (RWA & 7대 섹터 개별주 차트·옵션감마) 전체/섹터별 스캔 + 5단계 VET + BOOK(GAMMA) 파이프라인 (LONG / SHORT 양방향 지원)
- */
-async function runRwaDeskScanAndVet(existingSymbols = new Set(), geminiKey = DEFAULT_GEMINI_KEY, sectorFilter = 'all') {
-  const targetSector = (sectorFilter && RWA_SECTORS[sectorFilter]) ? sectorFilter : 'all';
-  const targetList = targetSector === 'all'
-    ? RWA_UNIVERSE
-    : RWA_UNIVERSE.filter(u => u.sector === targetSector);
-
-  // 병렬 배치 스캔 (5개씩 웨이브 처리하여 tooja.me Rate Limit 완벽 방지 및 49종목 전수 스캔)
-  const rawAnalyses = [];
-  const batchSize = 5;
-  for (let i = 0; i < targetList.length; i += batchSize) {
-    const chunk = targetList.slice(i, i + batchSize);
-    const chunkRes = await Promise.all(chunk.map(u => analyzeRwaTicker(u)));
-    rawAnalyses.push(...chunkRes);
-    if (i + batchSize < targetList.length) {
-      await new Promise(r => setTimeout(r, 150));
-    }
-  }
-
-  const marketRes = await fetchJson('https://tooja.me/api/market', {}, 7000);
-
-  const validAnalyses = rawAnalyses.filter(a => a && a.ok);
-  validAnalyses.sort((a, b) => b.tradeSetup.score - a.tradeSetup.score);
-
-  // 섹터별 요약 통계 생성
-  const sectorSummary = {};
-  for (const item of validAnalyses) {
-    const sec = item.sector || 'custom';
-    if (!sectorSummary[sec]) {
-      sectorSummary[sec] = {
-        sector: sec,
-        label: RWA_SECTORS[sec]?.label || sec,
-        count: 0,
-        squeezeCount: 0,
-        longCount: 0,
-        shortCount: 0,
-        topSymbol: item.symbol,
-        topScore: item.tradeSetup.score,
-        topDirection: item.tradeSetup.direction
-      };
-    }
-    sectorSummary[sec].count += 1;
-    if (item.chart.purpleInsideWhite1h) sectorSummary[sec].squeezeCount += 1;
-    if (item.tradeSetup.direction === 'SHORT') sectorSummary[sec].shortCount += 1;
-    else sectorSummary[sec].longCount += 1;
-  }
-
-  const overseasGaps = marketRes.ok && Array.isArray(marketRes.data?.overseas)
-    ? marketRes.data.overseas
-    : [];
-
-  // VET: 섹터 개별주 & RWA 5단계 탈락 심사 (LONG / SHORT 각 방향에 맞춰 MTF, 채널 과열, 손익비, IV 검증)
-  const vetResults = [];
-  for (const item of validAnalyses) {
-    const dir = item.tradeSetup.direction; // 'LONG' | 'SHORT'
-
-    if (existingSymbols.has(item.symbol)) {
-      vetResults.push({
-        symbol: item.symbol,
-        sector: item.sector,
-        category: item.category,
-        direction: dir,
-        decision: 'REJECT',
-        failedRule: 0,
-        reason: '이미 보유 중인 포지션 중복 진입 제외',
-        analysis: item
-      });
-      continue;
-    }
-    if (!item.chart.mtfAligned) {
-      vetResults.push({
-        symbol: item.symbol,
-        sector: item.sector,
-        category: item.category,
-        direction: dir,
-        decision: 'REJECT',
-        failedRule: 1,
-        reason: `규칙 1 탈락 (MTF 역행): 1H 추세 기울기(${item.chart.slope1hPct}%) 및 캔들 방향이 [${dir}] 진입 기준과 불일치`,
-        analysis: item
-      });
-      continue;
-    }
-    if (dir === 'LONG' && item.chart.channelPos1hPct > 84) {
-      vetResults.push({
-        symbol: item.symbol,
-        sector: item.sector,
-        category: item.category,
-        direction: dir,
-        decision: 'REJECT',
-        failedRule: 2,
-        reason: `규칙 2 탈락 (롱 상단 과열): 흰색 켈트너 채널 ${item.chart.channelPos1hPct}% 위치로 롱 상방 여력 부족`,
-        analysis: item
-      });
-      continue;
-    }
-    if (dir === 'SHORT' && item.chart.channelPos1hPct < 16) {
-      vetResults.push({
-        symbol: item.symbol,
-        sector: item.sector,
-        category: item.category,
-        direction: dir,
-        decision: 'REJECT',
-        failedRule: 2,
-        reason: `규칙 2 탈락 (숏 하단 과매도): 흰색 켈트너 채널 ${item.chart.channelPos1hPct}% 바닥권으로 숏 하방 여력 부족`,
-        analysis: item
-      });
-      continue;
-    }
-    if (item.tradeSetup.rrRatio < 1.15) {
-      vetResults.push({
-        symbol: item.symbol,
-        sector: item.sector,
-        category: item.category,
-        direction: dir,
-        decision: 'REJECT',
-        failedRule: 3,
-        reason: `규칙 3 탈락 (손익비 부족): [${dir}] 기대 손익비 ${item.tradeSetup.rrRatio} (< 1.15 기준 미달)`,
-        analysis: item
-      });
-      continue;
-    }
-    if (item.options.avgIvPct > 135) {
-      vetResults.push({
-        symbol: item.symbol,
-        sector: item.sector,
-        category: item.category,
-        direction: dir,
-        decision: 'REJECT',
-        failedRule: 4,
-        reason: `규칙 4 탈락 (IV 폭풍우 경보): 평균 내재변동성 ${item.options.avgIvPct}% 과열 지뢰밭`,
-        analysis: item
-      });
-      continue;
-    }
-
-    vetResults.push({
-      symbol: item.symbol,
-      sector: item.sector,
-      category: item.category,
-      direction: dir,
-      decision: item.chart.purpleInsideWhite1h ? 'PASS' : 'PASS_PARTIAL',
-      failedRule: null,
-      reason: `통과 [${dir}] (${item.category} | 점수 ${item.tradeSetup.score}점 | ${item.tradeSetup.setupName} | 손익비 ${item.tradeSetup.rrRatio}:1)`,
-      analysis: item
-    });
-  }
-
-  const passed = vetResults.filter(v => v.decision === 'PASS' || v.decision === 'PASS_PARTIAL');
-  const rejected = vetResults.filter(v => v.decision === 'REJECT');
-
-  // BOOK (GAMMA) + Gemini AI 최우선 타점 코멘트 생성 (LONG / SHORT 구분)
-  let aiComment = null;
-  if (passed.length > 0) {
-    const top = passed[0].analysis;
-    const dir = top.tradeSetup.direction;
-    const prompt = [
-      `너는 RWA 및 7대 섹터(우주·방산·바이오·반도체·광통신·로봇) 차트(켈트너·볼린저) & 옵션 감마(콜감마·숏감마) 양방향(LONG/SHORT) 트레이딩 봇 BOOK이다.`,
-      `종목: ${top.symbol} (${top.name} / ${top.category}), 현재가 $${top.spot}, 포지션 방향: ${dir} (${top.tradeSetup.setupName})`,
-      `- 1H 보라색 채널: $${top.chart.purple1hLower} ~ $${top.chart.purple1hUpper} (스퀴즈=${top.chart.purpleInsideWhite1h})`,
-      `- 1H 흰색 채널: $${top.chart.white1hLower} ~ $${top.chart.white1hUpper} (채널내 위치 ${top.chart.channelPos1hPct}%)`,
-      `- 옵션 감마: ${top.options.gammaRegimeLabel}, 콜벽 $${top.options.callWall}, 풋벽 $${top.options.putWall}, 맥스페인 $${top.options.maxPain}`,
-      `위 숫자를 바탕으로 왜 지금 [${dir}] 타점인지와 1차 익절($${top.tradeSetup.tp1Price})·2차 익절($${top.tradeSetup.tp2Price})·손절($${top.tradeSetup.stopPrice}) 전략을 한국어 2문장으로 명확히 브리핑하라.`
-    ].join('\n');
-    const aiRes = await callGeminiAI(prompt, geminiKey, 8000);
-    if (aiRes.ok && aiRes.text) {
-      aiComment = `🧠 Gemini(${aiRes.model}): ${aiRes.text}`;
-    }
-  }
-
-  return {
-    timestamp: new Date().toISOString(),
-    sectorFilter: targetSector,
-    sectorLabel: RWA_SECTORS[targetSector]?.label || '전 섹터 통합',
-    scannedCount: validAnalyses.length,
-    sectorSummary,
-    analyses: validAnalyses,
-    overseasGaps,
-    vetResults,
-    passed,
-    rejected,
-    aiComment
-  };
-}
-
-/**
- * RWA 모의 체결 (FILLS) — LONG / SHORT 양방향 지원 (수동 방향 지정 forceDirection 포함)
- */
-function runRwaFillsAgent(analysis, sizeResult, aiComment = null, forceDirection = null) {
-  const dollars = Number(sizeResult.dollars || 0);
-  if (dollars <= 0) {
-    return { bot: 'FILLS', status: 'SKIPPED_ZERO_SIZE', reason: sizeResult.reason };
-  }
-
-  const feeUsd = Number(Math.max(dollars * 0.0015, 0.35).toFixed(2));
-  const netInvestedUsd = Number((dollars - feeUsd).toFixed(2));
-  const entryPriceUsd = Number(analysis.spot);
-  const quantity = entryPriceUsd > 0 ? Number((netInvestedUsd / entryPriceUsd).toFixed(4)) : 0;
-
-  const direction = (forceDirection === 'LONG' || forceDirection === 'SHORT')
-    ? forceDirection
-    : (analysis.tradeSetup.direction || 'LONG');
-
-  let tp1PriceUsd = analysis.tradeSetup.tp1Price;
-  let tp2PriceUsd = analysis.tradeSetup.tp2Price;
-  let stopPriceUsd = analysis.tradeSetup.stopPrice;
-  let setupName = analysis.tradeSetup.setupName;
-
-  // 사용자가 UI에서 반대 방향(예: 강제 SHORT 또는 강제 LONG)으로 수동 주문한 경우 목표/손절가를 해당 방향에 맞게 재산정
-  if (direction !== analysis.tradeSetup.direction) {
-    if (direction === 'SHORT') {
-      tp1PriceUsd = Number(Math.min(entryPriceUsd * 0.994, analysis.chart.purple1hLower).toFixed(2));
-      tp2PriceUsd = Number(Math.min(tp1PriceUsd * 0.992, analysis.chart.white1hLower, Math.max(analysis.options.putWall, analysis.options.maxPain, entryPriceUsd * 0.94)).toFixed(2));
-      stopPriceUsd = Number(Math.max(entryPriceUsd * 1.014, analysis.chart.white1hUpper).toFixed(2));
-      setupName = `🔴 [SHORT 수동지정] 보라하단 1차·흰색하단/풋벽 2차 타겟 숏`;
-    } else {
-      tp1PriceUsd = Number(Math.max(entryPriceUsd * 1.006, analysis.chart.purple1hUpper).toFixed(2));
-      tp2PriceUsd = Number(Math.max(tp1PriceUsd * 1.008, analysis.chart.white1hUpper, Math.min(analysis.options.callWall, entryPriceUsd * 1.06)).toFixed(2));
-      stopPriceUsd = Number(Math.min(entryPriceUsd * 0.986, analysis.chart.white1hLower).toFixed(2));
-      setupName = `🟢 [LONG 수동지정] 보라상단 1차·흰색상단/콜벽 2차 타겟 롱`;
-    }
-  }
-
-  return {
-    bot: 'FILLS',
-    desk: 'rwa',
-    status: 'FILLED_PAPER',
-    id: `pos_rwa_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-    symbol: analysis.symbol,
-    name: analysis.name,
-    sector: analysis.sector || 'custom',
-    category: analysis.category,
-    direction,
-    setupName,
-    gammaRegime: analysis.options.gammaRegime,
-    gammaRegimeLabel: analysis.options.gammaRegimeLabel,
-    netGexM: analysis.options.netGexM,
-    callWall: analysis.options.callWall,
-    putWall: analysis.options.putWall,
-    maxPain: analysis.options.maxPain,
-    entryPriceUsd,
-    currentPriceUsd: entryPriceUsd,
-    tp1PriceUsd,
-    tp2PriceUsd,
-    stopPriceUsd,
-    rrRatio: analysis.tradeSetup.rrRatio,
-    dollars,
-    feeUsd,
-    quantity,
-    tp1Hit: false,
-    reasoning: aiComment || analysis.tradeSetup.summaryReason,
-    openedAt: new Date().toISOString()
-  };
-}
-
-/**
- * RWA 열린 포지션 5분 주기 채널 & 감마 리스크 점검 (RWA-RISK — LONG / SHORT 양방향 손익 및 청산 판정)
- */
-async function checkRwaPositionsRiskLive(openRwaPositions = []) {
-  if (!openRwaPositions.length) return [];
-
-  const results = [];
-  for (const pos of openRwaPositions) {
-    const dir = pos.direction || 'LONG';
-    const live = await analyzeRwaTicker(pos.symbol);
-    const currentPrice = live.ok ? live.spot : pos.currentPriceUsd;
-
-    const rawPriceDiff = dir === 'SHORT'
-      ? (pos.entryPriceUsd - currentPrice)
-      : (currentPrice - pos.entryPriceUsd);
-
-    const pnlPct = pos.entryPriceUsd > 0
-      ? Number(((rawPriceDiff / pos.entryPriceUsd) * 100).toFixed(2))
-      : 0;
-
-    let action = 'HOLD';
-    let reason = `[${dir}] 흰색채널 내 순항 중 (${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
-
-    if (dir === 'LONG') {
-      if (currentPrice >= pos.tp2PriceUsd) {
-        action = 'CLOSE';
-        reason = `🎯 [LONG 익절] 2차 목표가(흰색 켈트너 상단 / 콜감마 벽 $${pos.tp2PriceUsd}) 도달 전량 익절! (+${pnlPct}%)`;
-      } else if (currentPrice <= pos.stopPriceUsd) {
-        action = 'CLOSE';
-        reason = `🚨 [LONG 손절] 흰색 채널 하단 / 풋감마 방어선($${pos.stopPriceUsd}) 이탈 즉시 손절! (${pnlPct}%)`;
-      } else if (currentPrice >= pos.tp1PriceUsd && live.ok && !live.chart.candleBullish) {
-        action = 'CLOSE';
-        reason = `✅ [LONG 익절] 1차 목표가(보라색 볼린저 상단 $${pos.tp1PriceUsd}) 돌파 후 캔들 둔화로 수익 확정! (+${pnlPct}%)`;
-      }
-    } else {
-      // 🔴 SHORT 청산 조건 (가격이 내려갈수록 수익!)
-      if (currentPrice <= pos.tp2PriceUsd) {
-        action = 'CLOSE';
-        reason = `🎯 [SHORT 익절] 2차 하방 목표가(흰색 켈트너 하단 / 풋감마·맥스페인 $${pos.tp2PriceUsd}) 도달 전량 익절! (+${pnlPct}%)`;
-      } else if (currentPrice >= pos.stopPriceUsd) {
-        action = 'CLOSE';
-        reason = `🚨 [SHORT 손절] 흰색 채널 상단 / 콜감마 저항선($${pos.stopPriceUsd}) 상방 돌파 즉시 손절! (${pnlPct}%)`;
-      } else if (currentPrice <= pos.tp1PriceUsd && live.ok && live.chart.candleBullish) {
-        action = 'CLOSE';
-        reason = `✅ [SHORT 익절] 1차 목표가(보라색 볼린저 하단 $${pos.tp1PriceUsd}) 도달 후 반등 캔들 감지로 숏 수익 확정! (+${pnlPct}%)`;
-      }
-    }
-
-    results.push({
-      id: pos.id,
-      symbol: pos.symbol,
-      direction: dir,
-      currentPriceUsd: currentPrice,
-      pnlPct,
-      action,
-      reason,
-      liveAnalysis: live.ok ? live : null
-    });
-  }
-  return results;
-}
-
 module.exports = {
   DEFAULT_GEMINI_KEY,
   STOPHUNT_UNIVERSE,
@@ -2694,27 +1539,15 @@ module.exports = {
   analyzeStopHuntCandidate,
   RWA_SECTORS,
   RWA_UNIVERSE,
-  ROLE_PROFILES_BY_DESK,
-  BOT_PROMPTS,
   fetchJson,
   callGeminiAI,
-  checkSolanaTokenOnChain,
-  runChiefVerification,
-  // 데스크 1 (메이저 선물 스탑헌팅 역추세)
+  // 10x 스탑헌팅 실전/모의매매
   runScanAgent,
   runVetAgent,
   runSizeAgent,
   runFillsAgent,
-  calculateRiskFormula,
   checkContractRiskLive,
-  // 데스크 2 (예측시장 괴리율)
-  runBookAgent,
-  runPredictionFillsAgent,
-  checkPredictionRiskLive,
   // 옵션 지지·저항선 AI 분석
   analyzeRwaTicker,
-  askOptionSupportResistanceAI,
-  runRwaDeskScanAndVet,
-  runRwaFillsAgent,
-  checkRwaPositionsRiskLive
+  askOptionSupportResistanceAI
 };

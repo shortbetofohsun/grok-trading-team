@@ -139,12 +139,13 @@
     <input type="text" id="allowedAddr" placeholder="0x... 허용 부계정 지갑 주소" style="margin-top:5px;" />
     <div class="row2">
       <div>
-        <span class="label">1회 증거금 ($)</span>
-        <input type="number" id="orderMargin" min="1" step="0.5" value="10" />
+        <span class="label">1회 증거금 ($ · 3분할)</span>
+        <input type="number" id="orderMargin" min="1" step="1" value="30" />
       </div>
       <div>
-        <span class="label">최대 잔고 상한 ($)</span>
-        <input type="number" id="maxCap" min="10" step="10" value="250" />
+        <span class="label">운용 한도 · 레버리지</span>
+        <input type="text" id="maxCapDisplay" value="3슬롯 무제한 · 10x" disabled />
+        <input type="hidden" id="maxCap" value="0" />
       </div>
     </div>
     <button id="btnSaveConnect" class="btn-primary">안전잠금 등록 & 연결 상태 갱신</button>

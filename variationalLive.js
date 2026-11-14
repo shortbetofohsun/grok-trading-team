@@ -29,8 +29,9 @@ function getDefaultLiveState() {
     cookies: '',
     token: '',
     tokenExp: 0,
-    maxEquityCapUsd: 250,
-    orderMarginUsd: 10,
+    maxEquityCapUsd: 0,
+    maxSlots: 3,
+    orderMarginUsd: 30,
     maxSlippageBps: 50,
     lastBalanceUsd: null,
     lastUpnlUsd: null,
@@ -357,8 +358,9 @@ function getPublicLiveStatus() {
     hasSession: Boolean(liveState.cookies),
     allowedAddress: liveState.allowedAddress || '',
     connectedAddress: liveState.connectedAddress || '',
-    maxEquityCapUsd: Number(liveState.maxEquityCapUsd || 250),
-    orderMarginUsd: Number(liveState.orderMarginUsd || 10),
+    maxEquityCapUsd: 0,
+    maxSlots: Number(liveState.maxSlots || 3),
+    orderMarginUsd: Number(liveState.orderMarginUsd || 30),
     maxSlippageBps: Number(liveState.maxSlippageBps || 50),
     lastBalanceUsd: liveState.lastBalanceUsd,
     lastUpnlUsd: liveState.lastUpnlUsd,
@@ -446,19 +448,6 @@ async function verifyLiveAccountSafety() {
     ? posRes.data
     : (Array.isArray(posRes?.data?.result) ? posRes.data.result : []);
 
-  // 3중 안전장치 2) 계좌 잔고 상한선 차단
-  const cap = Number(liveState.maxEquityCapUsd || 250);
-  if (balance > cap) {
-    liveState.enabled = false;
-    liveState.lastBalanceUsd = balance;
-    liveState.lastUpnlUsd = upnl;
-    liveState.lastMarginUsageUsd = marginUsage;
-    liveState.lastOpenPositionsCount = positions.length;
-    liveState.lastError = `본계정 보호 차단: 계좌 잔고($${balance.toFixed(2)})가 부계정 상한선($${cap})을 초과합니다.`;
-    saveLiveState();
-    return { ok: false, error: liveState.lastError };
-  }
-
   liveState.lastBalanceUsd = balance;
   liveState.lastUpnlUsd = upnl;
   liveState.lastMarginUsageUsd = marginUsage;
@@ -482,7 +471,7 @@ async function connectEdgeSession({ cookies, allowedAddress, maxEquityCapUsd, or
   if (allowedAddress !== undefined) {
     liveState.allowedAddress = String(allowedAddress || '').trim();
   }
-  if (maxEquityCapUsd !== undefined && Number(maxEquityCapUsd) > 0) {
+  if (maxEquityCapUsd !== undefined && Number(maxEquityCapUsd) >= 0) {
     liveState.maxEquityCapUsd = Number(maxEquityCapUsd);
   }
   if (orderMarginUsd !== undefined && Number(orderMarginUsd) >= 1) {
@@ -522,12 +511,12 @@ async function toggleLiveMode(enabled) {
 }
 
 function disconnectEdgeSession() {
-  const preservedCap = Number(liveState.maxEquityCapUsd || 250);
-  const preservedMargin = Number(liveState.orderMarginUsd || 10);
+  const preservedMargin = Number(liveState.orderMarginUsd || 30);
   const preservedSlip = Number(liveState.maxSlippageBps || 50);
   liveState = {
     ...getDefaultLiveState(),
-    maxEquityCapUsd: preservedCap,
+    maxEquityCapUsd: 0,
+    maxSlots: 3,
     orderMarginUsd: preservedMargin,
     maxSlippageBps: preservedSlip
   };
@@ -601,7 +590,7 @@ async function executeLiveStopHuntEntry(cand, overrideMarginUsd = undefined) {
   }
 
   const marginUsd = Math.max(1, Math.min(
-    Number(overrideMarginUsd || liveState.orderMarginUsd || 10),
+    Number(overrideMarginUsd || liveState.orderMarginUsd || 30),
     availBalance * 0.9
   ));
   const notionalUsd = Number((marginUsd * 10).toFixed(2));

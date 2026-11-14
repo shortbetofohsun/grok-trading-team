@@ -75,12 +75,12 @@ function renderStatus(st, forceHydrate = false) {
   const addrLabel = st.connectedAddress ? shortAddr(st.connectedAddress) : '미확인';
   const balLabel = Number.isFinite(Number(st.lastBalanceUsd)) ? `$${Number(st.lastBalanceUsd).toFixed(2)}` : '$0.00';
   const allowLabel = st.allowedAddress ? shortAddr(st.allowedAddress) : '미지정';
-  walletSummary.textContent = `연결지갑: ${addrLabel} (${balLabel} USDC) | 허용잠금: ${allowLabel} (상한 $${st.maxEquityCapUsd})`;
+  walletSummary.textContent = `연결지갑: ${addrLabel} (${balLabel} USDC) | 허용잠금: ${allowLabel} (상한 무제한 · 최대 3슬롯)`;
 
   if (forceHydrate) {
     if (!allowedAddrInput.value && st.allowedAddress) allowedAddrInput.value = st.allowedAddress;
-    if (st.orderMarginUsd) orderMarginInput.value = st.orderMarginUsd;
-    if (st.maxEquityCapUsd) maxCapInput.value = st.maxEquityCapUsd;
+    orderMarginInput.value = Number(st.orderMarginUsd) > 0 ? Number(st.orderMarginUsd) : 30;
+    if (maxCapInput) maxCapInput.value = 0;
   }
 
   btnToggleLive.textContent = st.enabled ? '실전 자동매매 끄기' : '실전 자동매매 켜기';
@@ -138,8 +138,8 @@ btnSaveConnect.addEventListener('click', async () => {
 
     const payload = {
       allowedAddress: targetAllow,
-      orderMarginUsd: Number(orderMarginInput.value) || 10,
-      maxEquityCapUsd: Number(maxCapInput.value) || 250,
+      orderMarginUsd: Number(orderMarginInput.value) || 30,
+      maxEquityCapUsd: 0,
       cookieHeader: (!latestStatus?.edgeBridgeConnected && cookieRes?.ok) ? cookieRes.cookieHeader : undefined
     };
 

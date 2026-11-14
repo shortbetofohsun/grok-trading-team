@@ -38,6 +38,7 @@
       .toUpperCase()
       .replace(/-PERP$/i, '')
       .replace(/\/USD$/i, '')
+      .replace(/USDT$/i, '')
       .trim();
     if (!clean) throw new Error('심볼이 비어 있습니다.');
     if (RWA_ETFS.has(clean)) {
@@ -215,10 +216,6 @@
     if (allowed && allowed !== actual) {
       throw new Error(`안전잠금 차단: 연결 지갑(${snapshot.address}) != 허용 지갑(${cfg.allowedAddress})`);
     }
-    const cap = Number(cfg?.maxEquityCapUsd || 250);
-    if (Number.isFinite(cap) && cap > 0 && Number(snapshot.balanceUsd || 0) > cap) {
-      throw new Error(`안전잠금 차단: 지갑 잔고($${Number(snapshot.balanceUsd).toFixed(2)})가 상한($${cap})을 초과합니다.`);
-    }
   }
 
   async function buildValidatedQuote(inst, side, notionalUsd, estPriceFallback) {
@@ -257,9 +254,21 @@
   async function executeEntrySignal(signal, snapshot, cfg) {
     assertSafetyLock(snapshot, cfg, true);
     const inst = getVariationalInstrument(signal.symbol);
+
+    // 주문 직전 거래소 실시간 포지션을 재조회해 1종목 중복 진입 및 3분할 슬롯 초과 원천 차단
+    const freshSnapshot = await readWalletSnapshot();
+    const activePositions = (freshSnapshot.loggedIn ? freshSnapshot.positions : snapshot?.positions) || [];
+    if (activePositions.some((p) => p.symbol === inst.underlying && Math.abs(p.qty) > 0)) {
+      throw new Error(`중복 진입 차단: 거래소에 이미 ${inst.underlying} 포지션이 열려 있습니다.`);
+    }
+    const maxSlots = Math.max(1, Number(cfg?.maxSlots || 3));
+    if (activePositions.length >= maxSlots) {
+      throw new Error(`슬롯 상한 차단: 거래소 열린 포지션(${activePositions.length}개)이 최대 ${maxSlots}분할 슬롯에 도달했습니다.`);
+    }
+
     const side = String(signal.direction || '').toUpperCase() === 'SHORT' ? 'sell' : 'buy';
     const leverage = Math.max(1, Math.min(50, Math.round(Number(signal.leverage || 10))));
-    const marginUsd = Number(signal.marginUsd || cfg?.orderMarginUsd || 10);
+    const marginUsd = Number(signal.marginUsd || cfg?.orderMarginUsd || 30);
     const notionalUsd = marginUsd * leverage;
     const slippageDecimal = Math.max(0.001, Math.min(0.05, Number(cfg?.maxSlippageBps || 100) / 10000));
 

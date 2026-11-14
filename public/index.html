@@ -207,10 +207,10 @@
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-shield-halved text-binanceYellow text-xs"></i>
-              <span class="text-xs font-bold text-white">Edge 부계정 실매매 연동 &amp; 3중 안전장치</span>
+              <span class="text-xs font-bold text-white">Edge 부계정 실매매 연동 &amp; 안전잠금</span>
               <span id="liveModeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold mono bg-binanceBorder text-gray-300">모의매매 (PAPER)</span>
             </div>
-            <div id="liveSummaryText" class="text-[11px] text-gray-400 mono">연결 지갑: 미연결 | 잔고: - | 상한: $250</div>
+            <div id="liveSummaryText" class="text-[11px] text-gray-400 mono">연결 지갑: 미연결 | 잔고: - | 3분할 (무제한)</div>
           </div>
 
           <div id="liveCloudWarn" class="hidden text-[11px] text-sky-300 bg-sky-950/30 border border-sky-700/50 rounded-lg px-2.5 py-1.5">
@@ -223,12 +223,13 @@
               <input id="liveAllowedAddr" type="text" placeholder="0x... Edge 메타마스크 부계정 주소" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
             </div>
             <div>
-              <label class="block text-[10px] text-gray-400 mb-1">1회 증거금 (USDC, 10x)</label>
-              <input id="liveOrderMargin" type="number" min="1" step="1" value="10" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+              <label class="block text-[10px] text-gray-400 mb-1">1회 증거금 (USDC, 3분할 10x)</label>
+              <input id="liveOrderMargin" type="number" min="1" step="1" value="30" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
             </div>
             <div>
-              <label class="block text-[10px] text-gray-400 mb-1">본계정 차단 상한 (USDC)</label>
-              <input id="liveMaxCap" type="number" min="10" step="10" value="250" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+              <label class="block text-[10px] text-gray-400 mb-1">운용 한도 · 동시 슬롯</label>
+              <div class="w-full px-2.5 py-1.5 bg-binanceCard/60 border border-binanceBorder rounded-lg text-xs text-emerald-300 mono">최대 3슬롯 · 상한 무제한</div>
+              <input id="liveMaxCap" type="hidden" value="0" />
             </div>
           </div>
 
@@ -1858,7 +1859,8 @@
         const balTxt = st.lastBalanceUsd !== null && st.lastBalanceUsd !== undefined
           ? `$${Number(st.lastBalanceUsd).toFixed(2)} USDC`
           : '-';
-        summary.textContent = `연결 지갑: ${addrTxt} | 잔고: ${balTxt} | 상한: $${st.maxEquityCapUsd ?? 250}`;
+        const slotsTxt = `최대 ${st.maxSlots || 3}슬롯`;
+        summary.textContent = `연결 지갑: ${addrTxt} | 잔고: ${balTxt} | ${slotsTxt} · 상한 무제한`;
       }
 
       const addrIn = document.getElementById('liveAllowedAddr');
@@ -1870,8 +1872,8 @@
       if (marginIn && (forceHydrate || (document.activeElement !== marginIn && st.orderMarginUsd))) {
         marginIn.value = st.orderMarginUsd;
       }
-      if (capIn && (forceHydrate || (document.activeElement !== capIn && st.maxEquityCapUsd))) {
-        capIn.value = st.maxEquityCapUsd;
+      if (capIn) {
+        capIn.value = 0;
       }
       const errBanner = st.safetyError || st.lastError;
       if (errBanner && !document.getElementById('liveMsgBox')?.textContent) {
@@ -1883,11 +1885,11 @@
       const btn = document.getElementById('btnLiveConnect');
       const cookies = document.getElementById('liveCookieInput')?.value?.trim() || '';
       const allowedAddress = document.getElementById('liveAllowedAddr')?.value?.trim() || '';
-      const orderMarginUsd = Number(document.getElementById('liveOrderMargin')?.value || 10);
-      const maxEquityCapUsd = Number(document.getElementById('liveMaxCap')?.value || 250);
+      const orderMarginUsd = Number(document.getElementById('liveOrderMargin')?.value || 30);
+      const maxEquityCapUsd = 0;
 
       btn.disabled = true;
-      showLiveMsg('설정 저장 및 3중 안전장치 검증 중...', true);
+      showLiveMsg('설정 저장 및 안전잠금 검증 중...', true);
       try {
         const payload = { allowedAddress, orderMarginUsd, maxEquityCapUsd };
         if (cookies) {
