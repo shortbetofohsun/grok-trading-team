@@ -1059,6 +1059,7 @@ async function deployToGitHub(githubToken, repoName = 'grok-trading-team', isPri
     'render.yaml',
     'agents.js',
     'indicators.js',
+    'variationalLive.js',
     'cloud-runner.js',
     'server.js',
     'public/index.html',
