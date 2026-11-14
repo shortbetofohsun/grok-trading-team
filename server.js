@@ -27,6 +27,17 @@ const {
   getOrFetchIndicators,
   checkIndicatorTouches
 } = require('./indicators');
+const {
+  getPublicLiveStatus,
+  isLiveTradingActive,
+  verifyLiveAccountSafety,
+  connectEdgeSession,
+  toggleLiveMode,
+  disconnectEdgeSession,
+  executeLiveStopHuntEntry,
+  executeLiveStopHuntClose,
+  executeLiveRoundtripTest
+} = require('./variationalLive');
 
 const DATA_DIR = path.join(__dirname, 'data');
 const STATE_FILE = path.join(DATA_DIR, 'desk_state.json');
@@ -424,7 +435,22 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
 
   try {
     const isShort = pos.direction === 'SHORT';
-    const curP = Number(exitPriceUsd || pos.currentPriceUsd || pos.entryPriceUsd);
+    let curP = Number(exitPriceUsd || pos.currentPriceUsd || pos.entryPriceUsd);
+    let liveCloseNote = '';
+    if (pos.isLiveOrder) {
+      try {
+        const liveClose = await executeLiveStopHuntClose(pos);
+        if (liveClose?.exitPriceUsd > 0 && !liveClose.alreadyClosedOnVenue) {
+          curP = Number(liveClose.exitPriceUsd);
+        }
+        liveCloseNote = liveClose?.alreadyClosedOnVenue
+          ? ' · 실전 거래소 이미 청산됨(TP/SL)'
+          : ` · 실전 RFQ ${liveClose?.rfqId || ''}`;
+      } catch (liveErr) {
+        liveCloseNote = ` · 실전 청산 오류(${liveErr.message})`;
+        addLog('EXIT', `[실전 LIVE 청산 실패] $${pos.symbol}: ${liveErr.message}`);
+      }
+    }
     const priceDiff = isShort ? (pos.entryPriceUsd - curP) : (curP - pos.entryPriceUsd);
     const rawPnl = pos.quantity * priceDiff;
     const entryFee = Number(pos.feeUsd || 0);
@@ -445,26 +471,29 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
       pnlUsd,
       pnlPct,
       closedAt: new Date().toISOString(),
-      closeRule: closeReason
+      closeRule: `${closeReason}${liveCloseNote}`
     };
     desk.closedPositions.unshift(closedItem);
 
     const perf = getStopHuntPerformanceSummary();
     const isProfit = pnlUsd >= 0;
+    const modeTag = pos.isLiveOrder ? '[실전 LIVE 청산] ' : '';
     const exitTitle = isProfit ? '익절(TP) 체결 완료' : '손절(SL) 체결 완료';
-    const sideKo = isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)';
+    const sideKo = pos.isLiveOrder
+      ? (isShort ? '실전 매도 (SHORT 10x)' : '실전 매수 (LONG 10x)')
+      : (isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)');
 
     const closeHtml = [
-      `<b>[Variational 10x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
+      `<b>${modeTag}[Variational 10x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
       ``,
       `• <b>포지션:</b> ${sideKo}`,
       `• <b>체결 가격:</b> 진입 $${pos.entryPriceUsd} ➔ 청산 $${curP}`,
       `• <b>실현 손익:</b> ${pnlUsd >= 0 ? '+' : '-'}$${Math.abs(pnlUsd).toFixed(2)} (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
-      `• <b>청산 사유:</b> ${closeReason} (${triggerSource})`,
+      `• <b>청산 사유:</b> ${closeReason}${liveCloseNote} (${triggerSource})`,
       perf.footerHtml
     ].join('\n');
 
-    addLog('EXIT', `[스탑헌팅 ${exitTitle}] $${pos.symbol} (${sideKo}) 진입 $${pos.entryPriceUsd} -> 청산 $${curP} | 실현손익 ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct}%) | ${perf.footerPlain}`);
+    addLog('EXIT', `${modeTag}[스탑헌팅 ${exitTitle}] $${pos.symbol} (${sideKo}) 진입 $${pos.entryPriceUsd} -> 청산 $${curP} | 실현손익 ${pnlUsd >= 0 ? '+' : ''}$${pnlUsd.toFixed(2)} (${pnlPct >= 0 ? '+' : ''}${pnlPct}%)${liveCloseNote} | ${perf.footerPlain}`);
     const tgOut = await sendTelegramNotification(closeHtml, true);
     recordStopHuntTelegramLog(pos.symbol, exitTitle, curP, isProfit ? pos.tp2PriceUsd : pos.stopPriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
     return closedItem;
@@ -515,28 +544,51 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
       const sizeRes = runSizeAgent(passedItem, desk.portfolio, state.config, capPct);
 
       if (sizeRes.dollars > 0) {
-        const fillRes = runFillsAgent(c, sizeRes);
+        let liveExec = null;
+        if (isLiveTradingActive()) {
+          try {
+            liveExec = await executeLiveStopHuntEntry(c);
+          } catch (liveErr) {
+            addLog('ENTRY', `[실전 LIVE 진입 실패] $${c.symbol}: ${liveErr.message}`);
+            await sendTelegramNotification(`<b>[실전 LIVE 진입 실패 — $${c.symbol}]</b>\n\n사유: ${liveErr.message}`, true);
+            continue;
+          }
+        }
+        const effSizeRes = liveExec ? { ...sizeRes, dollars: liveExec.marginUsd } : sizeRes;
+        const fillRes = runFillsAgent(c, effSizeRes);
         if (fillRes.status === 'FILLED_PAPER') {
+          if (liveExec) {
+            fillRes.isLiveOrder = true;
+            fillRes.rfqId = liveExec.rfqId;
+            fillRes.entryPriceUsd = liveExec.entryPriceUsd;
+            fillRes.currentPriceUsd = liveExec.entryPriceUsd;
+            fillRes.quantity = liveExec.qty;
+            fillRes.notionalUsd = liveExec.notionalUsd;
+          }
           desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
           desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
           desk.openPositions.push(fillRes);
           const perf = getStopHuntPerformanceSummary();
 
           const isShort = fillRes.direction === 'SHORT';
-          const actionKo = isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)';
+          const modeTag = fillRes.isLiveOrder ? '[실전 LIVE 체결] ' : '';
+          const actionKo = fillRes.isLiveOrder
+            ? (isShort ? '실전 매도 (SHORT 10x)' : '실전 매수 (LONG 10x)')
+            : (isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)');
+          const rfqLine = fillRes.isLiveOrder && fillRes.rfqId ? `\n• <b>Variational RFQ ID:</b> ${fillRes.rfqId}` : '';
           const fillHtml = [
-            `<b>[Variational 10x 스탑헌팅 포착 — $${fillRes.symbol} ${actionKo} 진입]</b>`,
+            `<b>${modeTag}[Variational 10x 스탑헌팅 포착 — $${fillRes.symbol} ${actionKo} 진입]</b>`,
             ``,
             `• <b>종목:</b> $${fillRes.symbol} (${fillRes.name})`,
             `• <b>확정 스탑헌팅 구간:</b> ±${fillRes.minHuntPct}% ~ ±${fillRes.maxHuntPct}% (현재 90분 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% + 꼬리 ${fillRes.wickReversalPct}%)`,
             `• <b>백테스트 검증:</b> 12개월 승률 ${fillRes.btWinRate || 75}% (10x ${fillRes.btPnl10x || '+20%'})`,
-            `• <b>진입 가격(호가):</b> $${fillRes.entryPriceUsd} (증거금 $${fillRes.dollars} × 10배 = $${fillRes.notionalUsd} · 손익비 1:${fillRes.rrRatio})`,
+            `• <b>진입 가격(호가):</b> $${fillRes.entryPriceUsd} (증거금 $${fillRes.dollars} × 10배 = $${fillRes.notionalUsd} · 손익비 1:${fillRes.rrRatio})${rfqLine}`,
             `• <b>익절 목표가:</b> 1차(TP1) $${fillRes.tp1PriceUsd} / 2차(TP2) $${fillRes.tp2PriceUsd}`,
             `• <b>손절 방어선(SL):</b> $${fillRes.stopPriceUsd}`,
             perf.footerHtml
           ].join('\n');
 
-          addLog('ENTRY', `[스탑헌팅 진입] $${fillRes.symbol} ${actionKo} @ $${fillRes.entryPriceUsd} (변동 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% · 꼬리 ${fillRes.wickReversalPct}%) | TP2 $${fillRes.tp2PriceUsd} / SL $${fillRes.stopPriceUsd} | ${perf.footerPlain}`);
+          addLog('ENTRY', `${modeTag}[스탑헌팅 진입] $${fillRes.symbol} ${actionKo} @ $${fillRes.entryPriceUsd} (변동 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% · 꼬리 ${fillRes.wickReversalPct}%) | TP2 $${fillRes.tp2PriceUsd} / SL $${fillRes.stopPriceUsd} | ${perf.footerPlain}`);
           const tgOut = await sendTelegramNotification(fillHtml, true);
           recordStopHuntTelegramLog(fillRes.symbol, actionKo, fillRes.entryPriceUsd, fillRes.tp2PriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
         }
@@ -1341,7 +1393,9 @@ setInterval(async () => {
 function sendJson(res, statusCode, payload) {
   res.writeHead(statusCode, {
     'Content-Type': 'application/json; charset=utf-8',
-    'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+    'Access-Control-Allow-Headers': 'Content-Type'
   });
   res.end(JSON.stringify(payload));
 }
@@ -1361,6 +1415,16 @@ function parseBody(req) {
 }
 
 const server = http.createServer(async (req, res) => {
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type'
+    });
+    res.end();
+    return;
+  }
+
   const parsedUrl = new URL(req.url, `http://${req.headers.host || 'localhost:3000'}`);
   const pathname = parsedUrl.pathname;
 
@@ -1377,7 +1441,8 @@ const server = http.createServer(async (req, res) => {
       stopHuntUniverse: STOPHUNT_UNIVERSE,
       stopHuntPerformance,
       sessionInfo: getStopHuntSessionInfo(),
-      githubDeviceSession
+      githubDeviceSession,
+      liveStatus: getPublicLiveStatus()
     });
   }
 
@@ -1674,6 +1739,54 @@ const server = http.createServer(async (req, res) => {
     if (body.sound_enabled !== undefined) state.priceAlerts.sound_enabled = Boolean(body.sound_enabled);
     saveState();
     return sendJson(res, 200, { ok: true, config: state.priceAlerts });
+  }
+
+  if (pathname === '/api/live/status' && req.method === 'GET') {
+    if (parsedUrl.searchParams.get('verify') === '1') {
+      const v = await verifyLiveAccountSafety();
+      return sendJson(res, 200, { ok: v.ok, error: v.error || null, status: getPublicLiveStatus(), positions: v.positions || [] });
+    }
+    return sendJson(res, 200, { ok: true, status: getPublicLiveStatus() });
+  }
+
+  if (pathname === '/api/live/connect' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const out = await connectEdgeSession(body || {});
+    if (out.ok) {
+      addLog('INFO', `[Edge 부계정 연동 완료] 지갑 ${out.status?.connectedAddress} | 잔고 $${Number(out.status?.lastBalanceUsd ?? 0).toFixed(2)} USDC (상한 $${out.status?.maxEquityCapUsd})`);
+    } else {
+      addLog('INFO', `[Edge 부계정 연동 차단] ${out.error}`);
+    }
+    return sendJson(res, out.ok ? 200 : 400, out);
+  }
+
+  if (pathname === '/api/live/toggle' && req.method === 'POST') {
+    const body = await parseBody(req);
+    const out = await toggleLiveMode(body?.enabled);
+    if (out.ok) {
+      addLog('INFO', `[매매 모드 변경] ${out.status?.enabled ? '실전 자동매매(LIVE) 활성화' : '모의매매(PAPER) 전환'}`);
+    } else {
+      addLog('INFO', `[실전 전환 거부] ${out.error}`);
+    }
+    return sendJson(res, out.ok ? 200 : 400, out);
+  }
+
+  if (pathname === '/api/live/test-order' && req.method === 'POST') {
+    const body = await parseBody(req);
+    try {
+      const out = await executeLiveRoundtripTest(body?.symbol || 'BTC', body?.notionalUsd || 1.5);
+      addLog('INFO', `[실전 소액 왕복 테스트 완료] BTC 진입 RFQ ${out.openRfqId} -> 청산 RFQ ${out.closeRfqId || '완료'} ($${out.entryPrice} -> $${out.exitPrice})`);
+      return sendJson(res, 200, out);
+    } catch (err) {
+      addLog('INFO', `[실전 테스트 주문 실패] ${err.message}`);
+      return sendJson(res, 400, { ok: false, error: err.message, status: getPublicLiveStatus() });
+    }
+  }
+
+  if (pathname === '/api/live/disconnect' && req.method === 'POST') {
+    const out = disconnectEdgeSession();
+    addLog('INFO', '[Edge 부계정 세션 연결 해제] 모의매매(PAPER) 모드로 복귀했습니다.');
+    return sendJson(res, 200, out);
   }
 
   // 11) 정적 파일 서빙

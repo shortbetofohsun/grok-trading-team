@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>Variational Edge Bridge</title>
+  <style>
+    body {
+      width: 340px;
+      margin: 0;
+      padding: 16px;
+      background: #0B0E11;
+      color: #EAECEF;
+      font-family: -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+      font-size: 12px;
+    }
+    .card {
+      background: #181A20;
+      border: 1px solid #2B313A;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+    }
+    h1 {
+      margin: 0 0 6px 0;
+      font-size: 14px;
+      color: #F0B90B;
+    }
+    label {
+      display: block;
+      color: #9CA3AF;
+      font-size: 11px;
+      margin: 8px 0 4px 0;
+    }
+    input {
+      width: 100%;
+      box-sizing: border-box;
+      background: #0B0E11;
+      border: 1px solid #2B313A;
+      border-radius: 6px;
+      padding: 7px 9px;
+      color: #FFFFFF;
+      font-family: monospace;
+      font-size: 11px;
+    }
+    .row {
+      display: flex;
+      gap: 8px;
+    }
+    .row > div {
+      flex: 1;
+    }
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      cursor: pointer;
+      margin-top: 8px;
+    }
+    .btn-primary {
+      background: #F0B90B;
+      color: #000000;
+    }
+    .btn-secondary {
+      background: #2B313A;
+      color: #EAECEF;
+    }
+    #statusBox {
+      margin-top: 10px;
+      padding: 9px;
+      border-radius: 6px;
+      background: #0B0E11;
+      border: 1px solid #2B313A;
+      font-size: 11px;
+      line-height: 1.45;
+      word-break: break-all;
+    }
+    .ok { color: #0ECB81; }
+    .err { color: #F6465D; }
+    .muted { color: #9CA3AF; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Variational Edge 세션 브리지</h1>
+    <div class="muted">현재 Edge 브라우저에서 로그인된 <b>omni.variational.io</b> 부계정 세션을 로컬 봇으로 전송합니다. (개인키 전송 없음)</div>
+  </div>
+
+  <div class="card">
+    <label>허용 부계정 지갑 주소 (선택 - 비우면 자동 잠금)</label>
+    <input id="allowedAddress" type="text" placeholder="0x... (Edge 메타마스크 부계정 주소)" />
+    <div class="row">
+      <div>
+        <label>1회 증거금 (USDC)</label>
+        <input id="orderMarginUsd" type="number" value="10" min="1" step="1" />
+      </div>
+      <div>
+        <label>계좌 상한선 (USDC)</label>
+        <input id="maxEquityCapUsd" type="number" value="250" min="50" step="10" />
+      </div>
+    </div>
+    <button id="btnConnect" class="btn-primary">Edge 부계정 세션 로컬 봇에 연결</button>
+    <button id="btnCopy" class="btn-secondary">세션 쿠키만 클립보드 복사</button>
+  </div>
+
+  <div id="statusBox" class="muted">먼저 Edge에서 omni.variational.io에 부계정 메타마스크로 로그인해 주세요.</div>
+  <script src="popup.js"></script>
+</body>
+</html>

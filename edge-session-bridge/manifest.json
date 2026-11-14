@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Variational Edge Session Bridge (Local Bot)",
+  "version": "1.0.0",
+  "description": "Edge 브라우저의 omni.variational.io 부계정 세션을 로컬 스탑헌팅 봇(localhost:3000)에 원클릭 연결합니다.",
+  "permissions": [
+    "cookies"
+  ],
+  "host_permissions": [
+    "https://omni.variational.io/*",
+    "https://*.variational.io/*",
+    "http://localhost:3000/*",
+    "http://127.0.0.1:3000/*"
+  ],
+  "action": {
+    "default_title": "Variational 로컬 봇 연결",
+    "default_popup": "popup.html"
+  }
+}

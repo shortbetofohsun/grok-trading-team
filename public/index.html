@@ -202,6 +202,58 @@
           </div>
         </div>
 
+        <!-- Edge 부계정 실매매 연동 & 3중 안전장치 패널 -->
+        <div id="liveControlPanel" class="rounded-xl bg-binanceDark/90 border border-binanceBorder p-3.5 space-y-2.5">
+          <div class="flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-shield-halved text-binanceYellow text-xs"></i>
+              <span class="text-xs font-bold text-white">Edge 부계정 실매매 연동 &amp; 3중 안전장치</span>
+              <span id="liveModeBadge" class="px-2 py-0.5 rounded text-[10px] font-bold mono bg-binanceBorder text-gray-300">모의매매 (PAPER)</span>
+            </div>
+            <div id="liveSummaryText" class="text-[11px] text-gray-400 mono">연결 지갑: 미연결 | 잔고: - | 상한: $250</div>
+          </div>
+
+          <div id="liveCloudWarn" class="hidden text-[11px] text-amber-400 bg-amber-950/30 border border-amber-800/50 rounded-lg px-2.5 py-1.5">
+            클라우드(Render) 환경에서는 Cloudflare 차단으로 실전 주문을 실행할 수 없습니다. 로컬 PC(http://localhost:3000)에서 실행해 주세요.
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[11px]">
+            <div class="sm:col-span-2">
+              <label class="block text-[10px] text-gray-400 mb-1">허용 부계정 주소 화이트리스트 (0x..., 비우면 자동 잠금)</label>
+              <input id="liveAllowedAddr" type="text" placeholder="0x... Edge 메타마스크 부계정 주소" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-400 mb-1">1회 증거금 (USDC, 10x)</label>
+              <input id="liveOrderMargin" type="number" min="1" step="1" value="10" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+            </div>
+            <div>
+              <label class="block text-[10px] text-gray-400 mb-1">본계정 차단 상한 (USDC)</label>
+              <input id="liveMaxCap" type="number" min="10" step="10" value="250" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+            </div>
+          </div>
+
+          <div class="flex flex-col sm:flex-row gap-2">
+            <input id="liveCookieInput" type="password" placeholder="Edge 세션 쿠키(vr-*) 붙여넣기 또는 edge-session-bridge 확장으로 원클릭 연결" class="flex-1 px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+          </div>
+
+          <div class="flex flex-wrap gap-1.5">
+            <button onclick="connectLiveSession()" id="btnLiveConnect" class="px-3 py-1.5 rounded-lg bg-binanceYellow text-black font-bold text-[11px] hover:bg-yellow-400 transition">
+              Edge 세션 연결 &amp; 검증
+            </button>
+            <button onclick="runLiveTestOrder()" id="btnLiveTest" class="px-3 py-1.5 rounded-lg bg-binanceBorder hover:bg-gray-700 text-white font-semibold text-[11px] transition">
+              $1.5 실전 주문 테스트 (BTC)
+            </button>
+            <button onclick="toggleLiveTrading()" id="btnLiveToggle" class="px-3 py-1.5 rounded-lg bg-binanceDark hover:bg-binanceBorder border border-binanceBorder text-gray-300 font-bold text-[11px] transition">
+              실전 자동매매 ON 전환
+            </button>
+            <button onclick="disconnectLiveSession()" class="px-3 py-1.5 rounded-lg bg-binanceDark hover:bg-binanceRed/20 border border-binanceBorder text-gray-400 hover:text-binanceRed text-[11px] font-semibold transition">
+              연결 해제
+            </button>
+          </div>
+
+          <div id="liveMsgBox" class="hidden text-[11px] rounded-lg px-2.5 py-1.5 mono"></div>
+        </div>
+
         <!-- Vault KPI Row -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
@@ -1291,6 +1343,7 @@
         latestState = data.state;
         stopHuntUniverse = data.stopHuntUniverse || [];
         renderHeader(data.sessionInfo, data.stopHuntPerformance);
+        if (data.liveStatus) renderLiveStatus(data.liveStatus);
         renderStopHuntTable();
         renderPositionsAndLogs();
         renderBacktestRefTable();
@@ -1744,6 +1797,176 @@
       } catch (e) {
         box.textContent = `오류: ${e.message}`;
         btn.disabled = false;
+      }
+    }
+
+    // =========================================================================
+    // 3. Edge 부계정 실매매 연동 컨트롤러
+    // =========================================================================
+    let latestLiveStatus = null;
+
+    function shortAddr(addr) {
+      if (!addr || addr.length < 12) return addr || '미연결';
+      return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+    }
+
+    function showLiveMsg(text, ok = true) {
+      const box = document.getElementById('liveMsgBox');
+      if (!box) return;
+      if (!text) {
+        box.classList.add('hidden');
+        return;
+      }
+      box.className = `text-[11px] rounded-lg px-2.5 py-1.5 mono ${ok ? 'text-binanceGreen bg-binanceGreen/10 border border-binanceGreen/30' : 'text-binanceRed bg-binanceRed/10 border border-binanceRed/30'}`;
+      box.textContent = text;
+    }
+
+    function renderLiveStatus(st, forceHydrate = false) {
+      if (!st) return;
+      latestLiveStatus = st;
+      const badge = document.getElementById('liveModeBadge');
+      const summary = document.getElementById('liveSummaryText');
+      const toggleBtn = document.getElementById('btnLiveToggle');
+      const cloudWarn = document.getElementById('liveCloudWarn');
+
+      if (cloudWarn) {
+        cloudWarn.classList.toggle('hidden', !st.isCloudBlocked);
+      }
+      if (badge) {
+        if (st.enabled) {
+          badge.textContent = '실전매매 가동중 (LIVE)';
+          badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold mono bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/40';
+        } else {
+          badge.textContent = '모의매매 (PAPER)';
+          badge.className = 'px-2 py-0.5 rounded text-[10px] font-bold mono bg-binanceBorder text-gray-300';
+        }
+      }
+      if (toggleBtn) {
+        if (st.enabled) {
+          toggleBtn.textContent = '실전 자동매매 OFF (모의 전환)';
+          toggleBtn.className = 'px-3 py-1.5 rounded-lg bg-binanceRed/20 hover:bg-binanceRed/30 border border-binanceRed/40 text-binanceRed font-bold text-[11px] transition';
+        } else {
+          toggleBtn.textContent = '실전 자동매매 ON 전환';
+          toggleBtn.className = 'px-3 py-1.5 rounded-lg bg-binanceGreen/20 hover:bg-binanceGreen/30 border border-binanceGreen/40 text-binanceGreen font-bold text-[11px] transition';
+        }
+      }
+      if (summary) {
+        const addrTxt = st.hasSession ? `${shortAddr(st.connectedAddress)} (확인됨)` : '미연결';
+        const balTxt = st.lastBalanceUsd !== null && st.lastBalanceUsd !== undefined
+          ? `$${Number(st.lastBalanceUsd).toFixed(2)} USDC`
+          : '-';
+        summary.textContent = `연결 지갑: ${addrTxt} | 잔고: ${balTxt} | 상한: $${st.maxEquityCapUsd ?? 250}`;
+      }
+
+      const addrIn = document.getElementById('liveAllowedAddr');
+      const marginIn = document.getElementById('liveOrderMargin');
+      const capIn = document.getElementById('liveMaxCap');
+      if (addrIn && (forceHydrate || (document.activeElement !== addrIn && !addrIn.value && st.allowedAddress))) {
+        addrIn.value = st.allowedAddress || '';
+      }
+      if (marginIn && (forceHydrate || (document.activeElement !== marginIn && st.orderMarginUsd))) {
+        marginIn.value = st.orderMarginUsd;
+      }
+      if (capIn && (forceHydrate || (document.activeElement !== capIn && st.maxEquityCapUsd))) {
+        capIn.value = st.maxEquityCapUsd;
+      }
+      if (st.lastError && !document.getElementById('liveMsgBox')?.textContent) {
+        showLiveMsg(st.lastError, false);
+      }
+    }
+
+    async function connectLiveSession() {
+      const btn = document.getElementById('btnLiveConnect');
+      const cookies = document.getElementById('liveCookieInput')?.value?.trim() || '';
+      const allowedAddress = document.getElementById('liveAllowedAddr')?.value?.trim() || '';
+      const orderMarginUsd = Number(document.getElementById('liveOrderMargin')?.value || 10);
+      const maxEquityCapUsd = Number(document.getElementById('liveMaxCap')?.value || 250);
+
+      btn.disabled = true;
+      showLiveMsg('Edge 부계정 세션 및 3중 안전장치 검증 중...', true);
+      try {
+        const payload = { allowedAddress, orderMarginUsd, maxEquityCapUsd };
+        if (cookies) payload.cookies = cookies;
+        const res = await fetch('/api/live/connect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const out = await res.json();
+        if (!res.ok || !out.ok) {
+          showLiveMsg(out.error || '세션 검증 실패', false);
+        } else {
+          if (document.getElementById('liveCookieInput')) document.getElementById('liveCookieInput').value = '';
+          renderLiveStatus(out.status, true);
+          showLiveMsg(`연결 검증 성공: 지갑 ${shortAddr(out.status.connectedAddress)} | 잔고 $${Number(out.status.lastBalanceUsd ?? 0).toFixed(2)} USDC`, true);
+        }
+      } catch (e) {
+        showLiveMsg(`통신 오류: ${e.message}`, false);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function toggleLiveTrading() {
+      const nextState = !(latestLiveStatus?.enabled);
+      if (nextState) {
+        const ok = confirm('실전 자동매매(LIVE)를 켜시겠습니까? 다음 스탑헌팅 타점 포착 시 실제 Variational 부계정으로 10x 주문이 체결됩니다.');
+        if (!ok) return;
+      }
+      try {
+        const res = await fetch('/api/live/toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: nextState })
+        });
+        const out = await res.json();
+        if (!res.ok || !out.ok) {
+          showLiveMsg(out.error || '모드 전환 거부', false);
+        } else {
+          renderLiveStatus(out.status, true);
+          showLiveMsg(out.status.enabled ? '실전 자동매매(LIVE) 모드가 켜졌습니다.' : '모의매매(PAPER) 모드로 전환되었습니다.', true);
+        }
+      } catch (e) {
+        showLiveMsg(`전환 오류: ${e.message}`, false);
+      }
+    }
+
+    async function runLiveTestOrder() {
+      const ok = confirm('실제 Variational 부계정으로 BTC $1.50 소액 매수 후 1.5초 뒤 즉시 청산하는 주문 경로 테스트를 실행할까요?');
+      if (!ok) return;
+      const btn = document.getElementById('btnLiveTest');
+      btn.disabled = true;
+      showLiveMsg('BTC $1.50 실전 왕복 주문 테스트 실행 중 (약 2~3초 소요)...', true);
+      try {
+        const res = await fetch('/api/live/test-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ symbol: 'BTC', notionalUsd: 1.5 })
+        });
+        const out = await res.json();
+        if (!res.ok || !out.ok) {
+          showLiveMsg(out.error || '실전 테스트 실패', false);
+        } else {
+          if (out.status) renderLiveStatus(out.status, true);
+          showLiveMsg(`실전 왕복 테스트 성공! 진입 RFQ ${out.openRfqId} -> 청산 RFQ ${out.closeRfqId || '완료'} (진입 $${out.entryPrice} -> 청산 $${out.exitPrice})`, true);
+        }
+      } catch (e) {
+        showLiveMsg(`테스트 오류: ${e.message}`, false);
+      } finally {
+        btn.disabled = false;
+      }
+    }
+
+    async function disconnectLiveSession() {
+      try {
+        const res = await fetch('/api/live/disconnect', { method: 'POST' });
+        const out = await res.json();
+        if (document.getElementById('liveCookieInput')) document.getElementById('liveCookieInput').value = '';
+        if (document.getElementById('liveAllowedAddr')) document.getElementById('liveAllowedAddr').value = '';
+        if (out.status) renderLiveStatus(out.status, true);
+        showLiveMsg('Edge 세션 연결이 해제되어 모의매매(PAPER) 모드로 복귀했습니다.', true);
+      } catch (e) {
+        showLiveMsg(`해제 오류: ${e.message}`, false);
       }
     }
 
