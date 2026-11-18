@@ -880,8 +880,8 @@ async function runVetAgent(candidates, config) {
 }
 
 function runSizeAgent(item, portfolio, config, customCapPct = null) {
-  const maxKellyCapPct = Number(customCapPct || config.maxKellyCapPct || 0.30);
-  const minOrderUsd = Number(config.minOrderUsd || 50);
+  const slotShare = Number(customCapPct || (1 / 3));
+  const minOrderUsd = Number(config.minOrderUsd || 10);
   const slippageBudgetPct = Number(config.slippageBudgetPct || 0.02);
 
   const unencumberedCash = Number(portfolio.cashUsd || 0);
@@ -895,16 +895,15 @@ function runSizeAgent(item, portfolio, config, customCapPct = null) {
     };
   }
 
-  const winProb = item.decision === 'PASS' ? 0.62 : (item.myProb || 0.57);
-  const payoffRatio = item.candidate?.rrRatio || item.payoffRatio || 2.0;
-  const rawKelly = ((payoffRatio * winProb) - (1 - winProb)) / payoffRatio;
-  const cappedKellyPct = Math.min(maxKellyCapPct, Math.max(0.15, rawKelly));
-
-  const maxByAccountCap = totalEquity * cappedKellyPct;
+  // 계좌 전체 자산의 정확히 1/3(33.33%) 균등 3분할 배분 (마지막 3번째 슬롯은 잔여 가용 현금 반영)
+  const targetSlotUsd = totalEquity * (1 / 3);
+  const effectiveSlotUsd = unencumberedCash <= targetSlotUsd * 1.12
+    ? unencumberedCash * 0.98
+    : targetSlotUsd;
   const liqUsd = Number(item.candidate?.liquidityUsd || item.liquidityUsd || 500000);
   const maxByLiquidity = liqUsd * (slippageBudgetPct * 0.25);
 
-  const calculatedDollars = Number(Math.min(unencumberedCash, maxByAccountCap, maxByLiquidity).toFixed(2));
+  const calculatedDollars = Number(Math.min(unencumberedCash, effectiveSlotUsd, maxByLiquidity).toFixed(2));
 
   if (calculatedDollars < minOrderUsd) {
     return {
@@ -917,14 +916,14 @@ function runSizeAgent(item, portfolio, config, customCapPct = null) {
   return {
     bot: 'SIZE',
     dollars: calculatedDollars,
-    kellyPct: Number((cappedKellyPct * 100).toFixed(2)),
-    reason: `3분할 우선순위·손익비(1:${payoffRatio}) 한도(${(maxKellyCapPct * 100).toFixed(0)}%) 통과 -> $${calculatedDollars} 배분`
+    kellyPct: Number((slotShare * 100).toFixed(2)),
+    reason: `계좌 3분할 균등 배분(1/3 · 손익비 1:${item.candidate?.rrRatio || 1.4}) 통과 -> $${calculatedDollars} 배분`
   };
 }
 
 function runFillsAgent(candidate, sizeResult) {
   const dollars = Number(sizeResult.dollars || 0);
-  const leverage = 10; // 10배 레버리지 고정 적용!
+  const leverage = 30; // 30배 레버리지 고정 적용!
   const notionalUsd = Number((dollars * leverage).toFixed(2));
   // Variational DEX 호가 스프레드 반영 + 최소 네트워크/집행 비용 $0.25
   const feeRate = 0.0002;
@@ -941,7 +940,7 @@ function runFillsAgent(candidate, sizeResult) {
   const feeUsd = Number(Math.max(feeRate * notionalUsd, feeFloor).toFixed(2));
   const effectiveFeePct = Number(((feeUsd / dollars) * 100).toFixed(2));
   const entryPriceUsd = Number(candidate.priceUsd || 0);
-  // 10배 레버리지 포지션 수량 = (증거금 × 10) / 진입가
+  // 30배 레버리지 포지션 수량 = (증거금 × 30) / 진입가
   const quantity = entryPriceUsd > 0 ? notionalUsd / entryPriceUsd : 0;
   const direction = candidate.direction || 'LONG';
 
@@ -1022,7 +1021,7 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
   }
 
   const dir = posObj.direction || 'LONG';
-  const lev = Number(posObj.leverage || 10);
+  const lev = Number(posObj.leverage || 30);
   const entryP = Number(posObj.entryPriceUsd || currentPrice);
   const tp1P = Number(posObj.tp1PriceUsd || entryP);
   const tp2P = Number(posObj.tp2PriceUsd || entryP);
@@ -1030,10 +1029,10 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
 
   const rawDiff = dir === 'SHORT' ? (entryP - currentPrice) : (currentPrice - entryP);
   const rawMovePct = entryP > 0 ? (rawDiff / entryP) * 100 : 0;
-  const pnlPct = Number((rawMovePct * lev).toFixed(2)); // 10배 레버리지 ROE(%)
+  const pnlPct = Number((rawMovePct * lev).toFixed(2)); // 레버리지 ROE(%)
 
   let action = 'HOLD';
-  let reason = `[${dir} ${lev}x] 스탑헌팅 출발점($${tp2P}) 회귀 대기 중 (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
+  let reason = `[${dir} ${lev}x] 스탑헌팅 출발점($${tp2P}) 회귀 대기 중 (${lev}x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
 
   const riskUnit = Math.abs(entryP - stopP);
   const lockTriggerPrice = dir === 'SHORT'
@@ -1043,41 +1042,41 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
   if (dir === 'SHORT') {
     if (currentPrice <= tp2P) {
       action = 'CLOSE';
-      reason = `[SHORT ${lev}x 평균회귀 완승] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절 (10x ROE +${pnlPct}%)`;
+      reason = `[SHORT ${lev}x 평균회귀 완승] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절 (${lev}x ROE +${pnlPct}%)`;
     } else if (currentPrice >= stopP) {
       action = 'CLOSE';
-      reason = `[SHORT ${lev}x 칼손절] 스탑헌팅 고점 방어선(SL $${stopP}) 재돌파 즉시 손절 (10x ROE ${pnlPct}%)`;
+      reason = `[SHORT ${lev}x 칼손절] 스탑헌팅 고점 방어선(SL $${stopP}) 재돌파 즉시 손절 (${lev}x ROE ${pnlPct}%)`;
     } else if (posObj.tp1Reached && currentPrice >= lockTriggerPrice) {
       action = 'CLOSE';
-      reason = `[SHORT ${lev}x 1차익절 확정] TP1 도달 후 +1.05R 방어선($${formatPricePrecise(lockTriggerPrice)}) 수익 보존 익절 (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
+      reason = `[SHORT ${lev}x 1차익절 확정] TP1 도달 후 +1.05R 방어선($${formatPricePrecise(lockTriggerPrice)}) 수익 보존 익절 (${lev}x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
     } else if (currentPrice <= tp1P) {
       posObj.tp1Reached = true;
       if (candleBullish) {
         action = 'CLOSE';
-        reason = `[SHORT ${lev}x 1차익절 확정] TP1 $${tp1P} (+1.20R 이상) 도달 후 반등 캔들 출현 수익 확정 (10x ROE +${pnlPct}%)`;
+        reason = `[SHORT ${lev}x 1차익절 확정] TP1 $${tp1P} (+1.20R 이상) 도달 후 반등 캔들 출현 수익 확정 (${lev}x ROE +${pnlPct}%)`;
       }
     }
   } else {
     if (currentPrice >= tp2P) {
       action = 'CLOSE';
-      reason = `[LONG ${lev}x 평균회귀 완승] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절 (10x ROE +${pnlPct}%)`;
+      reason = `[LONG ${lev}x 평균회귀 완승] 출발 기준가(TP2 $${tp2P}) 완전 복귀 전량 익절 (${lev}x ROE +${pnlPct}%)`;
     } else if (currentPrice <= stopP) {
       action = 'CLOSE';
-      reason = `[LONG ${lev}x 칼손절] 스탑헌팅 저점 방어선(SL $${stopP}) 재이탈 즉시 손절 (10x ROE ${pnlPct}%)`;
+      reason = `[LONG ${lev}x 칼손절] 스탑헌팅 저점 방어선(SL $${stopP}) 재이탈 즉시 손절 (${lev}x ROE ${pnlPct}%)`;
     } else if (posObj.tp1Reached && currentPrice <= lockTriggerPrice) {
       action = 'CLOSE';
-      reason = `[LONG ${lev}x 1차익절 확정] TP1 도달 후 +1.05R 방어선($${formatPricePrecise(lockTriggerPrice)}) 수익 보존 익절 (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
+      reason = `[LONG ${lev}x 1차익절 확정] TP1 도달 후 +1.05R 방어선($${formatPricePrecise(lockTriggerPrice)}) 수익 보존 익절 (${lev}x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
     } else if (currentPrice >= tp1P) {
       posObj.tp1Reached = true;
       if (!candleBullish) {
         action = 'CLOSE';
-        reason = `[LONG ${lev}x 1차익절 확정] TP1 $${tp1P} (+1.20R 이상) 도달 후 음봉 출현 수익 확정 (10x ROE +${pnlPct}%)`;
+        reason = `[LONG ${lev}x 1차익절 확정] TP1 $${tp1P} (+1.20R 이상) 도달 후 음봉 출현 수익 확정 (${lev}x ROE +${pnlPct}%)`;
       }
     }
   }
 
   const formattedLine = [
-    `[${item.symbol} ${dir} ${lev}x] 진입 $${entryP} -> 현재 $${currentPrice} (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
+    `[${item.symbol} ${dir} ${lev}x] 진입 $${entryP} -> 현재 $${currentPrice} (${lev}x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
     `목표(TP1/TP2): $${tp1P} / $${tp2P} | 방어선(SL): $${stopP} -> ${action}`
   ].join('\n');
 
