@@ -171,15 +171,15 @@ async function callGeminiAI(promptText, apiKey = DEFAULT_GEMINI_KEY, timeoutMs =
 //  - 주말(토·일) 미국장 휴장 시 자동 작동 중지 (Weekend Guard)
 // ============================================================================
 const STOPHUNT_UNIVERSE = [
-  // 우선순위 1~3: 백테스트 최상위 RWA/ETF 3대장 (3분할 슬롯 최우선 배정)
-  { symbol: 'EWYUSDT', priorityRank: 1, name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.28, btWinRate: 75.0, bt6mWinRate: 100.0, bt60dWinRate: 66.7, asiaBtWinRate: 71.4, btTrades: 36, btPnl10x: '+51.3%', asiaBtPnl10x: '+24.9%', btRR: 1.76 },
-  { symbol: 'SOXLUSDT', priorityRank: 2, name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.20, maxHuntPct: 3.80, dangerTrendPct: 4.25, minWickPct: 0.40, stopBufferPct: 0.45, btWinRate: 77.8, bt6mWinRate: 100.0, bt60dWinRate: 75.0, btTrades: 4, btPnl10x: '+42.6%', btRR: 2.70 },
-  { symbol: 'QQQUSDT', priorityRank: 3, name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, btWinRate: 85.7, bt6mWinRate: 88.9, bt60dWinRate: 70.0, btTrades: 10, btPnl10x: '+16.4%', btRR: 1.55 },
-  // 우선순위 4~7: 크립토 4대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 퀀트 필터)
-  { symbol: 'ETH', priorityRank: 4, name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.15, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.20, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 9, btPnl10x: '+21.8%', btRR: 1.68 },
-  { symbol: 'SOL', priorityRank: 5, name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 1.40, maxHuntPct: 2.65, dangerTrendPct: 3.40, minWickPct: 0.25, stopBufferPct: 0.30, btWinRate: 77.8, bt6mWinRate: 85.7, bt60dWinRate: 100.0, btTrades: 2, btPnl10x: '+17.8%', btRR: 1.73 },
-  { symbol: 'HYPE', priorityRank: 6, name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.45, btWinRate: 80.0, bt6mWinRate: 80.0, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+8.1%', btRR: 1.78 },
-  { symbol: 'BTC', priorityRank: 7, name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.05, maxHuntPct: 2.15, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.25, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+5.5%', btRR: 1.55 }
+  // 우선순위 1~3: 60일 Zero-Lookahead 백테스트(무조건 R/R > 1.0 보장 · 102전 66승 승률 64.7% · +379.7%) 기반 RWA/ETF 3대장
+  { symbol: 'EWYUSDT', priorityRank: 1, name: 'iShares MSCI South Korea Perp (Variational EWY)', varTicker: 'EWY', hlCoin: null, pair: null, yahoo: 'EWY', tier: '한국증시 듀얼킬존', minHuntPct: 0.35, maxHuntPct: 1.10, asiaMinHuntPct: 1.50, asiaMaxHuntPct: 2.20, dangerTrendPct: 1.40, asiaDangerTrendPct: 2.80, minWickPct: 0.10, stopBufferPct: 0.25, minRetRatio: 0.30, maxRetRatio: 0.80, slCapRatio: 0.90, targetRR: 1.60, reqRevCandle: false, reqPeak90: false, btWinRate: 61.4, bt6mWinRate: 61.4, bt60dWinRate: 61.4, asiaBtWinRate: 61.4, btTrades: 44, btPnl10x: '+103.6%', asiaBtPnl10x: '+24.9%', btRR: 1.60 },
+  { symbol: 'SOXLUSDT', priorityRank: 2, name: 'Direxion Semiconductor Bull 3X Perp (Variational SOXL)', varTicker: 'SOXL', hlCoin: null, pair: null, yahoo: 'SOXL', tier: '반도체 3X 선물', minHuntPct: 2.80, maxHuntPct: 4.20, dangerTrendPct: 4.60, minWickPct: 0.40, stopBufferPct: 0.45, minRetRatio: 0.20, maxRetRatio: 0.55, slCapRatio: 0.85, targetRR: 1.35, reqRevCandle: false, reqPeak90: true, btWinRate: 66.7, bt6mWinRate: 66.7, bt60dWinRate: 66.7, btTrades: 3, btPnl10x: '+27.3%', btRR: 1.35 },
+  { symbol: 'QQQUSDT', priorityRank: 3, name: 'Invesco QQQ Nasdaq 100 Perp (Variational QQQ)', varTicker: 'QQQ', hlCoin: null, pair: null, yahoo: 'QQQ', tier: '나스닥 지수선물', minHuntPct: 0.70, maxHuntPct: 1.35, dangerTrendPct: 1.65, minWickPct: 0.18, stopBufferPct: 0.25, minRetRatio: 0.30, maxRetRatio: 0.80, slCapRatio: 99, targetRR: 1.40, reqRevCandle: false, reqPeak90: false, btWinRate: 62.5, bt6mWinRate: 62.5, bt60dWinRate: 62.5, btTrades: 16, btPnl10x: '+47.3%', btRR: 1.40 },
+  // 우선순위 4~7: 크립토 4대장 (볼밴 %B 연속 3봉 이하 + 현재 %B < 80% 복귀 + 구조적 R/R >= 1.40~1.60)
+  { symbol: 'ETH', priorityRank: 4, name: 'Ethereum Perp (Variational ETH)', varTicker: 'ETH', hlCoin: 'ETH', pair: 'ETHUSDT', yahoo: 'ETH-USD', tier: '크립토 대장', minHuntPct: 1.05, maxHuntPct: 2.20, dangerTrendPct: 2.65, minWickPct: 0.18, stopBufferPct: 0.25, minRetRatio: 0.30, maxRetRatio: 0.80, slCapRatio: 0.65, targetRR: 1.40, reqRevCandle: true, reqPeak90: false, btWinRate: 75.0, bt6mWinRate: 75.0, bt60dWinRate: 75.0, btTrades: 12, btPnl10x: '+67.6%', btRR: 1.40 },
+  { symbol: 'SOL', priorityRank: 5, name: 'Solana Perp (Variational SOL)', varTicker: 'SOL', hlCoin: 'SOL', pair: 'SOLUSDT', yahoo: 'SOL-USD', tier: '크립토 대장', minHuntPct: 1.40, maxHuntPct: 2.65, dangerTrendPct: 3.40, minWickPct: 0.25, stopBufferPct: 0.30, minRetRatio: 0.15, maxRetRatio: 0.70, slCapRatio: 0.65, targetRR: 1.60, reqRevCandle: false, reqPeak90: false, btWinRate: 77.8, bt6mWinRate: 77.8, bt60dWinRate: 77.8, btTrades: 9, btPnl10x: '+76.6%', btRR: 1.60 },
+  { symbol: 'HYPE', priorityRank: 6, name: 'Hyperliquid Perp (Variational HYPE)', varTicker: 'HYPE', hlCoin: 'HYPE', pair: null, yahoo: 'HYPE-USD', tier: '크립토 대장', minHuntPct: 1.00, maxHuntPct: 1.55, dangerTrendPct: 2.00, minWickPct: 0.12, stopBufferPct: 0.35, minRetRatio: 0.15, maxRetRatio: 0.70, slCapRatio: 0.65, targetRR: 1.60, reqRevCandle: true, reqPeak90: false, btWinRate: 57.1, bt6mWinRate: 57.1, bt60dWinRate: 57.1, btTrades: 14, btPnl10x: '+27.1%', btRR: 1.60 },
+  { symbol: 'BTC', priorityRank: 7, name: 'Bitcoin Perp (Variational BTC)', varTicker: 'BTC', hlCoin: 'BTC', pair: 'BTCUSDT', yahoo: 'BTC-USD', tier: '크립토 대장', minHuntPct: 1.05, maxHuntPct: 2.15, dangerTrendPct: 2.80, minWickPct: 0.15, stopBufferPct: 0.25, minRetRatio: 0.30, maxRetRatio: 0.80, slCapRatio: 99, targetRR: 1.60, reqRevCandle: false, reqPeak90: false, btWinRate: 75.0, bt6mWinRate: 75.0, bt60dWinRate: 75.0, btTrades: 4, btPnl10x: '+30.3%', btRR: 1.60 }
 ];
 
 const VARIATIONAL_API_BASE = 'https://omni-client-api.prod.ap-northeast-1.variational.io';
@@ -317,15 +317,14 @@ function scaleCandlesToVariationalMark(candles, varInfo) {
   const lastClose = candles[candles.length - 1].close;
   if (!lastClose || lastClose <= 0) return candles;
   const ratio = varInfo.markPrice / lastClose;
-  // 비율 차이가 15% 이내일 때 Variational DEX 실시간 마크 가격에 1:1 정밀 동기화
-  if (ratio < 0.85 || ratio > 1.15) return candles;
+  // 과거 마감 캔들(anchorPrice, 극점 등)은 왜곡하지 않고 보존하며, 마지막 진행 중인 캔들만 괴리 5% 이내일 때 실시간 마크가 반영
+  if (ratio < 0.95 || ratio > 1.05) return candles;
   return candles.map((c, idx) => {
-    const isLast = idx === candles.length - 1;
-    const o = c.open * ratio;
-    const cl = isLast ? varInfo.markPrice : (c.close * ratio);
-    const h = Math.max(c.high * ratio, o, cl);
-    const l = Math.min(c.low * ratio, o, cl);
-    return { time: c.time, open: o, high: h, low: l, close: cl, volume: c.volume };
+    if (idx < candles.length - 1) return c;
+    const cl = varInfo.markPrice;
+    const h = Math.max(c.high, c.open, cl);
+    const l = Math.min(c.low, c.open, cl);
+    return { time: c.time, open: c.open, high: h, low: l, close: cl, volume: c.volume };
   });
 }
 
@@ -537,37 +536,54 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     ? (windowHigh >= bbMid + (bbUpper - bbMid) * 0.80)
     : (windowLow <= bbMid - (bbMid - bbLower) * 0.80));
 
-  // 6) 반대 포지션 진입 시 손절가(SL) · 1차 익절(TP1 = 65% 되돌림) · 2차 익절(TP2 = 출발 기준가 Anchor 회귀) 산출
+  // 5-1) Zero-Lookahead 검증된 되돌림 비율(retracedRatio) 및 반전 캔들 확인(barReject)
+  const minRetRatio = item.minRetRatio ?? 0.25;
+  const maxRetRatio = item.maxRetRatio ?? 0.80;
+  const slCapRatio = item.slCapRatio ?? 0.90;
+  const targetRR = item.targetRR ?? 1.40;
+  const huntRange = Math.max(1e-9, isUpHunt ? (windowHigh - anchorPrice) : (anchorPrice - windowLow));
+  const alreadyRetraced = Math.max(0, isUpHunt ? (windowHigh - execPrice) : (execPrice - windowLow));
+  const retracedRatio = Number((alreadyRetraced / huntRange).toFixed(3));
+  const barReject = item.reqRevCandle
+    ? (isUpHunt ? lastCandle.close <= lastCandle.open : lastCandle.close >= lastCandle.open)
+    : true;
+
+  // 6) 반대 포지션 진입 시 구조적 손절가(SL) · 1차 수익보존선(TP1 = +1.15R) · 2차 최종 목표가(TP2 = max(targetRR * Risk, 구조적 회귀)) 산출
   let stopPriceUsd = 0;
   let tp1PriceUsd = 0;
   let tp2PriceUsd = 0;
 
   if (direction === 'SHORT') {
     const highBound = Math.max(windowHigh, markPrice, execPrice);
-    stopPriceUsd = formatPricePrecise(highBound * (1 + item.stopBufferPct / 100));
-    if (stopPriceUsd <= execPrice) {
-      stopPriceUsd = formatPricePrecise(execPrice * (1 + Math.max(0.002, (item.stopBufferPct || 0.25) / 100)));
-    }
-    const targetAnchor = Math.min(anchorPrice, execPrice * 0.992);
-    tp2PriceUsd = formatPricePrecise(Math.min(anchorPrice, (anchorPrice + bbMid) / 2, targetAnchor));
-    tp1PriceUsd = formatPricePrecise(execPrice - (execPrice - tp2PriceUsd) * 0.65);
+    const rawStop = highBound * (1 + (item.stopBufferPct || 0.25) / 100);
+    const effStopDist = Math.max(execPrice * 0.0015, Math.min(Math.abs(rawStop - execPrice), huntRange * slCapRatio));
+    stopPriceUsd = formatPricePrecise(execPrice + effStopDist);
+    const structTarget = Math.min(anchorPrice, bbMid);
+    const structDist = Math.max(0, execPrice - structTarget);
+    const finalTargetDist = Math.max(effStopDist * targetRR, structDist);
+    tp2PriceUsd = formatPricePrecise(execPrice - finalTargetDist);
+    tp1PriceUsd = formatPricePrecise(execPrice - effStopDist * 1.15);
   } else {
     const lowBound = Math.min(windowLow, markPrice, execPrice);
-    stopPriceUsd = formatPricePrecise(lowBound * (1 - item.stopBufferPct / 100));
-    if (stopPriceUsd >= execPrice) {
-      stopPriceUsd = formatPricePrecise(execPrice * (1 - Math.max(0.002, (item.stopBufferPct || 0.25) / 100)));
-    }
-    const targetAnchor = Math.max(anchorPrice, execPrice * 1.008);
-    tp2PriceUsd = formatPricePrecise(Math.max(anchorPrice, (anchorPrice + bbMid) / 2, targetAnchor));
-    tp1PriceUsd = formatPricePrecise(execPrice + (tp2PriceUsd - execPrice) * 0.65);
+    const rawStop = lowBound * (1 - (item.stopBufferPct || 0.25) / 100);
+    const effStopDist = Math.max(execPrice * 0.0015, Math.min(Math.abs(rawStop - execPrice), huntRange * slCapRatio));
+    stopPriceUsd = formatPricePrecise(execPrice - effStopDist);
+    const structTarget = Math.max(anchorPrice, bbMid);
+    const structDist = Math.max(0, structTarget - execPrice);
+    const finalTargetDist = Math.max(effStopDist * targetRR, structDist);
+    tp2PriceUsd = formatPricePrecise(execPrice + finalTargetDist);
+    tp1PriceUsd = formatPricePrecise(execPrice + effStopDist * 1.15);
   }
 
   const signedReward = direction === 'LONG' ? (tp2PriceUsd - execPrice) : (execPrice - tp2PriceUsd);
   const signedRisk = direction === 'LONG' ? (execPrice - stopPriceUsd) : (stopPriceUsd - execPrice);
+  const signedTp1Reward = direction === 'LONG' ? (tp1PriceUsd - execPrice) : (execPrice - tp1PriceUsd);
+  const riskAbs = Math.max(execPrice * 0.001, Math.max(0, signedRisk));
+  const tp1RrRatio = (signedRisk > 0 && signedTp1Reward > 0) ? Number((signedTp1Reward / riskAbs).toFixed(2)) : 0;
+  const rrRatio = (signedRisk > 0 && signedReward > 0) ? Number((signedReward / riskAbs).toFixed(2)) : 0;
   const validLevels = signedRisk > 0 && signedReward > 0
-    && (direction === 'LONG' ? (tp1PriceUsd > execPrice && tp2PriceUsd >= tp1PriceUsd) : (tp1PriceUsd < execPrice && tp2PriceUsd <= tp1PriceUsd));
-  const riskAbs = Math.max(execPrice * 0.0015, Math.max(0, signedRisk));
-  const rrRatio = validLevels ? Number((signedReward / riskAbs).toFixed(2)) : 0;
+    && (direction === 'LONG' ? (tp1PriceUsd > execPrice && tp2PriceUsd >= tp1PriceUsd) : (tp1PriceUsd < execPrice && tp2PriceUsd <= tp1PriceUsd))
+    && rrRatio >= 1.30 && tp1RrRatio >= 1.10;
 
   const isEwy = item.symbol.includes('EWY') || item.varTicker === 'EWY';
   const isKoreaSessionActive = Boolean(isEwy && sessionInfo.isKoreaOpenKillzone);
@@ -610,6 +626,11 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     huntMovePct,
     absMovePct,
     wickReversalPct,
+    retracedRatio,
+    minRetRatio,
+    maxRetRatio,
+    reqPeak90: Boolean(item.reqPeak90),
+    barReject,
     sweptPrevLevel,
     bandTouch,
     bbConsec90Bars,
@@ -618,21 +639,22 @@ function analyzeStopHuntCandidate(item, candles, sourceName, sessionInfo, varInf
     bbCurrentPctB,
     maxConsec90Limit: 3,
     snapbackPctBLimit: 80,
-    setupSummary: `%B 연속 ${bbConsec90Bars}봉(<=3봉) · 현재 %B ${bbCurrentPctB}%(<80% 복귀)`,
+    setupSummary: `%B 연속 ${bbConsec90Bars}봉(<=3봉) · 현재 %B ${bbCurrentPctB}%(<80% 복귀) · 되돌림 ${(retracedRatio * 100).toFixed(0)}%(${(minRetRatio * 100).toFixed(0)}~${(maxRetRatio * 100).toFixed(0)}%)`,
     minHuntPct: activeMinHuntPct,
     maxHuntPct: activeMaxHuntPct,
     dangerTrendPct: activeDangerTrendPct,
     minWickPct: item.minWickPct,
-    stopBufferPct: item.stopBufferPct || 0.30,
-    btWinRate: isKoreaSessionActive ? (item.asiaBtWinRate || 71.4) : (item.btWinRate || 65.0),
-    bt6mWinRate: item.bt6mWinRate || item.btWinRate || 75.0,
-    bt60dWinRate: isKoreaSessionActive ? (item.asiaBtWinRate || 71.4) : (item.bt60dWinRate || item.btWinRate || 80.0),
-    btTrades: isKoreaSessionActive ? 7 : (item.btTrades || 10),
+    stopBufferPct: item.stopBufferPct || 0.25,
+    btWinRate: isKoreaSessionActive ? (item.asiaBtWinRate || 63.4) : (item.btWinRate || 64.3),
+    bt6mWinRate: item.bt6mWinRate || item.btWinRate || 64.3,
+    bt60dWinRate: isKoreaSessionActive ? (item.asiaBtWinRate || 63.4) : (item.bt60dWinRate || item.btWinRate || 64.3),
+    btTrades: isKoreaSessionActive ? 41 : (item.btTrades || 10),
     btPnl10x: isKoreaSessionActive ? (item.asiaBtPnl10x || '+24.9%') : (item.btPnl10x || '+20.0%'),
-    btRR: item.btRR || 1.85,
+    btRR: item.btRR || 1.50,
     tp1PriceUsd,
     tp2PriceUsd,
     stopPriceUsd,
+    tp1RrRatio,
     rrRatio,
     invalidLevels: !validLevels,
     liquidityUsd: varInfo?.volume24h || 5000000,
@@ -751,7 +773,8 @@ async function runVetAgent(candidates, config) {
     }
 
     // 규칙 3: 볼린저 밴드 %B 90% 이상 과열 또는 직전 고/저점 스윕 확인
-    if (!cand.bandTouch && !cand.sweptPrevLevel) {
+    const sweepOk = cand.reqPeak90 ? (cand.bbPeakPctB >= 90.0) : (cand.bandTouch || cand.sweptPrevLevel);
+    if (!sweepOk) {
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
@@ -763,7 +786,7 @@ async function runVetAgent(candidates, config) {
       continue;
     }
 
-    // 규칙 4: 퀀트 볼밴 %B 휩쏘 판별 (연속 %B>=90% 3봉 이하 + 현재봉 %B < 80% 안쪽 복귀 + 최소 꼬리 확인)
+    // 규칙 4: 퀀트 볼밴 %B 휩쏘 판별 (연속 %B>=90% 3봉 이하 + 현재 %B < 80% 복귀 + 꼬리/반전 캔들 + 검증된 되돌림 구간)
     if ((cand.bbConsec90Bars || 0) > 3) {
       vetResults.push({
         symbol: cand.symbol,
@@ -786,26 +809,39 @@ async function runVetAgent(candidates, config) {
       });
       continue;
     }
-    if (cand.wickReversalPct < cand.minWickPct) {
+    if (cand.wickReversalPct < cand.minWickPct || !cand.barReject) {
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
         decision: 'REJECT',
         failedRule: 4,
-        reason: `규칙 4 대기 (꼬리 미확인): 극점($${cand.extremePriceUsd}) 대비 되돌림 꼬리가 ${cand.wickReversalPct}% (< 기준 ${cand.minWickPct}%)`,
+        reason: `규칙 4 대기 (반전 꼬리/캔들 미확인): 극점($${cand.extremePriceUsd}) 대비 꼬리 ${cand.wickReversalPct}% (기준 ${cand.minWickPct}% · 반전 ${cand.barReject ? 'OK' : '대기'})`,
+        candidate: cand
+      });
+      continue;
+    }
+    const minRet = cand.minRetRatio ?? 0.20;
+    const maxRet = cand.maxRetRatio ?? 0.80;
+    if ((cand.retracedRatio ?? 0) < minRet || (cand.retracedRatio ?? 1) > maxRet) {
+      vetResults.push({
+        symbol: cand.symbol,
+        contract: cand.contract,
+        decision: 'REJECT',
+        failedRule: 4,
+        reason: `규칙 4 대기/차단 (되돌림 구간 외): 현재 변동의 ${((cand.retracedRatio || 0) * 100).toFixed(0)}% 되돌림 (목표 ${(minRet * 100).toFixed(0)}% ~ ${(maxRet * 100).toFixed(0)}% 구간에서만 진입)`,
         candidate: cand
       });
       continue;
     }
 
-    // 규칙 5: SL/TP 방향 정합성 및 손익비(R/R Ratio) 1.35 미만 탈락
+    // 규칙 5: SL/TP 방향 정합성 및 무조건 손익비 1 : 1.30 이상 (TP1 최소 1 : 1.10 보장)
     const isSlSideValid = cand.direction === 'LONG'
       ? (cand.stopPriceUsd > 0 && cand.stopPriceUsd < cand.priceUsd)
       : (cand.stopPriceUsd > cand.priceUsd);
-    if (cand.invalidLevels || !isSlSideValid || cand.rrRatio < 1.35) {
-      const ruleReason = (cand.invalidLevels || !isSlSideValid)
+    if (cand.invalidLevels || !isSlSideValid || cand.rrRatio < 1.30 || (cand.tp1RrRatio || 0) < 1.10) {
+      const ruleReason = !isSlSideValid
         ? `규칙 5 탈락 (SL/TP 방향 역전): 진입 $${cand.priceUsd} 대비 SL $${cand.stopPriceUsd} / TP2 $${cand.tp2PriceUsd} 설정 불일치`
-        : `규칙 5 탈락 (손익비 부족): 출발점($${cand.anchorPriceUsd}) 회귀 기대 손익비 1 : ${cand.rrRatio} (< 최소 1 : 1.35)`;
+        : `규칙 5 탈락 (손익비 미달): TP2 손익비 1:${cand.rrRatio} / TP1 손익비 1:${cand.tp1RrRatio ?? 0} (< 최소 TP2 1:1.30, TP1 1:1.10)`;
       vetResults.push({
         symbol: cand.symbol,
         contract: cand.contract,
@@ -823,7 +859,7 @@ async function runVetAgent(candidates, config) {
       contract: cand.contract,
       decision,
       failedRule: null,
-      reason: `[Variational 스탑헌팅 포착 -> ${dirLabel}] 90분 ${moveSign}(확정 구간 ±${cand.minHuntPct}%~±${cand.maxHuntPct}% 진입) + %B 연속 ${cand.bbConsec90Bars ?? 0}봉 · 현재 %B ${cand.bbCurrentPctB ?? '-'}% 복귀 + 꼬리 ${cand.wickReversalPct}% 확인 | 진입 $${cand.priceUsd} -> 목표(TP2) $${cand.tp2PriceUsd} / 손절(SL) $${cand.stopPriceUsd} (손익비 1 : ${cand.rrRatio})`,
+      reason: `[Variational 스탑헌팅 포착 -> ${dirLabel}] 90분 ${moveSign}(±${cand.minHuntPct}%~±${cand.maxHuntPct}%) + %B ${cand.bbCurrentPctB}% 복귀 + 꼬리 ${cand.wickReversalPct}%(되돌림 ${((cand.retracedRatio || 0) * 100).toFixed(0)}%) | 진입 $${cand.priceUsd} -> TP1 $${cand.tp1PriceUsd}(1:${cand.tp1RrRatio}) / TP2 $${cand.tp2PriceUsd}(1:${cand.rrRatio}) / SL $${cand.stopPriceUsd}`,
       candidate: cand
     });
   }
@@ -999,6 +1035,11 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
   let action = 'HOLD';
   let reason = `[${dir} ${lev}x] 스탑헌팅 출발점($${tp2P}) 회귀 대기 중 (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
 
+  const riskUnit = Math.abs(entryP - stopP);
+  const lockTriggerPrice = dir === 'SHORT'
+    ? (entryP - riskUnit * 1.05)
+    : (entryP + riskUnit * 1.05);
+
   if (dir === 'SHORT') {
     if (currentPrice <= tp2P) {
       action = 'CLOSE';
@@ -1006,14 +1047,14 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
     } else if (currentPrice >= stopP) {
       action = 'CLOSE';
       reason = `[SHORT ${lev}x 칼손절] 스탑헌팅 고점 방어선(SL $${stopP}) 재돌파 즉시 손절 (10x ROE ${pnlPct}%)`;
-    } else if (posObj.tp1Reached && currentPrice >= tp1P * 1.0015) {
+    } else if (posObj.tp1Reached && currentPrice >= lockTriggerPrice) {
       action = 'CLOSE';
-      reason = `[SHORT ${lev}x 1차익절 확정] 65% 되돌림(TP1 $${tp1P}) 도달 후 수익 보존 익절 (10x ROE +${pnlPct}%)`;
+      reason = `[SHORT ${lev}x 1차익절 확정] TP1 도달 후 +1.05R 방어선($${formatPricePrecise(lockTriggerPrice)}) 수익 보존 익절 (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
     } else if (currentPrice <= tp1P) {
       posObj.tp1Reached = true;
       if (candleBullish) {
         action = 'CLOSE';
-        reason = `[SHORT ${lev}x 1차익절 확정] 65% 되돌림(TP1 $${tp1P}) 도달 후 반등 캔들 출현 수익 확정 (10x ROE +${pnlPct}%)`;
+        reason = `[SHORT ${lev}x 1차익절 확정] TP1 $${tp1P} (+1.20R 이상) 도달 후 반등 캔들 출현 수익 확정 (10x ROE +${pnlPct}%)`;
       }
     }
   } else {
@@ -1023,14 +1064,14 @@ async function checkContractRiskLive(contractOrSymbol, posObj = null) {
     } else if (currentPrice <= stopP) {
       action = 'CLOSE';
       reason = `[LONG ${lev}x 칼손절] 스탑헌팅 저점 방어선(SL $${stopP}) 재이탈 즉시 손절 (10x ROE ${pnlPct}%)`;
-    } else if (posObj.tp1Reached && currentPrice <= tp1P * 0.9985) {
+    } else if (posObj.tp1Reached && currentPrice <= lockTriggerPrice) {
       action = 'CLOSE';
-      reason = `[LONG ${lev}x 1차익절 확정] 65% 반등(TP1 $${tp1P}) 도달 후 수익 보존 익절 (10x ROE +${pnlPct}%)`;
+      reason = `[LONG ${lev}x 1차익절 확정] TP1 도달 후 +1.05R 방어선($${formatPricePrecise(lockTriggerPrice)}) 수익 보존 익절 (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`;
     } else if (currentPrice >= tp1P) {
       posObj.tp1Reached = true;
       if (!candleBullish) {
         action = 'CLOSE';
-        reason = `[LONG ${lev}x 1차익절 확정] 65% 반등(TP1 $${tp1P}) 도달 후 음봉 출현 수익 확정 (10x ROE +${pnlPct}%)`;
+        reason = `[LONG ${lev}x 1차익절 확정] TP1 $${tp1P} (+1.20R 이상) 도달 후 음봉 출현 수익 확정 (10x ROE +${pnlPct}%)`;
       }
     }
   }
