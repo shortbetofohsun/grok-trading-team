@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Grok Edge-Render 실매매 브리지",
-  "version": "2.1.0",
-  "description": "omni.variational.io 브라우저 세션과 Render 24시간 스탑헌팅 서버를 직접 연결해 부계정 실전 주문을 실행합니다.",
+  "version": "2.2.0",
+  "description": "omni.variational.io 브라우저 세션과 Render 24시간 스탑헌팅 서버를 무중단 락으로 연결해 3분할 30x 실전 주문을 실행합니다.",
   "permissions": [
     "cookies",
     "storage",
