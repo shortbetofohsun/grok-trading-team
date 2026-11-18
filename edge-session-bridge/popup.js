@@ -64,8 +64,9 @@ function renderStatus(st, forceHydrate = false) {
   const bridgeConnected = Boolean(st.edgeBridgeConnected);
   const ageSec = st.edgeLastSeenAt ? Math.max(0, Math.round((Date.now() - Number(st.edgeLastSeenAt)) / 1000)) : null;
 
+  const levLabel = Number(st.leverage || 30);
   if (bridgeConnected) {
-    liveSummary.innerHTML = `<span class="ok">Edge 탭 직결됨</span> · ${ageSec !== null ? `${ageSec}초 전` : '실시간'} · 1회 $${st.orderMarginUsd} (10x)`;
+    liveSummary.innerHTML = `<span class="ok">Edge 탭 직결됨 (무중단 락)</span> · ${ageSec !== null ? `${ageSec}초 전` : '실시간'} · 1회 $${st.orderMarginUsd} (${levLabel}x · 1/3 분할)`;
   } else if (st.hasSession) {
     liveSummary.innerHTML = `<span class="ok">직접 세션 연결됨</span> · 지갑 ${shortAddr(st.connectedAddress)}`;
   } else {
@@ -75,11 +76,11 @@ function renderStatus(st, forceHydrate = false) {
   const addrLabel = st.connectedAddress ? shortAddr(st.connectedAddress) : '미확인';
   const balLabel = Number.isFinite(Number(st.lastBalanceUsd)) ? `$${Number(st.lastBalanceUsd).toFixed(2)}` : '$0.00';
   const allowLabel = st.allowedAddress ? shortAddr(st.allowedAddress) : '미지정';
-  walletSummary.textContent = `연결지갑: ${addrLabel} (${balLabel} USDC) | 허용잠금: ${allowLabel} (상한 무제한 · 최대 3슬롯)`;
+  walletSummary.textContent = `연결지갑: ${addrLabel} (${balLabel} USDC) | 허용잠금: ${allowLabel} (상한 무제한 · 최대 ${st.maxSlots || 3}슬롯 · ${levLabel}x)`;
 
   if (forceHydrate) {
     if (!allowedAddrInput.value && st.allowedAddress) allowedAddrInput.value = st.allowedAddress;
-    orderMarginInput.value = Number(st.orderMarginUsd) > 0 ? Number(st.orderMarginUsd) : 30;
+    orderMarginInput.value = Number(st.orderMarginUsd) > 0 ? Number(st.orderMarginUsd) : 33;
     if (maxCapInput) maxCapInput.value = 0;
   }
 
