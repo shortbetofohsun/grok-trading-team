@@ -89,7 +89,7 @@
           지정가 알리미
         </button>
         <button onclick="setMainView('stophunt')" id="viewBtn_stophunt" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">
-          10x 스탑헌팅
+          30x 스탑헌팅
         </button>
         <button onclick="setMainView('options')" id="viewBtn_options" class="px-3 py-1.5 rounded-lg text-gray-400 hover:text-white transition">
           옵션 지지·저항
@@ -185,11 +185,11 @@
           <div>
             <div class="flex items-center gap-2">
               <i class="fa-solid fa-bolt text-binanceYellow text-sm"></i>
-              <h2 class="text-base font-bold text-white">Variational 10x 스탑헌팅 모의매매</h2>
+              <h2 class="text-base font-bold text-white">Variational 30x 스탑헌팅 모의매매</h2>
               <span class="text-[11px] px-2 py-0.5 rounded bg-binanceDark border border-binanceBorder text-gray-300 mono">$1,000 금고</span>
             </div>
             <p class="text-xs text-gray-400 mt-1">
-              평일 미장 킬존(21:30~00:30 KST) 7종목 + 한국장 아침 킬존(08:45~10:15 KST) EWY 전용 스탑헌팅 10배(10x) 자동 진입 · 주말 작동 중지
+              평일 미장 킬존(21:30~00:30 KST) 7종목 + 한국장 아침 킬존(08:45~10:15 KST) EWY 전용 스탑헌팅 30배(30x) · 실시간 잔고 1/3 자동 3분할 · 주말 작동 중지
             </p>
           </div>
           <div class="flex items-center gap-2">
@@ -214,7 +214,7 @@
           </div>
 
           <div id="liveCloudWarn" class="hidden text-[11px] text-sky-300 bg-sky-950/30 border border-sky-700/50 rounded-lg px-2.5 py-1.5">
-            Edge 브라우저에 <span class="font-bold">edge-session-bridge v2.0</span> 확장을 켜고 <span class="mono">https://omni.variational.io</span> 탭을 열어두면 Render 서버가 3초마다 자동 연동되어 실전 주문을 실행합니다.
+            Edge 브라우저에 <span class="font-bold">edge-session-bridge v2.2</span> 확장을 켜고 <span class="mono">https://omni.variational.io</span> 탭을 열어두면 Render 서버와 무중단 락으로 자동 연동되어 실전 3분할 30x 주문을 실행합니다.
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 text-[11px]">
@@ -223,12 +223,12 @@
               <input id="liveAllowedAddr" type="text" placeholder="0x... Edge 메타마스크 부계정 주소" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
             </div>
             <div>
-              <label class="block text-[10px] text-gray-400 mb-1">1회 증거금 (USDC, 3분할 10x)</label>
-              <input id="liveOrderMargin" type="number" min="1" step="1" value="30" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
+              <label class="block text-[10px] text-gray-400 mb-1">1회 증거금 (USDC, 실시간 1/3 자동 3분할 · 30x)</label>
+              <input id="liveOrderMargin" type="number" min="1" step="1" value="33" class="w-full px-2.5 py-1.5 bg-binanceCard border border-binanceBorder rounded-lg text-xs text-white mono focus:outline-none focus:border-binanceYellow" />
             </div>
             <div>
               <label class="block text-[10px] text-gray-400 mb-1">운용 한도 · 동시 슬롯</label>
-              <div class="w-full px-2.5 py-1.5 bg-binanceCard/60 border border-binanceBorder rounded-lg text-xs text-emerald-300 mono">최대 3슬롯 · 상한 무제한</div>
+              <div class="w-full px-2.5 py-1.5 bg-binanceCard/60 border border-binanceBorder rounded-lg text-xs text-emerald-300 mono">최대 3슬롯 · 30x · 상한 무제한</div>
               <input id="liveMaxCap" type="hidden" value="0" />
             </div>
           </div>
@@ -266,11 +266,11 @@
             <div id="vCash" class="text-base font-extrabold mono text-gray-200 mt-0.5">$1,000.00</div>
           </div>
           <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
-            <div class="text-[11px] text-gray-400">투입 증거금 (10x)</div>
+            <div class="text-[11px] text-gray-400">투입 증거금 (30x)</div>
             <div id="vDeployed" class="text-base font-extrabold mono text-gray-200 mt-0.5">$0.00</div>
           </div>
           <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
-            <div class="text-[11px] text-gray-400">10x 누적 손익</div>
+            <div class="text-[11px] text-gray-400">30x 누적 손익</div>
             <div id="vPnl" class="text-base font-extrabold mono text-binanceGreen mt-0.5">$0.00</div>
           </div>
         </div>
@@ -283,7 +283,7 @@
         <!-- Sub-Tabs for Open Positions / History / Backtest Logic / Logs -->
         <div class="flex flex-wrap gap-1.5 border-b border-binanceBorder pb-3 text-xs font-semibold">
           <button onclick="switchLeftTab('pos')" id="tabBtn_pos" class="px-3 py-1.5 rounded-lg bg-binanceYellow text-black font-bold transition">
-            열린 10x 포지션 (<span id="openCountTxt">0</span>)
+            열린 30x 포지션 (<span id="openCountTxt">0</span>)
           </button>
           <button onclick="switchLeftTab('hist')" id="tabBtn_hist" class="px-3 py-1.5 rounded-lg bg-binanceDark text-gray-400 hover:text-white border border-binanceBorder transition">
             청산 내역 (<span id="closedCountTxt">0</span>)
@@ -308,7 +308,7 @@
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
             <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
               <div class="font-bold text-white mb-1">1. 미장(21:30~00:30) &amp; 한국장 EWY(08:45~10:15) 듀얼 킬존 진입</div>
-              <div class="text-gray-400">밤 미장 킬존에는 7대 종목, 아침 한국장 킬존에는 24시간 EWY(±1.50%~±2.20%)만 단독 포착하여 꼬리 확인 시 10x 모의 체결 후 텔레그램으로 전송합니다.</div>
+              <div class="text-gray-400">밤 미장 킬존에는 7대 종목, 아침 한국장 킬존에는 24시간 EWY(±1.50%~±2.20%)만 단독 포착하여 꼬리 확인 시 30x 모의 체결 후 텔레그램으로 전송합니다.</div>
             </div>
             <div class="p-3 rounded-xl bg-binanceDark border border-binanceBorder">
               <div class="font-bold text-white mb-1">2. 실시간 3초 익절(TP1/TP2) · 손절(SL) 알림</div>
@@ -325,7 +325,7 @@
                   <th class="py-2 px-3">평균 손익비</th>
                   <th class="py-2 px-3">12개월 승률</th>
                   <th class="py-2 px-3">60일 승률</th>
-                  <th class="py-2 px-3">12개월 10x 수익</th>
+                  <th class="py-2 px-3">12개월 30x 수익</th>
                 </tr>
               </thead>
               <tbody id="backtestRefBody" class="divide-y divide-binanceBorder/40"></tbody>
@@ -1542,7 +1542,7 @@
               </td>
               <td class="py-2.5 px-3">
                 <span class="px-2 py-0.5 rounded text-[10px] font-bold mono ${isShort ? 'bg-binanceRed/20 text-binanceRed border border-binanceRed/30' : 'bg-binanceGreen/20 text-binanceGreen border border-binanceGreen/30'}">
-                  ${isShort ? '매도 SHORT 10x' : '매수 LONG 10x'}
+                  ${isShort ? '매도 SHORT' : '매수 LONG'} ${Number(sig.leverage || 30)}x
                 </span>
               </td>
               <td class="py-2.5 px-3 mono">
@@ -1571,7 +1571,7 @@
 
       const openWrap = document.getElementById('openPositionsWrap');
       if (!openList.length) {
-        openWrap.innerHTML = `<div class="p-5 text-center text-xs text-gray-500 bg-binanceDark rounded-xl border border-binanceBorder">현재 열린 10x 포지션이 없습니다. 평일 미장 개장 전 스탑헌팅 조건 충족 시 자동 진입합니다.</div>`;
+        openWrap.innerHTML = `<div class="p-5 text-center text-xs text-gray-500 bg-binanceDark rounded-xl border border-binanceBorder">현재 열린 30x 포지션이 없습니다. 평일 미장 개장 전 스탑헌팅 조건 충족 시 자동 진입합니다.</div>`;
       } else {
         openWrap.innerHTML = `<table class="w-full text-left text-xs">
           <thead>
@@ -1580,14 +1580,14 @@
               <th class="py-2 px-2.5">진입가 ➔ 현재가</th>
               <th class="py-2 px-2.5">TP1 / TP2</th>
               <th class="py-2 px-2.5">손절(SL)</th>
-              <th class="py-2 px-2.5">증거금(10x)</th>
+              <th class="py-2 px-2.5">증거금(30x)</th>
               <th class="py-2 px-2.5">평가손익(ROE)</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-binanceBorder/40">
             ${openList.map(p => {
               const isShort = p.direction === 'SHORT';
-              const lev = Number(p.leverage || 10);
+              const lev = Number(p.leverage || 30);
               const curP = Number(p.currentPriceUsd || p.entryPriceUsd);
               const entP = Number(p.entryPriceUsd);
               const qty = Number(p.quantity || 0);
@@ -1623,7 +1623,7 @@
           </thead>
           <tbody class="divide-y divide-binanceBorder/40">
             ${closedList.slice(0, 15).map(c => `<tr>
-              <td class="py-2 px-2.5 mono"><b>$${escapeHtml(c.symbol)}</b> (${c.direction || 'LONG'} 10x)</td>
+              <td class="py-2 px-2.5 mono"><b>$${escapeHtml(c.symbol)}</b> (${c.direction || 'LONG'} ${Number(c.leverage || 30)}x)</td>
               <td class="py-2 px-2.5 mono">$${c.entryPriceUsd} ➔ <b>$${c.exitPriceUsd}</b></td>
               <td class="py-2 px-2.5 mono font-bold ${c.pnlUsd >= 0 ? 'text-binanceGreen' : 'text-binanceRed'}">${fmtPnl(c.pnlUsd)} (${c.pnlPct >= 0 ? '+' : ''}${c.pnlPct}%)</td>
               <td class="py-2 px-2.5 text-gray-400">${escapeHtml(c.closeRule)}</td>
@@ -1812,7 +1812,7 @@
     }
 
     async function resetVault() {
-      if (!confirm('10x 스탑헌팅 금고를 $1,000.00로 초기화할까요?')) return;
+      if (!confirm('30x 스탑헌팅 금고를 $1,000.00로 초기화할까요?')) return;
       await fetch('/api/desk/reset', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
       await fetchState();
       showToast('금고가 $1,000.00로 초기화되었습니다.', 'info');
@@ -1952,8 +1952,8 @@
         const balTxt = st.lastBalanceUsd !== null && st.lastBalanceUsd !== undefined
           ? `$${Number(st.lastBalanceUsd).toFixed(2)} USDC`
           : '-';
-        const slotsTxt = `최대 ${st.maxSlots || 3}슬롯`;
-        summary.textContent = `연결 지갑: ${addrTxt} | 잔고: ${balTxt} | ${slotsTxt} · 상한 무제한`;
+        const slotsTxt = `최대 ${st.maxSlots || 3}슬롯 · ${Number(st.leverage || 30)}x`;
+        summary.textContent = `연결 지갑: ${addrTxt} | 잔고: ${balTxt} | ${slotsTxt} · 1/3 자동분할`;
       }
 
       const addrIn = document.getElementById('liveAllowedAddr');
@@ -2017,7 +2017,7 @@
     async function toggleLiveTrading() {
       const nextState = !(latestLiveStatus?.enabled);
       if (nextState) {
-        const ok = confirm('실전 자동매매(LIVE)를 켜시겠습니까? 다음 스탑헌팅 타점 포착 시 실제 Variational 부계정으로 10x 주문이 체결됩니다.');
+        const ok = confirm('실전 자동매매(LIVE)를 켜시겠습니까? 다음 스탑헌팅 타점 포착 시 실제 Variational 부계정으로 실시간 잔고 1/3 자동 3분할 · 30x 주문이 체결됩니다.');
         if (!ok) return;
       }
       try {
