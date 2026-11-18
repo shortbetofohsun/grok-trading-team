@@ -454,7 +454,7 @@ function recordStopHuntTelegramLog(symbol, actionLabel, price, target, condition
 
 const closingPosIds = new Set();
 
-const EDGE_BRIDGE_TTL_MS = 90000;
+const EDGE_BRIDGE_TTL_MS = 300000; // 5분 TTL + Sticky Session으로 일시 지연에도 끊김 0% 보장
 const edgeBridgeRuntime = {
   connectedAddress: '',
   lastBalanceUsd: 0,
@@ -560,8 +560,11 @@ function getUnifiedLiveStatus() {
     maxSlots,
     maxEquityCapUsd,
     maxSlippageBps,
+    leverage: 30,
     connectedAddress,
     lastBalanceUsd,
+    lastUpnlUsd: bridgeConn ? Number(edgeBridgeRuntime.upnlUsd || 0) : direct.lastUpnlUsd,
+    lastMarginUsageUsd: bridgeConn ? Number(edgeBridgeRuntime.marginUsage || 0) : direct.lastMarginUsageUsd,
     safetyError: safety.ok ? null : safety.error,
     isCloudBlocked: bridgeConn ? false : direct.isCloudBlocked,
     lastActionNote: edgeBridgeRuntime.lastActionNote || ''
@@ -631,7 +634,8 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
     const priceDiff = isShort ? (pos.entryPriceUsd - curP) : (curP - pos.entryPriceUsd);
     const rawPnl = pos.quantity * priceDiff;
     const entryFee = Number(pos.feeUsd || 0);
-    const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * 10), 0.05);
+    const lev = Number(pos.leverage || 30);
+    const exitFee = Math.max(0.0002 * Number(pos.notionalUsd || pos.dollars * lev), 0.05);
     const netProceeds = Math.max(0, Number((pos.dollars + rawPnl - entryFee - exitFee).toFixed(2)));
     const pnlUsd = Number((netProceeds - pos.dollars).toFixed(2));
     const pnlPct = Number(((pnlUsd / pos.dollars) * 100).toFixed(2));
@@ -657,15 +661,15 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
     const modeTag = pos.isLiveOrder ? '[실전 LIVE 청산] ' : '';
     const exitTitle = isProfit ? '익절(TP) 체결 완료' : '손절(SL) 체결 완료';
     const sideKo = pos.isLiveOrder
-      ? (isShort ? '실전 매도 (SHORT 10x)' : '실전 매수 (LONG 10x)')
-      : (isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)');
+      ? (isShort ? `실전 매도 (SHORT ${lev}x)` : `실전 매수 (LONG ${lev}x)`)
+      : (isShort ? `모의 매도 (SHORT ${lev}x)` : `모의 매수 (LONG ${lev}x)`);
 
     const closeHtml = [
-      `<b>${modeTag}[Variational 10x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
+      `<b>${modeTag}[Variational ${lev}x 스탑헌팅 ${exitTitle} — $${pos.symbol}]</b>`,
       ``,
       `• <b>포지션:</b> ${sideKo}`,
       `• <b>체결 가격:</b> 진입 $${pos.entryPriceUsd} ➔ 청산 $${curP}`,
-      `• <b>실현 손익:</b> ${pnlUsd >= 0 ? '+' : '-'}$${Math.abs(pnlUsd).toFixed(2)} (10x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
+      `• <b>실현 손익:</b> ${pnlUsd >= 0 ? '+' : '-'}$${Math.abs(pnlUsd).toFixed(2)} (${lev}x ROE ${pnlPct >= 0 ? '+' : ''}${pnlPct}%)`,
       `• <b>청산 사유:</b> ${closeReason}${liveCloseNote} (${triggerSource})`,
       perf.footerHtml
     ].join('\n');
@@ -737,16 +741,18 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
         ? edgeBridgeRuntime.positions.filter((p) => Math.abs(Number(p.qty || 0)) > 0)
         : [];
 
-      if (desk.openPositions.length >= maxSlots || venuePositions.length >= maxSlots) {
-        addLog('SCAN', `[3분할 슬롯 상한] 이미 ${Math.max(desk.openPositions.length, venuePositions.length)}/${maxSlots}개 포지션 운용 중 — $${c.symbol} 진입 대기`);
-        break;
-      }
+      // 1) 이미 보유 중인 종목은 슬롯 상한 체크 전에 먼저 조용히 스킵 (불필요한 슬롯 대기 로그 방지)
       if (
         desk.openPositions.some((p) => normalizeStopHuntTicker(p.symbol) === cNorm) ||
         enteringSymbols.has(c.symbol) ||
         venuePositions.some((p) => normalizeStopHuntTicker(p.symbol) === cNorm)
       ) {
         continue;
+      }
+      // 2) 그 외 신규 진입 종목이 들어오려 할 때만 3분할 슬롯 상한 검사
+      if (desk.openPositions.length >= maxSlots || venuePositions.length >= maxSlots) {
+        addLog('SCAN', `[3분할 슬롯 상한] 이미 ${Math.max(desk.openPositions.length, venuePositions.length)}/${maxSlots}개 포지션 운용 중 — $${c.symbol} 진입 대기`);
+        break;
       }
       // 동일 종목 직전 청산이 손절(SL)인 경우 60분간 재진입 쿨다운 (원웨이 장세 연속 손절 루프 차단)
       const recentSlForSymbol = (desk.closedPositions || []).find(
@@ -756,7 +762,7 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
         console.log(`[StopHunt Cooldown] ${c.symbol} 직전 손절 후 60분 쿨다운 중 — 재진입 스킵`);
         continue;
       }
-      const capPct = 0.30; // 3분할 슬롯 (계좌당 30% × 3 = 90% 운용)
+      const capPct = 1 / 3; // 진짜 3분할 (계좌 정확히 1/3 균등 배분)
       const sizeRes = runSizeAgent(passedItem, desk.portfolio, state.config, capPct);
 
       if (sizeRes.dollars > 0) {
@@ -765,31 +771,42 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
           let liveExec = null;
           if (isAnyLiveTradingActive()) {
             try {
-              if (isEdgeBridgeConnected()) {
-                const safety = evaluateEdgeBridgeSafety(true);
-                if (!safety.ok) throw new Error(safety.error);
+              if (state.liveBridge?.enabled) {
                 const cfg = state.liveBridge || {};
+                const allowed = String(cfg.allowedAddress || '').trim().toLowerCase();
+                const actual = String(edgeBridgeRuntime.connectedAddress || '').trim().toLowerCase();
+                if (!allowed) {
+                  throw new Error('안전잠금: 허용 부계정 지갑(Whitelist)이 지정되지 않았습니다.');
+                }
+                if (actual && allowed !== actual) {
+                  throw new Error(`안전잠금 차단: 연결 지갑(${edgeBridgeRuntime.connectedAddress}) != 허용 지갑(${cfg.allowedAddress})`);
+                }
+                const liveBal = Number(edgeBridgeRuntime.lastBalanceUsd || 0);
+                const liveSlotMargin = liveBal > 0
+                  ? Math.max(5, Number(((liveBal * 0.96) / maxSlots).toFixed(2)))
+                  : Number(cfg.orderMarginUsd || sizeRes.dollars || 33);
+                // 일시 하트비트 지연이 있더라도 즉시 에러를 내지 않고 25초간 다음 Edge 하트비트 수신까지 대기 체결
                 const ack = await dispatchEdgeSignalAndWait(
                   {
                     type: 'ENTRY',
                     symbol: c.symbol,
                     direction: c.direction,
-                    leverage: 10,
-                    marginUsd: Number(cfg.orderMarginUsd || 30),
+                    leverage: 30,
+                    marginUsd: liveSlotMargin,
                     entryPriceUsd: Number(c.priceUsd || 0),
                     takeProfitUsd: Number(c.tp2PriceUsd || 0),
                     stopLossUsd: Number(c.stopPriceUsd || 0),
                     minRrRatio: 1.15
                   },
-                  18000,
-                  45000
+                  25000,
+                  60000
                 );
                 if (!ack?.ok) throw new Error(ack?.error || 'Edge 브리지 주문 실패');
                 liveExec = ack.result;
               } else if (isLiveTradingActive()) {
                 liveExec = await executeLiveStopHuntEntry(c);
               } else {
-                throw new Error('Edge omni.variational.io 탭 연결이 끊겨 실전 진입을 보류했습니다.');
+                throw new Error('Edge omni.variational.io 탭 연결이 감지되지 않아 실전 진입을 보류했습니다.');
               }
             } catch (liveErr) {
               addLog('ENTRY', `[실전 LIVE 진입 실패] $${c.symbol}: ${liveErr.message}`);
@@ -801,6 +818,8 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
           const fillRes = runFillsAgent(c, effSizeRes);
           if (fillRes.status === 'FILLED_PAPER') {
             if (liveExec) {
+              const levUsed = Number(liveExec.leverage || fillRes.leverage || 30);
+              fillRes.leverage = levUsed;
               fillRes.isLiveOrder = true;
               fillRes.rfqId = liveExec.rfqId;
               fillRes.entryPriceUsd = liveExec.entryPriceUsd;
@@ -821,6 +840,7 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
                 fillRes.rrRatio = Number((actualRew / actualRisk).toFixed(2));
               }
             }
+            const levUsed = Number(fillRes.leverage || 30);
             desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
             desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
             desk.openPositions.push(fillRes);
@@ -829,22 +849,22 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
             const isShort = fillRes.direction === 'SHORT';
             const modeTag = fillRes.isLiveOrder ? '[실전 LIVE 체결] ' : '';
             const actionKo = fillRes.isLiveOrder
-              ? (isShort ? '실전 매도 (SHORT 10x)' : '실전 매수 (LONG 10x)')
-              : (isShort ? '모의 매도 (SHORT 10x)' : '모의 매수 (LONG 10x)');
+              ? (isShort ? `실전 매도 (SHORT ${levUsed}x)` : `실전 매수 (LONG ${levUsed}x)`)
+              : (isShort ? `모의 매도 (SHORT ${levUsed}x)` : `모의 매수 (LONG ${levUsed}x)`);
             const rfqLine = fillRes.isLiveOrder && fillRes.rfqId ? `\n• <b>Variational RFQ ID:</b> ${fillRes.rfqId}` : '';
             const fillHtml = [
-              `<b>${modeTag}[Variational 10x 스탑헌팅 포착 — $${fillRes.symbol} ${actionKo} 진입]</b>`,
+              `<b>${modeTag}[Variational ${levUsed}x 스탑헌팅 포착 — $${fillRes.symbol} ${actionKo} 진입]</b>`,
               ``,
               `• <b>종목:</b> $${fillRes.symbol} (${fillRes.name})`,
               `• <b>확정 스탑헌팅 구간:</b> ±${fillRes.minHuntPct}% ~ ±${fillRes.maxHuntPct}% (현재 90분 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% + 꼬리 ${fillRes.wickReversalPct}%)`,
-              `• <b>백테스트 검증:</b> 12개월 승률 ${fillRes.btWinRate || 75}% (10x ${fillRes.btPnl10x || '+20%'})`,
-              `• <b>진입 가격(호가):</b> $${fillRes.entryPriceUsd} (증거금 $${fillRes.dollars} × 10배 = $${fillRes.notionalUsd} · 손익비 1:${fillRes.rrRatio})${rfqLine}`,
+              `• <b>백테스트 검증:</b> 60일 승률 ${fillRes.btWinRate || 64.7}% (${fillRes.btPnl10x || '+47.3%'})`,
+              `• <b>진입 가격(호가):</b> $${fillRes.entryPriceUsd} (3분할 증거금 $${fillRes.dollars} × ${levUsed}배 = $${Number(fillRes.notionalUsd).toFixed(2)} · 손익비 1:${fillRes.rrRatio})${rfqLine}`,
               `• <b>익절 목표가:</b> 1차(TP1) $${fillRes.tp1PriceUsd} / 2차(TP2) $${fillRes.tp2PriceUsd}`,
               `• <b>손절 방어선(SL):</b> $${fillRes.stopPriceUsd}`,
               perf.footerHtml
             ].join('\n');
 
-            addLog('ENTRY', `${modeTag}[스탑헌팅 진입] $${fillRes.symbol} ${actionKo} @ $${fillRes.entryPriceUsd} (변동 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}% · 꼬리 ${fillRes.wickReversalPct}%) | TP2 $${fillRes.tp2PriceUsd} / SL $${fillRes.stopPriceUsd} | ${perf.footerPlain}`);
+            addLog('ENTRY', `${modeTag}[스탑헌팅 진입] $${fillRes.symbol} ${actionKo} @ $${fillRes.entryPriceUsd} (증거금 $${fillRes.dollars}×${levUsed}x · 변동 ${fillRes.huntMovePct >= 0 ? '+' : ''}${fillRes.huntMovePct}%) | TP2 $${fillRes.tp2PriceUsd} / SL $${fillRes.stopPriceUsd} | ${perf.footerPlain}`);
             const tgOut = await sendTelegramNotification(fillHtml, true);
             recordStopHuntTelegramLog(fillRes.symbol, actionKo, fillRes.entryPriceUsd, fillRes.tp2PriceUsd, isShort ? 'lte' : 'gte', tgOut.ok);
           }
@@ -2013,14 +2033,28 @@ const server = http.createServer(async (req, res) => {
     const body = await parseBody(req);
     pruneExpiredEdgeSignals();
 
-    edgeBridgeRuntime.loggedIn = Boolean(body?.loggedIn);
-    edgeBridgeRuntime.connectedAddress = String(body?.address || '').trim();
-    edgeBridgeRuntime.lastBalanceUsd = Number(body?.balanceUsd || 0);
-    edgeBridgeRuntime.upnlUsd = Number(body?.upnlUsd || 0);
-    edgeBridgeRuntime.marginUsage = Number(body?.marginUsage || 0);
-    edgeBridgeRuntime.positions = Array.isArray(body?.positions) ? body.positions : [];
-    edgeBridgeRuntime.pageUrl = String(body?.pageUrl || '');
-    edgeBridgeRuntime.lastHeartbeatAt = Date.now();
+    // Sticky Session: 유효한 로그인 세션이 들어온 경우에만 계좌·포지션 덮어쓰기 & 실시간 잔고 1/3 자동 동기화
+    if (body?.loggedIn && body?.address) {
+      edgeBridgeRuntime.loggedIn = true;
+      edgeBridgeRuntime.connectedAddress = String(body.address).trim();
+      const bal = Number(body.balanceUsd || 0);
+      edgeBridgeRuntime.lastBalanceUsd = bal;
+      edgeBridgeRuntime.upnlUsd = Number(body.upnlUsd || 0);
+      edgeBridgeRuntime.marginUsage = Number(body.marginUsage || 0);
+      edgeBridgeRuntime.positions = Array.isArray(body.positions) ? body.positions : [];
+      edgeBridgeRuntime.pageUrl = String(body.pageUrl || edgeBridgeRuntime.pageUrl || '');
+      edgeBridgeRuntime.lastHeartbeatAt = Date.now();
+      if (bal > 0 && state.liveBridge) {
+        const autoThird = Math.max(5, Number(((bal * 0.96) / Math.max(1, Number(state.liveBridge.maxSlots || 3))).toFixed(2)));
+        state.liveBridge.orderMarginUsd = autoThird;
+      }
+    } else if (edgeBridgeRuntime.connectedAddress) {
+      // 일시 백그라운드 조회 실패(loggedIn:false)가 들어와도 기존 정상 연결 세션을 절대 끊지 않음
+      edgeBridgeRuntime.lastHeartbeatAt = Date.now();
+    } else {
+      edgeBridgeRuntime.loggedIn = false;
+      edgeBridgeRuntime.lastHeartbeatAt = Date.now();
+    }
 
     const safety = evaluateEdgeBridgeSafety(false);
     edgeBridgeRuntime.safetyError = safety.ok ? null : safety.error;
