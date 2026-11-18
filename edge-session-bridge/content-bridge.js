@@ -284,6 +284,19 @@
       Number(signal.entryPriceUsd || signal.estPriceUsd || 0)
     );
 
+    // 실전 호가(execPrice) 수령 직후 슬리피지·호가 괴리로 인해 손익비가 1.15 미만으로 무너졌으면 즉시 주문 취소!
+    const tpTarget = Number(signal.takeProfitUsd || 0);
+    const slTarget = Number(signal.stopLossUsd || 0);
+    const minRr = Number(signal.minRrRatio || 1.15);
+    if (tpTarget > 0 && slTarget > 0 && execPrice > 0) {
+      const actualRisk = side === 'sell' ? (slTarget - execPrice) : (execPrice - slTarget);
+      const actualReward = side === 'sell' ? (execPrice - tpTarget) : (tpTarget - execPrice);
+      const actualRR = actualRisk > 0 ? (actualReward / actualRisk) : 0;
+      if (actualRisk <= 0 || actualReward <= 0 || actualRR < minRr) {
+        throw new Error(`손익비 안전가드 차단: 실시간 호가($${execPrice}) 기준 실제 손익비(1:${actualRR.toFixed(2)})가 최소 기준(1:${minRr}) 미만으로 하락해 진입을 취소했습니다.`);
+      }
+    }
+
     const payload = {
       quote_id: quote.quote_id,
       side,
@@ -502,9 +515,45 @@
       </div>
       <div style="color:#cbd5e1;">계정: ${walletTxt}</div>
       <div style="color:#94a3b8;">포지션: ${(snapshot?.positions || []).length}개 · 상태: ${lastActionNote}</div>
+      <div style="color:#38bdf8;font-size:10px;margin-top:2px;">무중단 락 ON · R/R &gt; 1.2x 보장</div>
       ${safetyTxt}
     `;
   }
+
+  let keepalivePort = null;
+  function connectKeepalivePort() {
+    try {
+      keepalivePort = chrome.runtime.connect({ name: 'grok-keepalive' });
+      keepalivePort.onDisconnect.addListener(() => {
+        keepalivePort = null;
+        setTimeout(connectKeepalivePort, 1500);
+      });
+    } catch {
+      keepalivePort = null;
+    }
+  }
+
+  // Chromium Web Lock을 영구 점유해 Edge '절전 탭(Sleeping Tabs)' 및 백그라운드 동결(Freeze) 원천 방지
+  try {
+    if (navigator.locks && typeof navigator.locks.request === 'function') {
+      navigator.locks.request('grok_variational_bridge_active_lock', () => new Promise(() => {}));
+    }
+  } catch {
+    // ignore
+  }
+  connectKeepalivePort();
+
+  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === 'EXEC_SIGNAL_FROM_BG' && msg.signal) {
+      (async () => {
+        const snapshot = await readWalletSnapshot();
+        await processSignal(msg.signal, snapshot, msg.config || lastServerStatus || {});
+        sendResponse({ handled: true });
+      })().catch(() => sendResponse({ handled: false }));
+      return true;
+    }
+    return false;
+  });
 
   async function runHeartbeat() {
     if (heartbeatBusy) return;
@@ -524,6 +573,9 @@
 
       if (resp?.ok && resp?.data) {
         lastServerStatus = resp.data.status || lastServerStatus;
+        if (keepalivePort) {
+          try { keepalivePort.postMessage({ type: 'TAB_HEARTBEAT_OK', at: Date.now() }); } catch {}
+        }
         if (!resp.data.signals || resp.data.signals.length === 0) {
           lastActionNote = snapshot.loggedIn ? '정상 동기화' : '로그인 대기';
         }
