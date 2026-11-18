@@ -454,7 +454,7 @@ function recordStopHuntTelegramLog(symbol, actionLabel, price, target, condition
 
 const closingPosIds = new Set();
 
-const EDGE_BRIDGE_TTL_MS = 15000;
+const EDGE_BRIDGE_TTL_MS = 90000;
 const edgeBridgeRuntime = {
   connectedAddress: '',
   lastBalanceUsd: 0,
@@ -594,12 +594,28 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
           const ack = await dispatchEdgeSignalAndWait(
             { type: 'EXIT', symbol: pos.symbol, exitPriceUsd: curP, closeReason },
             18000,
-            120000
+            6 * 3600 * 1000
           );
           if (!ack?.ok) throw new Error(ack?.error || 'Edge 브리지 청산 거부');
           liveClose = ack.result || {};
-        } else {
+        } else if (!getPublicLiveStatus().isCloudBlocked) {
           liveClose = await executeLiveStopHuntClose(pos);
+        } else {
+          pruneExpiredEdgeSignals();
+          const hasQueued = edgeBridgeRuntime.pendingSignals.some((s) => s.type === 'EXIT' && s.symbol === pos.symbol);
+          if (!hasQueued) {
+            edgeBridgeRuntime.pendingSignals.push({
+              type: 'EXIT',
+              symbol: pos.symbol,
+              exitPriceUsd: curP,
+              closeReason,
+              signalId: `sig_retry_exit_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+              createdAt: Date.now(),
+              ttlMs: 6 * 3600 * 1000,
+              dispatchedAt: null
+            });
+          }
+          throw new Error('Edge 브리지 일시 끊김 — 재연결 즉시 자동 청산 재시도 큐에 등록됨');
         }
         if (liveClose?.exitPriceUsd > 0 && !liveClose.alreadyClosedOnVenue) {
           curP = Number(liveClose.exitPriceUsd);
@@ -608,8 +624,8 @@ async function settleAndNotifyStopHuntPosition(pos, exitPriceUsd, closeReason, t
           ? ' · 실전 거래소 이미 청산됨(TP/SL)'
           : ` · 실전 RFQ ${liveClose?.rfqId || ''}`;
       } catch (liveErr) {
-        liveCloseNote = ` · 실전 청산 오류(${liveErr.message})`;
-        addLog('EXIT', `[실전 LIVE 청산 실패] $${pos.symbol}: ${liveErr.message}`);
+        liveCloseNote = ` · 실전 청산 보류/재시도(${liveErr.message})`;
+        addLog('EXIT', `[실전 LIVE 청산 보류] $${pos.symbol}: ${liveErr.message}`);
       }
     }
     const priceDiff = isShort ? (pos.entryPriceUsd - curP) : (curP - pos.entryPriceUsd);
@@ -762,7 +778,8 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
                     marginUsd: Number(cfg.orderMarginUsd || 30),
                     entryPriceUsd: Number(c.priceUsd || 0),
                     takeProfitUsd: Number(c.tp2PriceUsd || 0),
-                    stopLossUsd: Number(c.stopPriceUsd || 0)
+                    stopLossUsd: Number(c.stopPriceUsd || 0),
+                    minRrRatio: 1.15
                   },
                   18000,
                   45000
@@ -790,6 +807,19 @@ async function executeStopHuntScan(triggerSource = '수동 스캔') {
               fillRes.currentPriceUsd = liveExec.entryPriceUsd;
               fillRes.quantity = liveExec.qty;
               fillRes.notionalUsd = liveExec.notionalUsd;
+              // 실제 RFQ 체결가 기준으로 TP1(+1.15R 고정) 및 R/R 정밀 재동기화
+              const execP = Number(liveExec.entryPriceUsd || fillRes.entryPriceUsd);
+              const slP = Number(fillRes.stopPriceUsd);
+              const tp2P = Number(fillRes.tp2PriceUsd);
+              const actualRisk = fillRes.direction === 'SHORT' ? (slP - execP) : (execP - slP);
+              const actualRew = fillRes.direction === 'SHORT' ? (execP - tp2P) : (tp2P - execP);
+              if (actualRisk > 0 && actualRew > 0) {
+                const prec = execP >= 1000 ? 2 : execP >= 10 ? 3 : execP >= 1 ? 4 : 5;
+                const tp1Dist = Math.min(actualRew, actualRisk * 1.15);
+                const rawTp1 = fillRes.direction === 'SHORT' ? (execP - tp1Dist) : (execP + tp1Dist);
+                fillRes.tp1PriceUsd = Number(rawTp1.toFixed(prec));
+                fillRes.rrRatio = Number((actualRew / actualRisk).toFixed(2));
+              }
             }
             desk.portfolio.cashUsd = Number((desk.portfolio.cashUsd - fillRes.dollars).toFixed(2));
             desk.portfolio.totalCapitalEverDeployedUsd = Number((desk.portfolio.totalCapitalEverDeployedUsd + fillRes.dollars).toFixed(2));
@@ -1386,6 +1416,11 @@ async function pollVariationalPriceAlerts() {
         const tp1P = Number(pos.tp1PriceUsd || pos.entryPriceUsd);
         const tp2P = Number(pos.tp2PriceUsd || pos.entryPriceUsd);
         const stopP = Number(pos.stopPriceUsd || pos.entryPriceUsd);
+        const entryP = Number(pos.entryPriceUsd || curP);
+        const riskUnit = Math.abs(entryP - stopP);
+        const lockTriggerPrice = isShort
+          ? (entryP - riskUnit * 1.05)
+          : (entryP + riskUnit * 1.05);
 
         let shouldClose = false;
         let closeReason = '';
@@ -1400,9 +1435,9 @@ async function pollVariationalPriceAlerts() {
           } else if (curP <= tp1P) {
             pos.tp1Reached = true;
             posChanged = true;
-          } else if (pos.tp1Reached && curP >= tp1P * 1.0015) {
+          } else if (pos.tp1Reached && curP >= lockTriggerPrice) {
             shouldClose = true;
-            closeReason = `1차 목표가(TP1 $${tp1P}) 도달 후 수익 보존 익절`;
+            closeReason = `1차 목표가(TP1 $${tp1P}) 도달 후 +1.05R 이상 수익 보존 익절`;
           }
         } else {
           if (curP >= tp2P) {
@@ -1414,9 +1449,9 @@ async function pollVariationalPriceAlerts() {
           } else if (curP >= tp1P) {
             pos.tp1Reached = true;
             posChanged = true;
-          } else if (pos.tp1Reached && curP <= tp1P * 0.9985) {
+          } else if (pos.tp1Reached && curP <= lockTriggerPrice) {
             shouldClose = true;
-            closeReason = `1차 목표가(TP1 $${tp1P}) 도달 후 수익 보존 익절`;
+            closeReason = `1차 목표가(TP1 $${tp1P}) 도달 후 +1.05R 이상 수익 보존 익절`;
           }
         }
 
