@@ -164,12 +164,17 @@ async function readWalletSnapshotFromBg() {
     })
     .filter((p) => p.symbol && Math.abs(p.qty) > 0);
 
+  const rawMu = portfolio?.margin_usage;
+  const parsedMarginUsage = typeof rawMu === 'object' && rawMu !== null
+    ? Number(rawMu.initial_margin || rawMu.total_initial_margin || 0)
+    : Number(rawMu || 0);
+
   return {
     loggedIn: true,
     address: addr,
     balanceUsd: Number(portfolio?.balance || 0),
     upnlUsd: Number(portfolio?.upnl || 0),
-    marginUsage: Number(portfolio?.margin_usage || 0),
+    marginUsage: parsedMarginUsage,
     positions
   };
 }
@@ -242,12 +247,27 @@ async function executeSignalInBg(signal, snapshot, cfg) {
       throw new Error(`슬롯 상한 차단: ${activePositions.length}/${maxSlots}`);
     }
     const side = String(signal.direction || '').toUpperCase() === 'SHORT' ? 'sell' : 'buy';
-    const leverage = Math.max(1, Math.min(50, Math.round(Number(signal.leverage || 10))));
-    const marginUsd = Number(signal.marginUsd || cfg?.orderMarginUsd || 30);
-    const notionalUsd = marginUsd * leverage;
+    const targetLeverage = Math.max(1, Math.min(50, Math.round(Number(signal.leverage || 30))));
+    let appliedLeverage = targetLeverage;
+    for (const tryLev of Array.from(new Set([targetLeverage, 30, 25, 20, 15, 10]))) {
+      try {
+        await bgVarApi('/api/settlement_pools/set_leverage', { method: 'POST', body: { asset: inst.underlying, leverage: String(tryLev) } });
+        appliedLeverage = tryLev;
+        break;
+      } catch {}
+    }
+
+    const bal = Number(snapshot.balanceUsd || 0);
+    const rawUsed = Number(snapshot.marginUsage || 0);
+    const usedMarginUsd = rawUsed > 1.5 ? rawUsed : (bal > 0 && rawUsed > 0 && rawUsed <= 1.5 ? bal * rawUsed : 0);
+    const autoThirdMargin = bal > 0
+      ? Number(((bal * 0.96) / maxSlots).toFixed(2))
+      : Number(signal.marginUsd || cfg?.orderMarginUsd || 33);
+    const freeMargin = bal > usedMarginUsd ? Number(((bal - usedMarginUsd) * 0.95).toFixed(2)) : autoThirdMargin;
+    let marginUsd = Math.max(5, Math.min(autoThirdMargin, freeMargin > 5 ? freeMargin : autoThirdMargin));
+    let notionalUsd = Number((marginUsd * appliedLeverage).toFixed(2));
     const slippageDecimal = Math.max(0.001, Math.min(0.05, Number(cfg?.maxSlippageBps || 100) / 10000));
 
-    await bgVarApi('/api/settlement_pools/set_leverage', { method: 'POST', body: { asset: inst.underlying, leverage: String(leverage) } });
     const estPrice = Number(signal.entryPriceUsd || signal.estPriceUsd || 100) || 100;
     const probeQty = String(Math.max(0.0001, Math.min(1, notionalUsd / estPrice)).toFixed(6)).replace(/\.?0+$/, '') || '0.01';
     const probe = await bgVarApi('/api/quotes/indicative', { method: 'POST', body: { instrument: inst, qty: probeQty } });
@@ -255,9 +275,9 @@ async function executeSignalInBg(signal, snapshot, cfg) {
     const sideLimit = side === 'buy' ? (probe?.qty_limits?.ask || {}) : (probe?.qty_limits?.bid || {});
     const minQtyStr = sideLimit.min_qty || '0.0001';
     const tickStr = sideLimit.min_qty_tick || minQtyStr;
-    const finalQtyStr = formatTickValueBg(notionalUsd / refPrice, tickStr, minQtyStr) || String(minQtyStr);
-    const quote = await bgVarApi('/api/quotes/indicative', { method: 'POST', body: { instrument: inst, qty: finalQtyStr } });
-    const execPrice = Number(side === 'buy' ? (quote.ask || quote.mark_price) : (quote.bid || quote.mark_price)) || refPrice;
+    let finalQtyStr = formatTickValueBg(notionalUsd / refPrice, tickStr, minQtyStr) || String(minQtyStr);
+    let quote = await bgVarApi('/api/quotes/indicative', { method: 'POST', body: { instrument: inst, qty: finalQtyStr } });
+    let execPrice = Number(side === 'buy' ? (quote.ask || quote.mark_price) : (quote.bid || quote.mark_price)) || refPrice;
 
     const tpTarget = Number(signal.takeProfitUsd || 0);
     const slTarget = Number(signal.stopLossUsd || 0);
@@ -271,17 +291,36 @@ async function executeSignalInBg(signal, snapshot, cfg) {
       }
     }
 
-    const payload = { quote_id: quote.quote_id, side, max_slippage: slippageDecimal, is_reduce_only: false };
-    const tpStr = formatPriceBg(signal.takeProfitUsd);
-    const slStr = formatPriceBg(signal.stopLossUsd);
-    if (tpStr) Object.assign(payload, { take_profit: tpStr, tp_is_auto_resize: true, tp_use_mark_price: true, tp_slippage_limit: '0.01' });
-    if (slStr) Object.assign(payload, { stop_loss: slStr, sl_is_auto_resize: true, sl_use_mark_price: true, sl_slippage_limit: '0.01' });
+    const buildBody = (qId) => {
+      const p = { quote_id: qId, side, max_slippage: slippageDecimal, is_reduce_only: false };
+      const tpStr = formatPriceBg(signal.takeProfitUsd);
+      const slStr = formatPriceBg(signal.stopLossUsd);
+      if (tpStr) Object.assign(p, { take_profit: tpStr, tp_is_auto_resize: true, tp_use_mark_price: true, tp_slippage_limit: '0.01' });
+      if (slStr) Object.assign(p, { stop_loss: slStr, sl_is_auto_resize: true, sl_use_mark_price: true, sl_slippage_limit: '0.01' });
+      return p;
+    };
 
-    const orderRes = await bgVarApi('/api/orders/new/market', { method: 'POST', body: payload });
+    let orderRes = null;
+    try {
+      orderRes = await bgVarApi('/api/orders/new/market', { method: 'POST', body: buildBody(quote.quote_id) });
+    } catch (ordErr) {
+      if (/margin|balance|insufficient|422/i.test(String(ordErr?.message || ''))) {
+        marginUsd = Math.max(5, Number((marginUsd * 0.65).toFixed(2)));
+        notionalUsd = Number((marginUsd * appliedLeverage).toFixed(2));
+        finalQtyStr = formatTickValueBg(notionalUsd / refPrice, tickStr, minQtyStr) || String(minQtyStr);
+        quote = await bgVarApi('/api/quotes/indicative', { method: 'POST', body: { instrument: inst, qty: finalQtyStr } });
+        execPrice = Number(side === 'buy' ? (quote.ask || quote.mark_price) : (quote.bid || quote.mark_price)) || refPrice;
+        orderRes = await bgVarApi('/api/orders/new/market', { method: 'POST', body: buildBody(quote.quote_id) });
+      } else {
+        throw ordErr;
+      }
+    }
+
     return {
       ok: true,
       symbol: inst.underlying,
       direction: side === 'sell' ? 'SHORT' : 'LONG',
+      leverage: appliedLeverage,
       rfqId: orderRes?.rfq_id || quote.quote_id,
       qty: Number(finalQtyStr),
       qtyStr: finalQtyStr,
@@ -330,6 +369,24 @@ async function tryForwardSignalToTab(tabs, signal, cfg) {
   return null;
 }
 
+async function wakeTabsToHeartbeat(tabs) {
+  for (const tab of tabs) {
+    if (!tab.id) continue;
+    try {
+      const ack = await new Promise((resolve) => {
+        const t = setTimeout(() => resolve(null), 2500);
+        chrome.tabs.sendMessage(tab.id, { type: 'WAKE_HEARTBEAT' }, (resp) => {
+          clearTimeout(t);
+          if (chrome.runtime.lastError || !resp) return resolve(null);
+          resolve(resp);
+        });
+      });
+      if (ack?.ok) return true;
+    } catch {}
+  }
+  return false;
+}
+
 async function runBgFallbackHeartbeat(force = false) {
   if (bgHeartbeatBusy) return;
   const ageMs = Date.now() - lastContentHeartbeatAt;
@@ -338,14 +395,30 @@ async function runBgFallbackHeartbeat(force = false) {
   bgHeartbeatBusy = true;
   try {
     const tabs = await preventVariationalTabsSleeping();
-    const snapshot = await readWalletSnapshotFromBg();
+    // 1) 먼저 열려 있는 omni.variational.io 탭을 깨워 실제 페이지 출처(Same-Origin)로 하트비트 전송
+    const tabWoke = await wakeTabsToHeartbeat(tabs);
+    if (tabWoke) return;
+
+    // 2) 탭이 응답하지 않을 때만 서비스 워커 직접 조회 -> 실패 시 캐시된 lastValidSnapshot 사용
+    let snapshot = await readWalletSnapshotFromBg();
+    if (!snapshot?.loggedIn || !snapshot?.address) {
+      const stored = await chrome.storage.local.get(['lastValidSnapshot']).catch(() => ({}));
+      if (stored?.lastValidSnapshot?.loggedIn && stored?.lastValidSnapshot?.address) {
+        snapshot = stored.lastValidSnapshot;
+      }
+    }
+    // 유효한 로그인 세션을 못 얻었으면 절대 loggedIn:false로 서버 기존 연결을 덮어쓰지 않고 조용히 종료
+    if (!snapshot?.loggedIn || !snapshot?.address) {
+      return;
+    }
+
     const serverUrl = await getConfiguredServerUrl();
     const resp = await handleBridgeHttp({
       url: `${serverUrl}/api/live/edge-heartbeat`,
       method: 'POST',
       storeStatus: true,
       body: {
-        loggedIn: snapshot.loggedIn,
+        loggedIn: true,
         address: snapshot.address,
         balanceUsd: snapshot.balanceUsd,
         upnlUsd: snapshot.upnlUsd,
@@ -367,7 +440,6 @@ async function runBgFallbackHeartbeat(force = false) {
           bgExecutedSignals.delete(bgExecutedSignals.values().next().value);
         }
 
-        // 탭이 살아있으면 먼저 탭에 위임(실제 브라우저 Origin 유지), 응답 없으면 백그라운드 직접 실행
         const forwarded = await tryForwardSignalToTab(tabs, sig, cfg);
         if (forwarded) continue;
 
