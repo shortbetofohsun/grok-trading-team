@@ -12,6 +12,10 @@
   let heartbeatBusy = false;
   let lastActionNote = '대기중';
   let lastServerStatus = null;
+  let lastValidSnapshot = null;
+  let lastMeCheckedAt = 0;
+  let cachedTokenPayload = null;
+  let consecutiveErrors = 0;
   const executedSignalIds = new Set();
 
   function shortAddr(addr) {
@@ -91,8 +95,41 @@
     return truncated.toFixed(decimals).replace(/\.?0+$/, '');
   }
 
+  async function directCorsFetch(path, method = 'GET', body = null) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    try {
+      const res = await fetch(`${serverUrl}${path}`, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: body ? (typeof body === 'string' ? body : JSON.stringify(body)) : undefined,
+        signal: controller.signal
+      });
+      const text = await res.text();
+      let data = {};
+      try { data = text ? JSON.parse(text) : {}; } catch { data = { rawText: text }; }
+      return { ok: res.ok, status: res.status, data };
+    } catch (err) {
+      return { ok: false, status: 0, data: { error: err?.message || '직접 통신 실패' } };
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
   function relayToServer(path, method = 'GET', body = null) {
     return new Promise((resolve) => {
+      let settled = false;
+      const done = (out) => {
+        if (!settled) {
+          settled = true;
+          resolve(out);
+        }
+      };
+      const fallbackTimer = setTimeout(async () => {
+        const direct = await directCorsFetch(path, method, body);
+        done(direct);
+      }, 4500);
+
       try {
         chrome.runtime.sendMessage(
           {
@@ -102,16 +139,23 @@
             body,
             storeStatus: path.includes('/api/live/')
           },
-          (resp) => {
-            if (chrome.runtime.lastError) {
-              resolve({ ok: false, status: 0, data: { error: chrome.runtime.lastError.message } });
+          async (resp) => {
+            clearTimeout(fallbackTimer);
+            if (chrome.runtime.lastError || !resp || !resp.ok) {
+              const direct = await directCorsFetch(path, method, body);
+              if (direct?.ok) {
+                done(direct);
+                return;
+              }
+              done(resp || { ok: false, status: 0, data: { error: chrome.runtime.lastError?.message || '백그라운드 응답 없음' } });
               return;
             }
-            resolve(resp || { ok: false, status: 0, data: { error: '백그라운드 응답 없음' } });
+            done(resp);
           }
         );
-      } catch (err) {
-        resolve({ ok: false, status: 0, data: { error: err?.message || '메시지 전송 실패' } });
+      } catch {
+        clearTimeout(fallbackTimer);
+        directCorsFetch(path, method, body).then(done);
       }
     });
   }
@@ -142,36 +186,56 @@
     return json;
   }
 
-  async function readWalletSnapshot() {
-    let me = null;
-    try {
-      me = await varApi('/api/me');
-    } catch {
-      return { loggedIn: false, address: '', balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [] };
+  async function readWalletSnapshot(forceMeRefresh = false) {
+    const nowSec = Date.now() / 1000;
+    const tokenValidCached = Boolean(
+      !forceMeRefresh &&
+      currentAddress &&
+      cachedTokenPayload &&
+      (!cachedTokenPayload.exp || nowSec + 30 < Number(cachedTokenPayload.exp)) &&
+      (Date.now() - lastMeCheckedAt) < 60000
+    );
+
+    if (!tokenValidCached) {
+      let me = null;
+      try {
+        me = await varApi('/api/me');
+      } catch {
+        if (lastValidSnapshot) return { ...lastValidSnapshot, fromCache: true };
+        return { loggedIn: false, address: '', balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [] };
+      }
+
+      const token = String(me?.token || '').trim();
+      const payload = decodeJwtPayload(token);
+      const addr = String(payload?.address || '').trim();
+      if (!token || !addr) {
+        if (lastValidSnapshot) return { ...lastValidSnapshot, fromCache: true };
+        currentAddress = '';
+        cachedTokenPayload = null;
+        return { loggedIn: false, address: '', balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [] };
+      }
+      if (payload?.exp && nowSec > Number(payload.exp)) {
+        cachedTokenPayload = null;
+        return { loggedIn: false, address: addr, balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [], expired: true };
+      }
+      currentAddress = addr;
+      cachedTokenPayload = payload;
+      lastMeCheckedAt = Date.now();
     }
 
-    const token = String(me?.token || '').trim();
-    if (!token) {
-      currentAddress = '';
-      return { loggedIn: false, address: '', balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [] };
-    }
-
-    const payload = decodeJwtPayload(token);
-    const addr = String(payload?.address || '').trim();
-    if (!addr) {
-      currentAddress = '';
-      return { loggedIn: false, address: '', balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [] };
-    }
-    currentAddress = addr;
-
-    if (payload?.exp && Date.now() / 1000 > Number(payload.exp)) {
-      return { loggedIn: false, address: addr, balanceUsd: 0, upnlUsd: 0, marginUsage: 0, positions: [], expired: true };
-    }
-
-    const [portfolio, rawPositions] = await Promise.all([
-      varApi('/api/portfolio?compute_margin=true').catch(() => ({})),
-      varApi('/api/positions').catch(() => ([]))
+    const addr = currentAddress;
+    let portfolio = null;
+    let rawPositions = null;
+    let portOk = false;
+    let posOk = false;
+    await Promise.all([
+      varApi('/api/portfolio?compute_margin=true').then((d) => { portfolio = d; portOk = true; }).catch(() => {}),
+      varApi('/api/positions').then((d) => { rawPositions = d; posOk = true; }).catch(() => {})
     ]);
+
+    if (!portOk && !posOk && lastValidSnapshot) {
+      return { ...lastValidSnapshot, fromCache: true };
+    }
 
     const rows = Array.isArray(rawPositions)
       ? rawPositions
@@ -179,29 +243,39 @@
         ? rawPositions.result
         : [];
 
-    const positions = rows
-      .map((r) => {
-        const info = r?.position_info || r || {};
-        const qty = Number(info.qty || 0);
-        return {
-          symbol: String(info?.instrument?.underlying || '').toUpperCase(),
-          qty,
-          rawQty: String(info?.qty ?? '0'),
-          side: qty > 0 ? 'LONG' : qty < 0 ? 'SHORT' : 'FLAT',
-          avgEntryPrice: Number(info?.avg_entry_price || 0),
-          upnlUsd: Number(r?.upnl || info?.upnl || 0)
-        };
-      })
-      .filter((p) => p.symbol && Math.abs(p.qty) > 0);
+    const positions = posOk
+      ? rows
+          .map((r) => {
+            const info = r?.position_info || r || {};
+            const qty = Number(info.qty || 0);
+            return {
+              symbol: String(info?.instrument?.underlying || '').toUpperCase(),
+              qty,
+              rawQty: String(info?.qty ?? '0'),
+              side: qty > 0 ? 'LONG' : qty < 0 ? 'SHORT' : 'FLAT',
+              avgEntryPrice: Number(info?.avg_entry_price || 0),
+              upnlUsd: Number(r?.upnl || info?.upnl || 0)
+            };
+          })
+          .filter((p) => p.symbol && Math.abs(p.qty) > 0)
+      : (lastValidSnapshot?.positions || []);
 
-    return {
+    const rawMu = portfolio?.margin_usage;
+    const parsedMarginUsage = typeof rawMu === 'object' && rawMu !== null
+      ? Number(rawMu.initial_margin || rawMu.total_initial_margin || 0)
+      : Number(rawMu || 0);
+
+    const freshSnap = {
       loggedIn: true,
       address: addr,
-      balanceUsd: Number(portfolio?.balance || 0),
-      upnlUsd: Number(portfolio?.upnl || 0),
-      marginUsage: Number(portfolio?.margin_usage || 0),
+      balanceUsd: portOk ? Number(portfolio?.balance || 0) : Number(lastValidSnapshot?.balanceUsd || 0),
+      upnlUsd: portOk ? Number(portfolio?.upnl || 0) : Number(lastValidSnapshot?.upnlUsd || 0),
+      marginUsage: portOk ? parsedMarginUsage : Number(lastValidSnapshot?.marginUsage || 0),
       positions
     };
+    lastValidSnapshot = freshSnap;
+    try { chrome.storage.local.set({ lastValidSnapshot: freshSnap }); } catch {}
+    return freshSnap;
   }
 
   function assertSafetyLock(snapshot, cfg, requireAllowedAddr = true) {
@@ -267,17 +341,36 @@
     }
 
     const side = String(signal.direction || '').toUpperCase() === 'SHORT' ? 'sell' : 'buy';
-    const leverage = Math.max(1, Math.min(50, Math.round(Number(signal.leverage || 10))));
-    const marginUsd = Number(signal.marginUsd || cfg?.orderMarginUsd || 30);
-    const notionalUsd = marginUsd * leverage;
+    const targetLeverage = Math.max(1, Math.min(50, Math.round(Number(signal.leverage || 30))));
+    let appliedLeverage = targetLeverage;
+    for (const tryLev of Array.from(new Set([targetLeverage, 30, 25, 20, 15, 10]))) {
+      try {
+        await varApi('/api/settlement_pools/set_leverage', {
+          method: 'POST',
+          body: { asset: inst.underlying, leverage: String(tryLev) }
+        });
+        appliedLeverage = tryLev;
+        break;
+      } catch {
+        // 종목별 최대 레버리지 제한 시 다음 배율로 자동 폴백
+      }
+    }
+
+    // 진짜 3분할: 실시간 계좌 잔고의 정확히 1/3(×0.96 수수료 여유)을 배분하되 가용 증거금 내로 안전 조정
+    const bal = Number(freshSnapshot.balanceUsd || snapshot?.balanceUsd || 0);
+    const rawUsed = Number(freshSnapshot.marginUsage || 0);
+    const usedMarginUsd = rawUsed > 1.5 ? rawUsed : (bal > 0 && rawUsed > 0 && rawUsed <= 1.5 ? bal * rawUsed : 0);
+    const autoThirdMargin = bal > 0
+      ? Number(((bal * 0.96) / maxSlots).toFixed(2))
+      : Number(signal.marginUsd || cfg?.orderMarginUsd || 33);
+    const freeMargin = bal > usedMarginUsd
+      ? Number(((bal - usedMarginUsd) * 0.95).toFixed(2))
+      : autoThirdMargin;
+    let marginUsd = Math.max(5, Math.min(autoThirdMargin, freeMargin > 5 ? freeMargin : autoThirdMargin));
+    let notionalUsd = Number((marginUsd * appliedLeverage).toFixed(2));
     const slippageDecimal = Math.max(0.001, Math.min(0.05, Number(cfg?.maxSlippageBps || 100) / 10000));
 
-    await varApi('/api/settlement_pools/set_leverage', {
-      method: 'POST',
-      body: { asset: inst.underlying, leverage: String(leverage) }
-    });
-
-    const { quote, qtyStr, execPrice } = await buildValidatedQuote(
+    let built = await buildValidatedQuote(
       inst,
       side,
       notionalUsd,
@@ -288,52 +381,71 @@
     const tpTarget = Number(signal.takeProfitUsd || 0);
     const slTarget = Number(signal.stopLossUsd || 0);
     const minRr = Number(signal.minRrRatio || 1.15);
-    if (tpTarget > 0 && slTarget > 0 && execPrice > 0) {
-      const actualRisk = side === 'sell' ? (slTarget - execPrice) : (execPrice - slTarget);
-      const actualReward = side === 'sell' ? (execPrice - tpTarget) : (tpTarget - execPrice);
+    if (tpTarget > 0 && slTarget > 0 && built.execPrice > 0) {
+      const actualRisk = side === 'sell' ? (slTarget - built.execPrice) : (built.execPrice - slTarget);
+      const actualReward = side === 'sell' ? (built.execPrice - tpTarget) : (tpTarget - built.execPrice);
       const actualRR = actualRisk > 0 ? (actualReward / actualRisk) : 0;
       if (actualRisk <= 0 || actualReward <= 0 || actualRR < minRr) {
-        throw new Error(`손익비 안전가드 차단: 실시간 호가($${execPrice}) 기준 실제 손익비(1:${actualRR.toFixed(2)})가 최소 기준(1:${minRr}) 미만으로 하락해 진입을 취소했습니다.`);
+        throw new Error(`손익비 안전가드 차단: 실시간 호가($${built.execPrice}) 기준 실제 손익비(1:${actualRR.toFixed(2)})가 최소 기준(1:${minRr}) 미만으로 하락해 진입을 취소했습니다.`);
       }
     }
 
-    const payload = {
-      quote_id: quote.quote_id,
-      side,
-      max_slippage: slippageDecimal,
-      is_reduce_only: false
+    const buildOrderBody = (qId) => {
+      const p = {
+        quote_id: qId,
+        side,
+        max_slippage: slippageDecimal,
+        is_reduce_only: false
+      };
+      const tpStr = formatPrice(signal.takeProfitUsd);
+      const slStr = formatPrice(signal.stopLossUsd);
+      if (tpStr) {
+        p.take_profit = tpStr;
+        p.tp_is_auto_resize = true;
+        p.tp_use_mark_price = true;
+        p.tp_slippage_limit = '0.01';
+      }
+      if (slStr) {
+        p.stop_loss = slStr;
+        p.sl_is_auto_resize = true;
+        p.sl_use_mark_price = true;
+        p.sl_slippage_limit = '0.01';
+      }
+      return p;
     };
 
-    const tpStr = formatPrice(signal.takeProfitUsd);
-    const slStr = formatPrice(signal.stopLossUsd);
-    if (tpStr) {
-      payload.take_profit = tpStr;
-      payload.tp_is_auto_resize = true;
-      payload.tp_use_mark_price = true;
-      payload.tp_slippage_limit = '0.01';
+    let orderRes = null;
+    try {
+      orderRes = await varApi('/api/orders/new/market', {
+        method: 'POST',
+        body: buildOrderBody(built.quote.quote_id)
+      });
+    } catch (ordErr) {
+      // 마지막 3번째 슬롯 등에서 잔여 마진이 약간 모자라면 65% 크기로 즉시 1회 축소 재시도
+      if (/margin|balance|insufficient|422/i.test(String(ordErr?.message || ''))) {
+        marginUsd = Math.max(5, Number((marginUsd * 0.65).toFixed(2)));
+        notionalUsd = Number((marginUsd * appliedLeverage).toFixed(2));
+        built = await buildValidatedQuote(inst, side, notionalUsd, Number(signal.entryPriceUsd || built.execPrice || 0));
+        orderRes = await varApi('/api/orders/new/market', {
+          method: 'POST',
+          body: buildOrderBody(built.quote.quote_id)
+        });
+      } else {
+        throw ordErr;
+      }
     }
-    if (slStr) {
-      payload.stop_loss = slStr;
-      payload.sl_is_auto_resize = true;
-      payload.sl_use_mark_price = true;
-      payload.sl_slippage_limit = '0.01';
-    }
-
-    const orderRes = await varApi('/api/orders/new/market', {
-      method: 'POST',
-      body: payload
-    });
 
     return {
       ok: true,
       symbol: inst.underlying,
       direction: side === 'sell' ? 'SHORT' : 'LONG',
-      rfqId: orderRes?.rfq_id || quote.quote_id,
-      qty: Number(qtyStr),
-      qtyStr,
-      entryPriceUsd: execPrice,
+      leverage: appliedLeverage,
+      rfqId: orderRes?.rfq_id || built.quote.quote_id,
+      qty: Number(built.qtyStr),
+      qtyStr: built.qtyStr,
+      entryPriceUsd: built.execPrice,
       marginUsd,
-      notionalUsd: Number(qtyStr) * execPrice
+      notionalUsd: Number(built.qtyStr) * built.execPrice
     };
   }
 
@@ -385,10 +497,12 @@
     const inst = getVariationalInstrument(signal.symbol || 'BTC');
     const notionalUsd = Math.max(1.0, Math.min(20, Number(signal.notionalUsd || 1.5)));
 
-    await varApi('/api/settlement_pools/set_leverage', {
-      method: 'POST',
-      body: { asset: inst.underlying, leverage: '10' }
-    });
+    try {
+      await varApi('/api/settlement_pools/set_leverage', {
+        method: 'POST',
+        body: { asset: inst.underlying, leverage: '30' }
+      });
+    } catch {}
 
     const openBuilt = await buildValidatedQuote(inst, 'buy', notionalUsd, 90000);
     const openOrder = await varApi('/api/orders/new/market', {
@@ -514,8 +628,8 @@
         <span style="font-weight:700;color:${modeColor};border:1px solid ${modeColor};padding:1px 5px;border-radius:4px;font-size:10px;">${modeLabel}</span>
       </div>
       <div style="color:#cbd5e1;">계정: ${walletTxt}</div>
-      <div style="color:#94a3b8;">포지션: ${(snapshot?.positions || []).length}개 · 상태: ${lastActionNote}</div>
-      <div style="color:#38bdf8;font-size:10px;margin-top:2px;">무중단 락 ON · R/R &gt; 1.2x 보장</div>
+      <div style="color:#94a3b8;">포지션: ${(snapshot?.positions || []).length}/3 슬롯 · 상태: ${lastActionNote}</div>
+      <div style="color:#38bdf8;font-size:10px;margin-top:2px;">무중단 락 ON · 30x · 1/3 자동분할 · R/R&gt;1.15</div>
       ${safetyTxt}
     `;
   }
@@ -544,6 +658,10 @@
   connectKeepalivePort();
 
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+    if (msg?.type === 'WAKE_HEARTBEAT') {
+      runHeartbeat().finally(() => sendResponse({ ok: true }));
+      return true;
+    }
     if (msg?.type === 'EXEC_SIGNAL_FROM_BG' && msg.signal) {
       (async () => {
         const snapshot = await readWalletSnapshot();
@@ -560,6 +678,11 @@
     heartbeatBusy = true;
     try {
       const snapshot = await readWalletSnapshot();
+      if (!snapshot?.loggedIn && !lastValidSnapshot) {
+        lastActionNote = snapshot?.expired ? '세션 만료 (재로그인 필요)' : '로그인 대기';
+        updateStatusBar(snapshot, lastServerStatus, true);
+        return;
+      }
       const resp = await relayToServer('/api/live/edge-heartbeat', 'POST', {
         loggedIn: snapshot.loggedIn,
         address: snapshot.address,
@@ -572,6 +695,7 @@
       });
 
       if (resp?.ok && resp?.data) {
+        consecutiveErrors = 0;
         lastServerStatus = resp.data.status || lastServerStatus;
         if (keepalivePort) {
           try { keepalivePort.postMessage({ type: 'TAB_HEARTBEAT_OK', at: Date.now() }); } catch {}
@@ -587,12 +711,18 @@
           await processSignal(sig, snapshot, cfg);
         }
       } else {
-        lastActionNote = resp?.data?.error ? `통신 실패 (${resp.data.error.slice(0, 24)})` : '서버 연결 대기';
-        updateStatusBar(snapshot, lastServerStatus, false);
+        consecutiveErrors += 1;
+        if (consecutiveErrors >= 5 || !lastValidSnapshot) {
+          lastActionNote = resp?.data?.error ? `통신 지연 (${resp.data.error.slice(0, 22)})` : '서버 응답 대기';
+          updateStatusBar(snapshot, lastServerStatus, false);
+        }
       }
     } catch (err) {
-      lastActionNote = `오류 (${String(err?.message || '').slice(0, 28)})`;
-      updateStatusBar(null, lastServerStatus, false);
+      consecutiveErrors += 1;
+      if (consecutiveErrors >= 5 || !lastValidSnapshot) {
+        lastActionNote = `오류 (${String(err?.message || '').slice(0, 24)})`;
+        updateStatusBar(lastValidSnapshot, lastServerStatus, false);
+      }
     } finally {
       heartbeatBusy = false;
     }
