@@ -580,7 +580,7 @@ async function executeLiveStopHuntEntry(cand, overrideMarginUsd = undefined) {
   try {
     await curlVariationalRequest('POST', '/settlement_pools/set_leverage', {
       asset: inst.underlying,
-      leverage: '10'
+      leverage: '30'
     });
   } catch {}
 
@@ -593,7 +593,7 @@ async function executeLiveStopHuntEntry(cand, overrideMarginUsd = undefined) {
     Number(overrideMarginUsd || liveState.orderMarginUsd || 30),
     availBalance * 0.9
   ));
-  const notionalUsd = Number((marginUsd * 10).toFixed(2));
+  const notionalUsd = Number((marginUsd * 30).toFixed(2));
   const side = cand.direction === 'LONG' ? 'buy' : 'sell';
 
   const { quote, finalQty, refPrice } = await prepareExactQuoteForNotional(
@@ -716,7 +716,7 @@ async function executeLiveRoundtripTest(symbol = 'BTC', notionalUsd = 1.5) {
   try {
     await curlVariationalRequest('POST', '/settlement_pools/set_leverage', {
       asset: inst.underlying,
-      leverage: '10'
+      leverage: '30'
     });
   } catch {}
 
